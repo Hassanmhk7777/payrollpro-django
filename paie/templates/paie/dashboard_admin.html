@@ -1,0 +1,231 @@
+{% extends 'paie/base.html' %}
+
+{% block title %}Dashboard Admin - PayrollPro{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Title -->
+    <div class="row">
+        <div class="col-12">
+            <h1 class="page-title">
+                <i class="bi bi-speedometer2"></i> Tableau de Bord Administrateur
+            </h1>
+            <p class="text-muted">Vue d'ensemble de votre système de paie</p>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="stats-card text-center">
+                <div class="stats-number text-primary">{{ total_employes }}</div>
+                <div class="stats-label">Employés Actifs</div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="stats-card text-center">
+                <div class="stats-number text-success">{{ masse_salariale|floatformat:0 }} DH</div>
+                <div class="stats-label">Masse Salariale Mensuelle</div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="stats-card text-center">
+                <div class="stats-number text-info">{{ total_cotisations|floatformat:0 }} DH</div>
+                <div class="stats-label">Cotisations Sociales</div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="stats-card text-center">
+                <div class="stats-number text-warning">{{ absences_attente }}</div>
+                <div class="stats-label">Alertes en Attente</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alerts Section -->
+    {% if alertes %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <h3 class="section-title">
+                <i class="bi bi-exclamation-triangle"></i> Alertes & Notifications
+            </h3>
+            {% for alerte in alertes %}
+                <div class="alert alert-warning alert-custom">
+                    <i class="bi bi-bell"></i> {{ alerte }}
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Quick Actions -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h3 class="section-title">
+                <i class="bi bi-lightning"></i> Actions Rapides
+            </h3>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <a href="{% url 'paie:calcul_paie' %}" class="btn btn-primary btn-action w-100">
+                <i class="bi bi-calculator"></i><br>
+                <strong>Calculer Paie</strong><br>
+                <small>Lancer le calcul mensuel</small>
+            </a>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <a href="{% url 'paie:liste_employes' %}" class="btn btn-info btn-action w-100">
+                <i class="bi bi-person-plus"></i><br>
+                <strong>Gérer Employés</strong><br>
+                <small>Ajouter ou modifier</small>
+            </a>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <a href="/admin/" class="btn btn-success btn-action w-100">
+                <i class="bi bi-gear"></i><br>
+                <strong>Administration</strong><br>
+                <small>Paramètres système</small>
+            </a>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <a href="#" class="btn btn-warning btn-action w-100">
+                <i class="bi bi-file-earmark-pdf"></i><br>
+                <strong>Rapports</strong><br>
+                <small>Générer PDF</small>
+            </a>
+        </div>
+    </div>
+
+    <!-- Recent Activity and System Status -->
+    <div class="row">
+        <div class="col-lg-8">
+            <h3 class="section-title">
+                <i class="bi bi-clock-history"></i> Activité Récente
+            </h3>
+            
+            <div class="table-responsive">
+                <table class="table table-sm table-hover">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Action</th>
+                            <th>Utilisateur</th>
+                            <th>Détail</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>{{ "now"|date:"d/m H:i" }}</td>
+                            <td><span class="badge bg-success">Connexion</span></td>
+                            <td>{{ user.username }}</td>
+                            <td>Accès au dashboard admin</td>
+                        </tr>
+                        <tr>
+                            <td>{{ "now"|date:"d/m H:i" }}</td>
+                            <td><span class="badge bg-info">Calcul</span></td>
+                            <td>System</td>
+                            <td>Mise à jour des statistiques</td>
+                        </tr>
+                        {% if employes_recents > 0 %}
+                        <tr>
+                            <td>{{ "now"|date:"d/m" }}</td>
+                            <td><span class="badge bg-primary">Ajout</span></td>
+                            <td>{{ user.username }}</td>
+                            <td>{{ employes_recents }} nouvel(s) employé(s)</td>
+                        </tr>
+                        {% endif %}
+                        <tr>
+                            <td>{{ "now"|date:"d/m H:i" }}</td>
+                            <td><span class="badge bg-warning">Validation</span></td>
+                            <td>RH</td>
+                            <td>{{ bulletins_non_valides }} bulletin(s) en attente</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- System Status -->
+        <div class="col-lg-4">
+            <h3 class="section-title">
+                <i class="bi bi-gear"></i> État du Système
+            </h3>
+            
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <h6 class="card-title">Performance</h6>
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between">
+                            <span>Base de données</span>
+                            <span class="text-success">✓ OK</span>
+                        </div>
+                        <div class="progress" style="height: 5px;">
+                            <div class="progress-bar bg-success" style="width: 95%"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between">
+                            <span>Calculs de paie</span>
+                            <span class="text-info">✓ Actif</span>
+                        </div>
+                        <div class="progress" style="height: 5px;">
+                            <div class="progress-bar bg-info" style="width: 88%"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between">
+                            <span>Sauvegarde</span>
+                            <span class="text-warning">⚠ Prévue</span>
+                        </div>
+                        <div class="progress" style="height: 5px;">
+                            <div class="progress-bar bg-warning" style="width: 70%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Stats -->
+            <div class="card border-0 shadow-sm mt-3">
+                <div class="card-body">
+                    <h6 class="card-title">Statistiques Rapides</h6>
+                    <ul class="list-unstyled mb-0">
+                        <li class="d-flex justify-content-between py-1">
+                            <span>Employés inactifs:</span>
+                            <strong class="text-danger">{{ employes_inactifs }}</strong>
+                        </li>
+                        <li class="d-flex justify-content-between py-1">
+                            <span>Nouveaux (7j):</span>
+                            <strong class="text-primary">{{ employes_recents }}</strong>
+                        </li>
+                        <li class="d-flex justify-content-between py-1">
+                            <span>Bulletins validés:</span>
+                            <strong class="text-success">{{ total_employes|sub:bulletins_non_valides }}</strong>
+                        </li>
+                        <li class="d-flex justify-content-between py-1">
+                            <span>Période:</span>
+                            <strong>{{ mois_actuel|date:"F Y" }}</strong>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- System Actions -->
+            <div class="d-grid gap-2 mt-3">
+                <a href="/admin/paie/employe/" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-people"></i> Gérer Employés
+                </a>
+                <a href="/admin/paie/parametrepaie/" class="btn btn-sm btn-outline-info">
+                    <i class="bi bi-sliders"></i> Paramètres Paie
+                </a>
+                <a href="/admin/" class="btn btn-sm btn-outline-success">
+                    <i class="bi bi-shield-check"></i> Administration Django
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

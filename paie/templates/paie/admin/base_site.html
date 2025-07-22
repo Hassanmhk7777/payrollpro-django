@@ -1,0 +1,13 @@
+<!-- Créez le fichier templates/admin/base_site.html -->
+{% extends "admin/base.html" %}
+
+{% block branding %}
+<div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+    <h1 id="site-name">
+        <a href="{% url 'admin:index' %}">Administration PayrollPro</a>
+    </h1>
+    <a href="/" style="background: #007cba; color: white; padding: 8px 15px; border-radius: 4px; text-decoration: none; font-size: 13px;">
+        ← Retour à PayrollPro
+    </a>
+</div>
+{% endblock %}

@@ -1,0 +1,193 @@
+{% extends 'paie/base.html' %}
+
+{% block title %}Mon Espace - PayrollPro{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Title -->
+    <div class="row">
+        <div class="col-12">
+            <h1 class="page-title">
+                <i class="bi bi-person-circle"></i> Mon Espace Employé
+            </h1>
+            {% if employe %}
+                <p class="text-muted">Bienvenue {{ employe.nom_complet }} - {{ employe.fonction }}</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Mon Dernier Bulletin -->
+        <div class="col-lg-6 mb-4">
+            <div class="stats-card">
+                <h3 class="section-title">
+                    <i class="bi bi-file-earmark-text"></i> Mon Dernier Bulletin
+                </h3>
+                
+                {% if dernier_bulletin %}
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h4 class="text-primary">{{ dernier_bulletin.periode_formatted }}</h4>
+                            <p class="mb-2">
+                                <strong>Salaire Net:</strong> 
+                                <span class="text-success h5">{{ dernier_bulletin.net_a_payer|floatformat:2 }} DH</span>
+                            </p>
+                            <p class="text-muted">
+                                <small>Salaire Brut: {{ dernier_bulletin.salaire_brut_imposable|floatformat:2 }} DH</small>
+                            </p>
+                        </div>
+                        <div class="col-md-6 text-end">
+                            <div class="d-grid gap-2">
+                                <a href="#" class="btn btn-primary btn-sm">
+                                    <i class="bi bi-download"></i> Télécharger PDF
+                                </a>
+                                <a href="#" class="btn btn-outline-secondary btn-sm">
+                                    <i class="bi bi-envelope"></i> Renvoyer par Email
+                                </a>
+                                <a href="#" class="btn btn-outline-info btn-sm">
+                                    <i class="bi bi-eye"></i> Voir Détails
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i> Aucun bulletin de paie disponible pour le moment.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Mes Congés -->
+        <div class="col-lg-6 mb-4">
+            <div class="stats-card">
+                <h3 class="section-title">
+                    <i class="bi bi-calendar-heart"></i> Mes Congés & Absences
+                </h3>
+                
+                <div class="row text-center mb-3">
+                    <div class="col-6">
+                        <div class="stats-number text-success">{{ solde_conges }}</div>
+                        <div class="stats-label">Jours de Congés</div>
+                    </div>
+                    <div class="col-6">
+                        <div class="stats-number text-info">{{ solde_rtt }}</div>
+                        <div class="stats-label">RTT Disponibles</div>
+                    </div>
+                </div>
+
+                {% if absences_recentes %}
+                    <h6 class="fw-bold mb-2">Dernières demandes :</h6>
+                    {% for absence in absences_recentes %}
+                        <div class="d-flex justify-content-between align-items-center mb-2 p-2 bg-light rounded">
+                            <div>
+                                <strong>{{ absence.get_type_absence_display }}</strong><br>
+                                <small class="text-muted">
+                                    {{ absence.date_debut }} - {{ absence.date_fin }} ({{ absence.nombre_jours }}j)
+                                </small>
+                            </div>
+                            <div>
+                                {% if absence.statut == 'APPROUVE' %}
+                                    <span class="badge bg-success">✓ Approuvé</span>
+                                {% elif absence.statut == 'REFUSE' %}
+                                    <span class="badge bg-danger">✗ Refusé</span>
+                                {% else %}
+                                    <span class="badge bg-warning">⏳ En attente</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+
+                <div class="d-grid gap-2 mt-3">
+                    <a href="#" class="btn btn-success btn-action">
+                        <i class="bi bi-calendar-plus"></i> Nouvelle Demande de Congé
+                    </a>
+                    <a href="#" class="btn btn-outline-primary btn-action">
+                        <i class="bi bi-calendar"></i> Voir Planning Équipe
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation Rapide -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h3 class="section-title">
+                <i class="bi bi-grid"></i> Navigation Rapide
+            </h3>
+            
+            <div class="row">
+                <div class="col-lg-3 col-md-6 mb-3">
+                    <a href="#" class="btn btn-outline-primary btn-action w-100">
+                        <i class="bi bi-file-earmark-text"></i><br>
+                        <strong>Mes Bulletins</strong><br>
+                        <small>Historique complet</small>
+                    </a>
+                </div>
+                
+                <div class="col-lg-3 col-md-6 mb-3">
+                    <a href="#" class="btn btn-outline-success btn-action w-100">
+                        <i class="bi bi-calendar-event"></i><br>
+                        <strong>Mes Absences</strong><br>
+                        <small>Demandes et soldes</small>
+                    </a>
+                </div>
+                
+                <div class="col-lg-3 col-md-6 mb-3">
+                    <a href="#" class="btn btn-outline-info btn-action w-100">
+                        <i class="bi bi-person"></i><br>
+                        <strong>Mon Profil</strong><br>
+                        <small>Informations personnelles</small>
+                    </a>
+                </div>
+                
+                <div class="col-lg-3 col-md-6 mb-3">
+                    <a href="#" class="btn btn-outline-warning btn-action w-100">
+                        <i class="bi bi-telephone"></i><br>
+                        <strong>Contact RH</strong><br>
+                        <small>Support et questions</small>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Informations Utiles -->
+    {% if employe %}
+    <div class="row">
+        <div class="col-12">
+            <h3 class="section-title">
+                <i class="bi bi-info-circle"></i> Mes Informations
+            </h3>
+            
+            <div class="table-responsive">
+                <table class="table table-borderless">
+                    <tbody>
+                        <tr>
+                            <td><strong>Matricule:</strong></td>
+                            <td>{{ employe.matricule }}</td>
+                            <td><strong>Fonction:</strong></td>
+                            <td>{{ employe.fonction }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Date d'embauche:</strong></td>
+                            <td>{{ employe.date_embauche }}</td>
+                            <td><strong>Situation familiale:</strong></td>
+                            <td>{{ employe.get_situation_familiale_display }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Enfants à charge:</strong></td>
+                            <td>{{ employe.nombre_enfants }}</td>
+                            <td><strong>Téléphone:</strong></td>
+                            <td>{{ employe.telephone|default:"Non renseigné" }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
