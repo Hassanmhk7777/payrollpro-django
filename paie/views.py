@@ -10,11 +10,24 @@ from django.shortcuts import redirect
 
 # Imports locaux
 from .models import Employe, ParametrePaie, ElementPaie, Absence, BulletinPaie
+from .user_management import GestionnaireUtilisateurs, obtenir_role_utilisateur
+
 
 def accueil(request):
-    """Page d'accueil simplifiée"""
+    """Page d'accueil avec redirection intelligente selon le rôle"""
     
-    # Statistiques de base
+    if request.user.is_authenticated:
+        role = obtenir_role_utilisateur(request.user)
+        
+        # Redirection selon le rôle
+        if role == 'admin':
+            return redirect('paie:dashboard_admin')
+        elif role == 'rh':
+            return redirect('paie:dashboard_rh')
+        elif role == 'employe':
+            return redirect('paie:dashboard_employe')
+    
+    # Statistiques de base pour la page d'accueil
     total_employes = Employe.objects.filter(actif=True).count()
     absences_attente = Absence.objects.filter(statut='EN_ATTENTE').count()
     
@@ -34,6 +47,11 @@ def accueil(request):
 @login_required
 def dashboard_admin(request):
     """Dashboard pour les administrateurs"""
+    
+    # Vérifier les permissions
+    role = obtenir_role_utilisateur(request.user)
+    if role != 'admin':
+        return redirect('paie:accueil')
     
     # Statistiques générales
     total_employes = Employe.objects.filter(actif=True).count()
@@ -63,10 +81,17 @@ def dashboard_admin(request):
     # Absences en attente
     absences_attente = Absence.objects.filter(statut='EN_ATTENTE').count()
     
+    # Statistiques des comptes utilisateurs
+    employes_avec_compte = Employe.objects.filter(user__isnull=False).count()
+    employes_sans_compte = Employe.objects.filter(user__isnull=True).count()
+    
     # Alertes
     alertes = []
     if absences_attente > 0:
         alertes.append(f"{absences_attente} demande(s) d'absence en attente de validation")
+    
+    if employes_sans_compte > 0:
+        alertes.append(f"{employes_sans_compte} employé(s) sans compte d'accès au système")
     
     # Bulletins non validés
     bulletins_non_valides = bulletins_mois.filter(valide=False).count()
@@ -84,6 +109,8 @@ def dashboard_admin(request):
         'total_employes': total_employes,
         'employes_inactifs': employes_inactifs,
         'employes_recents': employes_recents,
+        'employes_avec_compte': employes_avec_compte,
+        'employes_sans_compte': employes_sans_compte,
         'masse_salariale': masse_salariale,
         'total_cotisations': total_cotisations_somme,
         'absences_attente': absences_attente,
@@ -99,6 +126,11 @@ def dashboard_admin(request):
 @login_required
 def dashboard_rh(request):
     """Dashboard pour les responsables RH"""
+    
+    # Vérifier les permissions
+    role = obtenir_role_utilisateur(request.user)
+    if role not in ['admin', 'rh']:
+        return redirect('paie:dashboard_employe')
     
     # Tâches du jour
     mois_actuel = timezone.now().month
@@ -161,26 +193,36 @@ def dashboard_employe(request):
     """Dashboard pour les employés"""
     
     # Récupérer l'employé lié à l'utilisateur
-    try:
-        # On suppose qu'il y a une relation entre User et Employe
-        # Pour l'instant, on prend le premier employé (à améliorer plus tard)
-        employe = Employe.objects.first()
-    except Employe.DoesNotExist:
-        employe = None
+    gestionnaire = GestionnaireUtilisateurs()
+    employe = gestionnaire.obtenir_employe_par_user(request.user)
+    
+    if not employe:
+        # Si l'utilisateur n'est pas lié à un employé, rediriger vers admin
+        if request.user.is_superuser:
+            return redirect('paie:dashboard_admin')
+        else:
+            # Cas d'erreur - utilisateur sans employé associé
+            return render(request, 'paie/erreur_acces.html', {
+                'message': "Votre compte n'est pas associé à un employé. Contactez votre administrateur."
+            })
     
     # Dernier bulletin de paie
-    dernier_bulletin = None
-    if employe:
-        dernier_bulletin = BulletinPaie.objects.filter(employe=employe).first()
+    dernier_bulletin = BulletinPaie.objects.filter(employe=employe).first()
     
     # Solde de congés (simulation - à calculer vraiment plus tard)
-    solde_conges = 22  # Congés payés annuels
-    solde_rtt = 5      # RTT disponibles
+    from django.db.models import Sum
+    conges_pris = Absence.objects.filter(
+        employe=employe,
+        type_absence='CONGE',
+        statut='APPROUVE',
+        date_debut__year=timezone.now().year
+    ).aggregate(total=Sum('nombre_jours'))['total'] or 0
+    
+    solde_conges = max(0, 22 - conges_pris)  # 22 congés payés annuels
+    solde_rtt = 5      # RTT disponibles (à améliorer)
     
     # Dernières absences
-    absences_recentes = []
-    if employe:
-        absences_recentes = Absence.objects.filter(employe=employe)[:3]
+    absences_recentes = Absence.objects.filter(employe=employe)[:3]
     
     context = {
         'user_role': 'employe',
@@ -194,8 +236,14 @@ def dashboard_employe(request):
     return render(request, 'paie/dashboard_employe.html', context)
 
 
+@login_required
 def liste_employes(request):
-    """Affiche la liste de tous les employés"""
+    """Affiche la liste de tous les employés - Accès restreint Admin/RH"""
+    
+    # Vérifier les permissions
+    role = obtenir_role_utilisateur(request.user)
+    if role not in ['admin', 'rh']:
+        return redirect('paie:dashboard_employe')
     
     # Récupérer tous les employés actifs
     employes = Employe.objects.filter(actif=True).order_by('matricule')
@@ -216,6 +264,7 @@ def liste_employes(request):
         'total_employes': total_employes,
         'masse_salariale_totale': masse_salariale_totale,
         'salaire_moyen': salaire_moyen,
+        'user_role': role,
     }
     
     return render(request, 'paie/liste_employes_simple.html', context)
@@ -225,6 +274,15 @@ def detail_employe(request, employe_id):
     """Affiche les détails d'un employé"""
     
     employe = get_object_or_404(Employe, id=employe_id)
+    
+    # Vérifier les permissions
+    role = obtenir_role_utilisateur(request.user)
+    if role == 'employe':
+        # Un employé ne peut voir que ses propres infos
+        gestionnaire = GestionnaireUtilisateurs()
+        employe_connecte = gestionnaire.obtenir_employe_par_user(request.user)
+        if not employe_connecte or employe_connecte.id != employe.id:
+            return redirect('paie:dashboard_employe')
     
     # Derniers bulletins de paie
     bulletins = BulletinPaie.objects.filter(employe=employe)[:6]
@@ -240,6 +298,7 @@ def detail_employe(request, employe_id):
         'bulletins': bulletins,
         'absences': absences,
         'elements': elements,
+        'user_role': role,
     }
     
     return render(request, 'paie/detail_employe.html', context)
@@ -247,7 +306,12 @@ def detail_employe(request, employe_id):
 
 @login_required
 def calcul_paie(request):
-    """Page de calcul de la paie mensuelle"""
+    """Page de calcul de la paie mensuelle - Accès Admin/RH seulement"""
+    
+    # Vérifier les permissions
+    role = obtenir_role_utilisateur(request.user)
+    if role not in ['admin', 'rh']:
+        return redirect('paie:dashboard_employe')
     
     from .calculs import CalculateurPaie
     
@@ -258,7 +322,8 @@ def calcul_paie(request):
         'message': None,
         'bulletins': [],
         'statistiques': None,
-        'erreurs': []
+        'erreurs': [],
+        'user_role': role,
     }
     
     if request.method == 'POST':
@@ -323,12 +388,22 @@ def calcul_paie(request):
     
     return render(request, 'paie/calcul_paie.html', context)
 
+
 @login_required
 def generer_bulletin_pdf(request, bulletin_id):
     """Génère un bulletin de paie en PDF avec debug"""
     
     # Récupérer le bulletin
     bulletin = get_object_or_404(BulletinPaie, id=bulletin_id)
+    
+    # Vérifier les permissions
+    role = obtenir_role_utilisateur(request.user)
+    if role == 'employe':
+        # Un employé ne peut voir que ses propres bulletins
+        gestionnaire = GestionnaireUtilisateurs()
+        employe_connecte = gestionnaire.obtenir_employe_par_user(request.user)
+        if not employe_connecte or employe_connecte.id != bulletin.employe.id:
+            return HttpResponse("Accès non autorisé", status=403)
     
     try:
         # Test 1: Vérifier ReportLab
@@ -372,24 +447,22 @@ def generer_bulletin_pdf(request, bulletin_id):
             <p><strong>Type:</strong> {type(e).__name__}</p>
             <p><a href="/calcul-paie/">Retour</a></p>
         """)
-    
+
+
 # =====================================
 # GESTION DES ABSENCES - NOUVELLES FONCTIONS
 # =====================================
 
 @login_required
 def gestion_absences(request):
-    """Page de gestion des absences"""
+    """Page de gestion des absences avec permissions par rôle"""
     
-    # Pour l'instant, prendre le premier employé comme exemple
-    # TODO: Lier avec l'utilisateur connecté
-    try:
-        employe_actuel = Employe.objects.first()
-    except Employe.DoesNotExist:
-        employe_actuel = None
+    role = obtenir_role_utilisateur(request.user)
+    gestionnaire = GestionnaireUtilisateurs()
+    employe_actuel = gestionnaire.obtenir_employe_par_user(request.user)
     
     # Statistiques générales pour RH/Admin
-    if request.user.is_superuser or request.user.groups.filter(name='RH').exists():
+    if role in ['admin', 'rh']:
         absences_en_attente = Absence.objects.filter(statut='EN_ATTENTE').count()
         absences_du_mois = Absence.objects.filter(
             date_debut__month=timezone.now().month,
@@ -411,10 +484,6 @@ def gestion_absences(request):
         mes_absences = Absence.objects.filter(employe=employe_actuel).order_by('-date_creation')[:5]
         
         # Calcul des soldes de congés (simulation)
-        solde_conges = 22  # Congés payés annuels standard
-        solde_rtt = 5      # RTT disponibles
-        
-        # Décompter les congés déjà pris cette année
         from django.db.models import Sum
         conges_pris = Absence.objects.filter(
             employe=employe_actuel,
@@ -423,7 +492,8 @@ def gestion_absences(request):
             date_debut__year=timezone.now().year
         ).aggregate(total=Sum('nombre_jours'))['total'] or 0
         
-        solde_conges_restant = max(0, solde_conges - conges_pris)
+        solde_conges_restant = max(0, 22 - conges_pris)  # 22 jours de congés payés
+        solde_rtt = 5      # RTT disponibles
     else:
         mes_absences = []
         solde_conges_restant = 0
@@ -440,6 +510,7 @@ def gestion_absences(request):
         'solde_rtt': solde_rtt,
         'message': None,
         'erreur': None,
+        'user_role': role,
     }
     
     # Traitement du formulaire de demande
@@ -503,10 +574,11 @@ def gestion_absences(request):
 
 @login_required
 def valider_absence(request, absence_id):
-    """Valider ou refuser une demande d'absence (RH seulement) - Version avancée"""
+    """Valider ou refuser une demande d'absence (RH/Admin seulement)"""
     
     # Vérifier que l'utilisateur est RH ou Admin
-    if not (request.user.is_superuser or request.user.groups.filter(name='RH').exists()):
+    role = obtenir_role_utilisateur(request.user)
+    if role not in ['admin', 'rh']:
         return JsonResponse({'error': 'Accès non autorisé'}, status=403)
     
     absence = get_object_or_404(Absence, id=absence_id)
@@ -593,9 +665,10 @@ def valider_absence(request, absence_id):
 
 @login_required
 def validation_lot_absences(request):
-    """Validation en lot des absences (RH seulement)"""
+    """Validation en lot des absences (RH/Admin seulement)"""
     
-    if not (request.user.is_superuser or request.user.groups.filter(name='RH').exists()):
+    role = obtenir_role_utilisateur(request.user)
+    if role not in ['admin', 'rh']:
         return JsonResponse({'error': 'Accès non autorisé'}, status=403)
     
     if request.method == 'POST':
@@ -658,9 +731,10 @@ def validation_lot_absences(request):
 
 @login_required
 def statistiques_absences(request):
-    """Statistiques détaillées des absences pour RH"""
+    """Statistiques détaillées des absences pour RH/Admin"""
     
-    if not (request.user.is_superuser or request.user.groups.filter(name='RH').exists()):
+    role = obtenir_role_utilisateur(request.user)
+    if role not in ['admin', 'rh']:
         return JsonResponse({'error': 'Accès non autorisé'}, status=403)
     
     # Statistiques du mois en cours
@@ -726,9 +800,14 @@ def statistiques_absences(request):
     
     return JsonResponse(stats)
 
+
 @login_required
 def calendrier_absences(request):
     """Calendrier des absences pour la vue d'ensemble"""
+    
+    role = obtenir_role_utilisateur(request.user)
+    if role not in ['admin', 'rh']:
+        return redirect('paie:dashboard_employe')
     
     # Récupérer toutes les absences approuvées du mois
     absences_mois = Absence.objects.filter(
@@ -740,23 +819,29 @@ def calendrier_absences(request):
     context = {
         'absences_mois': absences_mois,
         'mois_actuel': timezone.now().strftime('%B %Y'),
+        'user_role': role,
     }
     
     return render(request, 'paie/calendrier_absences.html', context)
-# À ajouter dans views.py
+
 
 @login_required
 def test_calcul_absences(request):
     """
     Vue de test pour vérifier l'intégration des absences dans la paie
     """
+    role = obtenir_role_utilisateur(request.user)
+    if role not in ['admin', 'rh']:
+        return redirect('paie:dashboard_employe')
+    
     from .calculs import CalculateurPaie
     from django.utils import timezone
     
     context = {
         'tests_effectues': [],
         'erreurs': [],
-        'employes': Employe.objects.filter(actif=True)
+        'employes': Employe.objects.filter(actif=True),
+        'user_role': role,
     }
     
     if request.method == 'POST':
@@ -805,8 +890,21 @@ def test_calcul_absences(request):
                 })
     
     return render(request, 'paie/test_calcul_absences.html', context)
+
+
 @login_required
 def deconnexion_vue(request):
     """Vue personnalisée de déconnexion"""
     logout(request)
-    return redirect('paie:accueil')
+    return redirect('paie:accueil')  
+# Ajoutez cette fonction à la fin de votre fichier paie/views.py
+
+@login_required
+def page_aide(request):
+    """Page d'aide avec tous les liens et guides de navigation"""
+    
+    context = {
+        'user_role': obtenir_role_utilisateur(request.user),
+    }
+    
+    return render(request, 'paie/aide.html', context)

@@ -6,6 +6,15 @@ from django.contrib.auth.models import User
 class Employe(models.Model):
     """Modèle pour les employés de l'entreprise"""
     
+    # NOUVEAU: Lien avec le système d'authentification Django
+    user = models.OneToOneField(
+        User, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True, 
+        help_text="Compte utilisateur pour l'accès au système"
+    )
+    
     # Informations personnelles
     matricule = models.CharField(max_length=10, unique=True, help_text="Ex: S001, S002...")
     nom = models.CharField(max_length=100)
@@ -16,6 +25,18 @@ class Employe(models.Model):
     fonction = models.CharField(max_length=100, help_text="Ex: Technicien, Comptable...")
     date_embauche = models.DateField()
     salaire_base = models.DecimalField(max_digits=10, decimal_places=2, help_text="Salaire mensuel de base en DH")
+    
+    # NOUVEAU: Rôle dans le système
+    ROLE_CHOICES = [
+        ('EMPLOYE', 'Employé'),
+        ('RH', 'Ressources Humaines'),
+    ]
+    role_systeme = models.CharField(
+        max_length=20, 
+        choices=ROLE_CHOICES, 
+        default='EMPLOYE',
+        help_text="Rôle dans le système de paie"
+    )
     
     # Informations personnelles complémentaires
     SITUATION_CHOICES = [
@@ -52,8 +73,19 @@ class Employe(models.Model):
     def nom_complet(self):
         """Retourne le nom complet de l'employé"""
         return f"{self.nom} {self.prenom}"
+    
+    def est_rh(self):
+        """Vérifie si l'employé a le rôle RH"""
+        return self.role_systeme == 'RH'
+    
+    def peut_gerer_employes(self):
+        """Vérifie si l'employé peut gérer d'autres employés"""
+        if self.user and self.user.is_superuser:
+            return True
+        return self.role_systeme == 'RH'
 
 
+# Vos autres modèles restent identiques...
 class ParametrePaie(models.Model):
     """Paramètres de calcul de la paie (barème IR, taux CNSS, etc.)"""
     

@@ -83,17 +83,17 @@
             </a>
         </div>
         <div class="col-lg-3 col-md-6 mb-3">
-            <a href="/admin/" class="btn btn-success btn-action w-100">
-                <i class="bi bi-gear"></i><br>
-                <strong>Administration</strong><br>
-                <small>Paramètres système</small>
+            <a href="{% url 'paie:gestion_utilisateurs' %}" class="btn btn-success btn-action w-100">
+                <i class="bi bi-person-gear"></i><br>
+                <strong>Gestion Utilisateurs</strong><br>
+                <small>Comptes et permissions</small>
             </a>
         </div>
         <div class="col-lg-3 col-md-6 mb-3">
-            <a href="#" class="btn btn-warning btn-action w-100">
-                <i class="bi bi-file-earmark-pdf"></i><br>
-                <strong>Rapports</strong><br>
-                <small>Générer PDF</small>
+            <a href="/admin/" class="btn btn-warning btn-action w-100">
+                <i class="bi bi-gear"></i><br>
+                <strong>Administration</strong><br>
+                <small>Paramètres système</small>
             </a>
         </div>
     </div>
@@ -202,12 +202,16 @@
                             <strong class="text-primary">{{ employes_recents }}</strong>
                         </li>
                         <li class="d-flex justify-content-between py-1">
-                            <span>Bulletins validés:</span>
-                            <strong class="text-success">{{ total_employes|sub:bulletins_non_valides }}</strong>
+                            <span>Avec compte:</span>
+                            <strong class="text-success">{{ employes_avec_compte }}</strong>
+                        </li>
+                        <li class="d-flex justify-content-between py-1">
+                            <span>Sans compte:</span>
+                            <strong class="text-warning">{{ employes_sans_compte }}</strong>
                         </li>
                         <li class="d-flex justify-content-between py-1">
                             <span>Période:</span>
-                            <strong>{{ mois_actuel|date:"F Y" }}</strong>
+                            <strong>{{ mois_actuel|date:"F Y"|default:"Juillet 2025" }}</strong>
                         </li>
                     </ul>
                 </div>

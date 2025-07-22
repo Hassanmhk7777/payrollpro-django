@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Système de Paie{% endblock %}</title>
+    <title>{% block title %}PayrollPro - Système de Paie{% endblock %}</title>
     
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -45,6 +45,7 @@
             margin: 5px 10px;
             border-radius: 8px;
             transition: all 0.3s ease;
+            text-decoration: none;
         }
 
         .sidebar .nav-link:hover {
@@ -166,30 +167,48 @@
             margin-top: 50px;
         }
 
-        /* Style pour les liens temporaires */
-        .nav-link.disabled {
-            color: rgba(255, 255, 255, 0.5) !important;
-            cursor: not-allowed;
+        /* Navigation améliorée */
+        .nav-section-title {
+            padding: 10px 20px;
+            margin-top: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
         }
 
-        .nav-link.disabled:hover {
-            transform: none;
-            background-color: transparent;
+        .role-badge {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            margin: 10px;
+            text-align: center;
+            font-weight: 600;
         }
 
-        /* Style pour le bouton de déconnexion */
-        .logout-btn {
-            border: none;
-            background: none;
-            width: 100%;
-            text-align: left;
-            padding: 8px 16px;
-            color: inherit;
-            cursor: pointer;
+        .quick-access {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
         }
 
-        .logout-btn:hover {
-            background-color: #f8f9fa;
+        .quick-access .btn {
+            margin-bottom: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Breadcrumb personnalisé */
+        .custom-breadcrumb {
+            background: white;
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Indicateur de page active */
+        .current-page {
+            background-color: rgba(255, 255, 255, 0.3) !important;
+            color: white !important;
         }
     </style>
 </head>
@@ -200,6 +219,28 @@
             <a class="navbar-brand" href="{% url 'paie:accueil' %}">
                 <i class="bi bi-calculator"></i> PayrollPro
             </a>
+
+            <!-- Navigation horizontale pour les actions rapides -->
+            {% if user.is_authenticated %}
+            <div class="navbar-nav d-none d-lg-flex flex-row mx-auto">
+                {% if user.is_superuser or user.groups.all.0.name == 'RH' %}
+                <a class="nav-link mx-2" href="{% url 'paie:liste_employes' %}">
+                    <i class="bi bi-people"></i> Employés
+                </a>
+                <a class="nav-link mx-2" href="{% url 'paie:calcul_paie' %}">
+                    <i class="bi bi-calculator"></i> Paie
+                </a>
+                <a class="nav-link mx-2" href="{% url 'paie:gestion_absences' %}">
+                    <i class="bi bi-calendar-x"></i> Absences
+                </a>
+                {% if user.is_superuser %}
+                <a class="nav-link mx-2" href="{% url 'paie:gestion_utilisateurs' %}">
+                    <i class="bi bi-person-gear"></i> Utilisateurs
+                </a>
+                {% endif %}
+                {% endif %}
+            </div>
+            {% endif %}
             
             <div class="navbar-nav ms-auto">
                 {% if user.is_authenticated %}
@@ -207,8 +248,30 @@
                         <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" 
                            data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="bi bi-person-circle"></i> {{ user.username }}
+                            {% if user.is_superuser %}
+                                <span class="badge bg-warning ms-1">Admin</span>
+                            {% elif user.groups.all.0.name == 'RH' %}
+                                <span class="badge bg-info ms-1">RH</span>
+                            {% else %}
+                                <span class="badge bg-secondary ms-1">Employé</span>
+                            {% endif %}
                         </a>
-                        <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <!-- Liens directs vers les dashboards -->
+                            {% if user.is_superuser %}
+                            <li><a class="dropdown-item" href="{% url 'paie:dashboard_admin' %}">
+                                <i class="bi bi-speedometer2"></i> Dashboard Admin
+                            </a></li>
+                            {% endif %}
+                            {% if user.is_superuser or user.groups.all.0.name == 'RH' %}
+                            <li><a class="dropdown-item" href="{% url 'paie:dashboard_rh' %}">
+                                <i class="bi bi-people-fill"></i> Dashboard RH
+                            </a></li>
+                            {% endif %}
+                            <li><a class="dropdown-item" href="{% url 'paie:dashboard_employe' %}">
+                                <i class="bi bi-person"></i> Mon Espace
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="#" onclick="alert('Fonctionnalité en développement')">
                                 <i class="bi bi-person"></i> Mon profil
                             </a></li>
@@ -217,10 +280,9 @@
                             </a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li>
-                                <!-- SOLUTION : Formulaire de déconnexion sécurisé -->
                                 <form method="post" action="{% url 'paie:deconnexion' %}" style="margin: 0;">
                                     {% csrf_token %}
-                                    <button type="submit" class="dropdown-item logout-btn">
+                                    <button type="submit" class="dropdown-item">
                                         <i class="bi bi-box-arrow-right"></i> Déconnexion
                                     </button>
                                 </form>
@@ -241,60 +303,134 @@
             {% if user.is_authenticated %}
                 <!-- Sidebar -->
                 <div class="col-md-3 col-lg-2 sidebar">
+                    <!-- Badge de rôle -->
+                    {% if user.is_superuser %}
+                        <div class="role-badge">
+                            <i class="bi bi-shield-check"></i> Administrateur
+                        </div>
+                    {% elif user.groups.all.0.name == 'RH' %}
+                        <div class="role-badge">
+                            <i class="bi bi-people-fill"></i> Ressources Humaines
+                        </div>
+                    {% else %}
+                        <div class="role-badge">
+                            <i class="bi bi-person"></i> Employé
+                        </div>
+                    {% endif %}
+                    
                     <nav class="nav flex-column">
-                        <a class="nav-link active" href="{% url 'paie:accueil' %}">
-                            <i class="bi bi-house-door"></i> Tableau de bord
+                        <!-- DASHBOARDS -->
+                        <div class="nav-section-title">
+                            <small class="text-light opacity-75">TABLEAUX DE BORD</small>
+                        </div>
+                        
+                        {% if user.is_superuser %}
+                        <a class="nav-link {% if 'dashboard/admin' in request.path %}current-page{% endif %}" 
+                           href="{% url 'paie:dashboard_admin' %}">
+                            <i class="bi bi-speedometer2"></i> Admin
                         </a>
+                        {% endif %}
                         
                         {% if user.is_superuser or user.groups.all.0.name == 'RH' %}
-                            <a class="nav-link" href="{% url 'paie:liste_employes' %}">
-                                <i class="bi bi-people"></i> Employés
-                            </a>
-                            <a class="nav-link" href="{% url 'paie:calcul_paie' %}">
-                                <i class="bi bi-calculator"></i> Calcul Paie
-                            </a>
-                            <a class="nav-link" href="{% url 'paie:gestion_absences' %}">
-                                <i class="bi bi-calendar-x"></i> Absences
-                            </a>
-                            <a class="nav-link disabled" href="#" title="En développement">
-                                <i class="bi bi-file-text"></i> Bulletins
-                                <small class="text-muted">(bientôt)</small>
-                            </a>
+                        <a class="nav-link {% if 'dashboard/rh' in request.path %}current-page{% endif %}" 
+                           href="{% url 'paie:dashboard_rh' %}">
+                            <i class="bi bi-people-fill"></i> RH
+                        </a>
                         {% endif %}
+                        
+                        <a class="nav-link {% if 'dashboard/employe' in request.path %}current-page{% endif %}" 
+                           href="{% url 'paie:dashboard_employe' %}">
+                            <i class="bi bi-person"></i> Mon Espace
+                        </a>
 
-                        {% if user.is_superuser %}
-                            <a class="nav-link disabled" href="#" title="En développement">
-                                <i class="bi bi-bar-chart"></i> Rapports
-                                <small class="text-muted">(bientôt)</small>
-                            </a>
-                            <a class="nav-link" href="/admin/">
-                                <i class="bi bi-gear"></i> Administration
-                            </a>
-                        {% endif %}
-
-                        {% if not user.is_superuser and user.groups.all.0.name != 'RH' %}
-                            <a class="nav-link disabled" href="#" title="En développement">
-                                <i class="bi bi-file-earmark-text"></i> Mes Bulletins
-                                <small class="text-muted">(bientôt)</small>
-                            </a>
-                            <a class="nav-link disabled" href="#" title="En développement">
-                                <i class="bi bi-calendar-event"></i> Mes Absences
-                                <small class="text-muted">(bientôt)</small>
-                            </a>
-                        {% endif %}
-
-                        <!-- Section utilitaires (visible pour tous) -->
-                        <div class="nav-section-title mt-4 mb-2">
-                            <small class="text-light opacity-75">OUTILS</small>
+                        <!-- GESTION (Admin/RH) -->
+                        {% if user.is_superuser or user.groups.all.0.name == 'RH' %}
+                        <div class="nav-section-title">
+                            <small class="text-light opacity-75">GESTION</small>
                         </div>
+                        
+                        <a class="nav-link {% if 'employes' in request.path %}current-page{% endif %}" 
+                           href="{% url 'paie:liste_employes' %}">
+                            <i class="bi bi-people"></i> Employés
+                        </a>
+                        
+                        {% if user.is_superuser %}
+                        <a class="nav-link {% if 'gestion-utilisateurs' in request.path %}current-page{% endif %}" 
+                           href="{% url 'paie:gestion_utilisateurs' %}">
+                            <i class="bi bi-person-gear"></i> Utilisateurs
+                        </a>
+                        {% endif %}
+                        
+                        <a class="nav-link {% if 'calcul-paie' in request.path %}current-page{% endif %}" 
+                           href="{% url 'paie:calcul_paie' %}">
+                            <i class="bi bi-calculator"></i> Calcul Paie
+                        </a>
+                        
+                        <a class="nav-link {% if 'absences' in request.path %}current-page{% endif %}" 
+                           href="{% url 'paie:gestion_absences' %}">
+                            <i class="bi bi-calendar-x"></i> Absences
+                        </a>
+                        {% endif %}
+
+                        <!-- MON ESPACE (Employés) -->
+                        {% if not user.is_superuser and user.groups.all.0.name != 'RH' %}
+                        <div class="nav-section-title">
+                            <small class="text-light opacity-75">MON ESPACE</small>
+                        </div>
+                        
+                        <a class="nav-link" href="{% url 'paie:gestion_absences' %}">
+                            <i class="bi bi-calendar-event"></i> Mes Absences
+                        </a>
+                        
+                        <a class="nav-link" href="#" onclick="alert('Bientôt disponible')">
+                            <i class="bi bi-file-earmark-text"></i> Mes Bulletins
+                        </a>
+                        {% endif %}
+
+                        <!-- ADMINISTRATION (Admin) -->
+                        {% if user.is_superuser %}
+                        <div class="nav-section-title">
+                            <small class="text-light opacity-75">ADMINISTRATION</small>
+                        </div>
+                        
+                        <a class="nav-link" href="/admin/">
+                            <i class="bi bi-gear"></i> Django Admin
+                        </a>
+                        
                         <a class="nav-link" href="{% url 'paie:test_calcul_absences' %}">
-                            <i class="bi bi-flask"></i> Test Intégration
+                            <i class="bi bi-flask"></i> Tests Système
+                        </a>
+                        {% endif %}
+
+                        <!-- AIDE -->
+                        <div class="nav-section-title">
+                            <small class="text-light opacity-75">AIDE</small>
+                        </div>
+                        
+                        <a class="nav-link" href="#" onclick="showHelpModal()">
+                            <i class="bi bi-question-circle"></i> Guide
+                        </a>
+                        
+                        <a class="nav-link" href="#" onclick="showShortcutsModal()">
+                            <i class="bi bi-keyboard"></i> Raccourcis
                         </a>
                     </nav>
                 </div>
 
                 <!-- Main Content -->
                 <div class="col-md-9 col-lg-10 main-content">
+                    <!-- Breadcrumb -->
+                    <nav class="custom-breadcrumb">
+                        <ol class="breadcrumb mb-0">
+                            <li class="breadcrumb-item">
+                                <a href="{% url 'paie:accueil' %}">
+                                    <i class="bi bi-house"></i> Accueil
+                                </a>
+                            </li>
+                            {% block breadcrumb %}
+                            {% endblock %}
+                        </ol>
+                    </nav>
             {% else %}
                 <div class="col-12 main-content">
             {% endif %}
@@ -304,13 +440,128 @@
         </div>
     </div>
 
+    <!-- Accès rapide flottant -->
+    {% if user.is_authenticated %}
+    <div class="quick-access d-none d-lg-block">
+        {% if user.is_superuser or user.groups.all.0.name == 'RH' %}
+        <div class="d-grid gap-2">
+            <a href="{% url 'paie:calcul_paie' %}" class="btn btn-success btn-sm" title="Calcul rapide">
+                <i class="bi bi-calculator"></i>
+            </a>
+            <a href="{% url 'paie:gestion_absences' %}" class="btn btn-warning btn-sm" title="Absences">
+                <i class="bi bi-calendar-x"></i>
+            </a>
+            {% if user.is_superuser %}
+            <a href="{% url 'paie:gestion_utilisateurs' %}" class="btn btn-info btn-sm" title="Utilisateurs">
+                <i class="bi bi-person-gear"></i>
+            </a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
     <!-- Footer -->
     <footer class="footer">
-        <p>&copy; 2025 PayrollPro - Système de Gestion de Paie Marocain</p>
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <p>&copy; 2025 PayrollPro - Système de Gestion de Paie Marocain</p>
+                </div>
+                <div class="col-md-6 text-end">
+                    {% if user.is_authenticated %}
+                        <small>
+                            Connecté : {{ user.username }}
+                            {% if user.is_superuser %}(Admin)
+                            {% elif user.groups.all.0.name == 'RH' %}(RH)
+                            {% else %}(Employé){% endif %}
+                        </small>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
     </footer>
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Scripts personnalisés -->
+    <script>
+        // Modal d'aide
+        function showHelpModal() {
+            const helpContent = `
+                <div class="modal fade" id="helpModal" tabindex="-1">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Guide d'utilisation PayrollPro</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <h6>🚀 Démarrage rapide :</h6>
+                                <ul>
+                                    <li><strong>Admin :</strong> Créez des employés via Django Admin, puis créez leurs comptes dans "Gestion Utilisateurs"</li>
+                                    <li><strong>RH :</strong> Gérez les employés, calculez la paie, validez les absences</li>
+                                    <li><strong>Employé :</strong> Consultez vos bulletins, demandez des congés</li>
+                                </ul>
+                                
+                                <h6>📱 Navigation :</h6>
+                                <ul>
+                                    <li>Utilisez la barre de navigation horizontale pour un accès rapide</li>
+                                    <li>Le menu latéral donne accès à toutes les fonctionnalités</li>
+                                    <li>Les boutons flottants à droite pour les actions courantes</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.insertAdjacentHTML('beforeend', helpContent);
+            new bootstrap.Modal(document.getElementById('helpModal')).show();
+        }
+
+        // Modal raccourcis
+        function showShortcutsModal() {
+            const shortcutsContent = `
+                <div class="modal fade" id="shortcutsModal" tabindex="-1">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Raccourcis clavier</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <table class="table table-sm">
+                                    <tr><td><kbd>Alt + H</kbd></td><td>Accueil</td></tr>
+                                    <tr><td><kbd>Alt + E</kbd></td><td>Employés</td></tr>
+                                    <tr><td><kbd>Alt + P</kbd></td><td>Calcul Paie</td></tr>
+                                    <tr><td><kbd>Alt + A</kbd></td><td>Absences</td></tr>
+                                    <tr><td><kbd>Alt + U</kbd></td><td>Utilisateurs (Admin)</td></tr>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.insertAdjacentHTML('beforeend', shortcutsContent);
+            new bootstrap.Modal(document.getElementById('shortcutsModal')).show();
+        }
+
+        // Raccourcis clavier
+        document.addEventListener('keydown', function(e) {
+            if (e.altKey) {
+                switch(e.key) {
+                    case 'h': window.location.href = '/'; break;
+                    case 'e': window.location.href = '/employes/'; break;
+                    case 'p': window.location.href = '/calcul-paie/'; break;
+                    case 'a': window.location.href = '/absences/'; break;
+                    case 'u': window.location.href = '/gestion-utilisateurs/'; break;
+                }
+            }
+        });
+    </script>
     
     {% block extra_js %}
     {% endblock %}
