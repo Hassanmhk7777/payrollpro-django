@@ -16,18 +16,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 
 def accueil(request):
-    """Page d'accueil avec redirection intelligente selon le rôle"""
-    
-    if request.user.is_authenticated:
-        role = obtenir_role_utilisateur(request.user)
-        
-        # Redirection selon le rôle
-        if role == 'admin':
-            return redirect('paie:dashboard_admin')
-        elif role == 'rh':
-            return redirect('paie:dashboard_rh')
-        elif role == 'employe':
-            return redirect('paie:dashboard_employe')
+    """Page d'accueil - la redirection est gérée par le middleware"""
     
     # Statistiques de base pour la page d'accueil
     total_employes = Employe.objects.filter(actif=True).count()

@@ -43,9 +43,13 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'paie.middleware.RoleBasedRedirectMiddleware',    # ← AJOUTER ICI
+    'paie.middleware.ActiveUserOnlyMiddleware',       # ← AJOUTER ICI  
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'paie.middleware.RoleBasedRedirectMiddleware',              # ← APRÈS AuthenticationMiddleware
+    'paie.middleware.ActiveUserOnlyMiddleware',                 # ← APRÈS AuthenticationMiddleware
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
