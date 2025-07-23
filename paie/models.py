@@ -261,3 +261,24 @@ class BulletinPaie(models.Model):
             'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'
         ]
         return f"{mois_noms[self.mois]} {self.annee}"
+class ProfilUtilisateur(models.Model):
+    """Profil étendu pour l'authentification multi-rôles"""
+    ROLES = [
+        ('ADMIN', 'Administrateur'),
+        ('RH', 'Ressources Humaines'), 
+        ('EMPLOYE', 'Employé')
+    ]
+    
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    employe = models.OneToOneField('Employe', on_delete=models.CASCADE, null=True, blank=True)
+    role = models.CharField(max_length=10, choices=ROLES, default='EMPLOYE')
+    actif = models.BooleanField(default=True)
+    date_creation = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        verbose_name = "Profil Utilisateur"
+        verbose_name_plural = "Profils Utilisateurs"
+    
+    def __str__(self):
+        return f"{self.user.username} ({self.get_role_display()})"
+    

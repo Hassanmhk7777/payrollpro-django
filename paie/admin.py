@@ -1,5 +1,6 @@
 from django.contrib import admin
 from .models import Employe, ParametrePaie, ElementPaie, Absence, BulletinPaie
+from .models import ProfilUtilisateur
 
 
 @admin.register(Employe)
@@ -326,3 +327,7 @@ class BulletinPaieAdmin(admin.ModelAdmin):
 admin.site.site_header = "Administration Système de Paie"
 admin.site.site_title = "Paie Admin"
 admin.site.index_title = "Gestion de la Paie - Tableau de bord"
+
+@admin.register(ProfilUtilisateur)
+class ProfilUtilisateurAdmin(admin.ModelAdmin):
+    list_display = ['user', 'role', 'actif', 'date_creation']

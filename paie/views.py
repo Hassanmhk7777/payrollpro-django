@@ -7,11 +7,13 @@ from django.utils import timezone
 from datetime import datetime
 from django.contrib.auth import logout
 from django.shortcuts import redirect
-
+from django.contrib.auth import authenticate, login
+from django.contrib import messages
 # Imports locaux
 from .models import Employe, ParametrePaie, ElementPaie, Absence, BulletinPaie
 from .user_management import GestionnaireUtilisateurs, obtenir_role_utilisateur
-
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
 
 def accueil(request):
     """Page d'accueil avec redirection intelligente selon le rôle"""
@@ -43,7 +45,83 @@ def accueil(request):
     
     return render(request, 'paie/accueil.html', context)
 
-
+def connexion_personnalisee(request):
+    """Connexion avec redirection selon le rôle"""
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        
+        user = authenticate(request, username=username, password=password)
+        if user is not None:
+            login(request, user)
+            
+            # Redirection selon le rôle
+            try:
+                profil = user.profilutilisateur
+                if profil.role == 'ADMIN':
+                    return redirect('paie:dashboard_admin')
+                elif profil.role == 'RH':
+                    return redirect('paie:dashboard_rh')
+                else:
+                    return redirect('paie:dashboard_employe')
+            except:
+                # Si pas de profil, redirection par défaut
+                return redirect('paie:accueil')
+        else:
+            messages.error(request, 'Nom d\'utilisateur ou mot de passe incorrect')
+    
+    return render(request, 'paie/connexion_simple.html')
+@login_required
+def creer_compte_employe(request):
+    """Interface simple pour créer des comptes employés"""
+    # Vérifier que c'est un admin
+    if not request.user.is_superuser:
+        messages.error(request, 'Accès non autorisé')
+        return redirect('paie:accueil')
+    
+    # Employés sans compte utilisateur
+    employes_sans_compte = Employe.objects.filter(
+        profilutilisateur__isnull=True,
+        actif=True
+    )
+    
+    if request.method == 'POST':
+        employe_id = request.POST.get('employe_id')
+        role = request.POST.get('role', 'EMPLOYE')
+        
+        try:
+            employe = Employe.objects.get(id=employe_id)
+            
+            # Générer nom d'utilisateur et mot de passe simple
+            username = f"emp_{employe.matricule.lower()}"
+            password = f"{employe.prenom[:3].lower()}{employe.matricule[-3:]}"
+            
+            # Créer l'utilisateur Django
+            user = User.objects.create_user(
+                username=username,
+                password=password,
+                first_name=employe.prenom,
+                last_name=employe.nom,
+                email=employe.email
+            )
+            
+            # Créer le profil
+            from .models import ProfilUtilisateur
+            ProfilUtilisateur.objects.create(
+                user=user,
+                employe=employe,
+                role=role
+            )
+            
+            messages.success(request, f'Compte créé pour {employe.nom_complet()} - Username: {username} - Password: {password}')
+            
+        except Exception as e:
+            messages.error(request, f'Erreur: {str(e)}')
+    
+    context = {
+        'employes_sans_compte': employes_sans_compte
+    }
+    return render(request, 'paie/creer_comptes.html', context)
 @login_required
 def dashboard_admin(request):
     """Dashboard pour les administrateurs"""

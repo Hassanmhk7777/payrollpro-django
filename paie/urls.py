@@ -43,4 +43,6 @@ urlpatterns = [
     
     # Déconnexion
     path('deconnexion/', views.deconnexion_vue, name='deconnexion'),
+    path('connexion/', views.connexion_personnalisee, name='connexion_personnalisee'),
+    path('creer-comptes/', views.creer_compte_employe, name='creer_comptes'),
 ]
