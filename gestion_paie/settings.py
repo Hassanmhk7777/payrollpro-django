@@ -59,7 +59,9 @@ ROOT_URLCONF = 'gestion_paie.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],  # Laissez vide, Django trouvera automatiquement
+       'DIRS': [
+            BASE_DIR / 'paie' / 'templates',  # ← AJOUTER CETTE LIGNE si elle n'existe pas
+        ],
         'APP_DIRS': True,  # ← IMPORTANT : doit être True
         'OPTIONS': {
             'context_processors': [
@@ -126,6 +128,8 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-LOGIN_URL = '/login/'
+
+# URLs de redirection pour l'authentification
+LOGIN_URL = '/login/'              # ← CHANGER CETTE LIGNE
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/'

@@ -1,6 +1,8 @@
 from django.contrib import admin
-from .models import Employe, ParametrePaie, ElementPaie, Absence, BulletinPaie
+from .models import Employe, ParametrePaie, ElementPaie, Absence, BulletinPaie, ProfilUtilisateur, AuditLog
 from .models import ProfilUtilisateur
+
+
 
 
 @admin.register(Employe)
@@ -331,3 +333,23 @@ admin.site.index_title = "Gestion de la Paie - Tableau de bord"
 @admin.register(ProfilUtilisateur)
 class ProfilUtilisateurAdmin(admin.ModelAdmin):
     list_display = ['user', 'role', 'actif', 'date_creation']
+    
+@admin.register(AuditLog)
+class AuditLogAdmin(admin.ModelAdmin):
+    """Interface d'administration pour les logs d'audit"""
+    
+    list_display = ['timestamp', 'user', 'action', 'level', 'description_short', 'ip_address']
+    list_filter = ['action', 'level', 'timestamp', 'target_model']
+    search_fields = ['user__username', 'description', 'ip_address']
+    readonly_fields = ['timestamp', 'user', 'action', 'level', 'description', 'ip_address', 'target_model', 'target_id']
+    date_hierarchy = 'timestamp'
+    
+    def description_short(self, obj):
+        return obj.description[:100] + '...' if len(obj.description) > 100 else obj.description
+    description_short.short_description = 'Description'
+    
+    def has_add_permission(self, request):
+        return False  # Pas de création manuelle
+    
+    def has_change_permission(self, request, obj=None):
+        return False  # Pas de modification

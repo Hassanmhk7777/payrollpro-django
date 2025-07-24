@@ -14,7 +14,7 @@ from .models import Employe, ParametrePaie, ElementPaie, Absence, BulletinPaie
 from .user_management import GestionnaireUtilisateurs, obtenir_role_utilisateur
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
-
+from .decorators import admin_required, rh_required, employe_required, safe_user_access
 def accueil(request):
     """Page d'accueil - la redirection est gérée par le middleware"""
     
@@ -62,17 +62,14 @@ def connexion_personnalisee(request):
     return render(request, 'paie/connexion_simple.html')
 @login_required
 def creer_compte_employe(request):
-    """Interface simple pour créer des comptes employés"""
+    """Interface simple pour créer des comptes employés - VERSION UNIFIÉE"""
     # Vérifier que c'est un admin
     if not request.user.is_superuser:
         messages.error(request, 'Accès non autorisé')
         return redirect('paie:accueil')
     
-    # Employés sans compte utilisateur
-    employes_sans_compte = Employe.objects.filter(
-        profilutilisateur__isnull=True,
-        actif=True
-    )
+    # NOUVEAU: Utiliser le même système que views_users
+    employes_sans_compte = Employe.objects.filter(user__isnull=True, actif=True)
     
     if request.method == 'POST':
         employe_id = request.POST.get('employe_id')
@@ -81,29 +78,27 @@ def creer_compte_employe(request):
         try:
             employe = Employe.objects.get(id=employe_id)
             
-            # Générer nom d'utilisateur et mot de passe simple
-            username = f"emp_{employe.matricule.lower()}"
-            password = f"{employe.prenom[:3].lower()}{employe.matricule[-3:]}"
+            # NOUVEAU: Utiliser GestionnaireUtilisateurs
+            from .user_management import GestionnaireUtilisateurs
+            gestionnaire = GestionnaireUtilisateurs()
             
-            # Créer l'utilisateur Django
-            user = User.objects.create_user(
-                username=username,
-                password=password,
-                first_name=employe.prenom,
-                last_name=employe.nom,
-                email=employe.email
-            )
+            # Déterminer si c'est RH selon le rôle choisi
+            est_rh = (role == 'RH')
             
-            # Créer le profil
-            from .models import ProfilUtilisateur
-            ProfilUtilisateur.objects.create(
-                user=user,
+            # Créer le compte avec le gestionnaire unifié
+            resultat = gestionnaire.creer_compte_employe(
                 employe=employe,
-                role=role
+                mot_de_passe=None,  # Génération auto
+                est_rh=est_rh
             )
             
-            messages.success(request, f'Compte créé pour {employe.nom_complet()} - Username: {username} - Password: {password}')
-            
+            messages.success(request, 
+                f'Compte créé pour {employe.nom_complet()}\n'
+                f'Username: {resultat["username"]}\n'
+                f'Password: {resultat["mot_de_passe"]}\n'
+                f'Rôle: {employe.get_role_systeme_display()}'
+            )
+            return redirect('paie:gestion_utilisateurs')
         except Exception as e:
             messages.error(request, f'Erreur: {str(e)}')
     
@@ -114,11 +109,7 @@ def creer_compte_employe(request):
 @login_required
 def dashboard_admin(request):
     """Dashboard pour les administrateurs"""
-    
-    # Vérifier les permissions
-    role = obtenir_role_utilisateur(request.user)
-    if role != 'admin':
-        return redirect('paie:accueil')
+
     
     # Statistiques générales
     total_employes = Employe.objects.filter(actif=True).count()
@@ -194,10 +185,7 @@ def dashboard_admin(request):
 def dashboard_rh(request):
     """Dashboard pour les responsables RH"""
     
-    # Vérifier les permissions
-    role = obtenir_role_utilisateur(request.user)
-    if role not in ['admin', 'rh']:
-        return redirect('paie:dashboard_employe')
+
     
     # Tâches du jour
     mois_actuel = timezone.now().month
@@ -307,10 +295,7 @@ def dashboard_employe(request):
 def liste_employes(request):
     """Affiche la liste de tous les employés - Accès restreint Admin/RH"""
     
-    # Vérifier les permissions
-    role = obtenir_role_utilisateur(request.user)
-    if role not in ['admin', 'rh']:
-        return redirect('paie:dashboard_employe')
+
     
     # Récupérer tous les employés actifs
     employes = Employe.objects.filter(actif=True).order_by('matricule')
@@ -326,6 +311,8 @@ def liste_employes(request):
         masse_salariale_totale = 0
         salaire_moyen = 0
     
+    # Déterminer le rôle de l'utilisateur
+    role = obtenir_role_utilisateur(request.user)
     context = {
         'employes': employes,
         'total_employes': total_employes,
@@ -375,13 +362,11 @@ def detail_employe(request, employe_id):
 def calcul_paie(request):
     """Page de calcul de la paie mensuelle - Accès Admin/RH seulement"""
     
-    # Vérifier les permissions
-    role = obtenir_role_utilisateur(request.user)
-    if role not in ['admin', 'rh']:
-        return redirect('paie:dashboard_employe')
+
     
     from .calculs import CalculateurPaie
     
+    role = obtenir_role_utilisateur(request.user)
     context = {
         'mois_actuel': timezone.now().month,
         'annee_actuelle': timezone.now().year,

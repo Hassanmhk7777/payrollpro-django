@@ -261,6 +261,7 @@ class BulletinPaie(models.Model):
             'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'
         ]
         return f"{mois_noms[self.mois]} {self.annee}"
+
 class ProfilUtilisateur(models.Model):
     """Profil étendu pour l'authentification multi-rôles"""
     ROLES = [
@@ -281,4 +282,115 @@ class ProfilUtilisateur(models.Model):
     
     def __str__(self):
         return f"{self.user.username} ({self.get_role_display()})"
+
+
+class AuditLog(models.Model):
+    """
+    Logs d'audit pour tracer toutes les actions importantes du système
+    """
     
+    # Types d'actions
+    ACTION_CHOICES = [
+        ('LOGIN', 'Connexion'),
+        ('LOGOUT', 'Déconnexion'),
+        ('CREATE', 'Création'),
+        ('UPDATE', 'Modification'), 
+        ('DELETE', 'Suppression'),
+        ('VIEW', 'Consultation'),
+        ('CALCULATE', 'Calcul'),
+        ('ACCESS_DENIED', 'Accès refusé'),
+        ('EXPORT', 'Export'),
+        ('IMPORT', 'Import'),
+    ]
+    
+    # Niveaux de criticité
+    LEVEL_CHOICES = [
+        ('INFO', 'Information'),
+        ('WARNING', 'Avertissement'),
+        ('ERROR', 'Erreur'),
+        ('CRITICAL', 'Critique'),
+    ]
+    
+    # Informations de base
+    user = models.ForeignKey(
+        User, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        help_text="Utilisateur qui a effectué l'action"
+    )
+    action = models.CharField(max_length=20, choices=ACTION_CHOICES)
+    level = models.CharField(max_length=10, choices=LEVEL_CHOICES, default='INFO')
+    
+    # Détails de l'action
+    target_model = models.CharField(
+        max_length=50, 
+        blank=True,
+        help_text="Modèle concerné (Employe, BulletinPaie, etc.)"
+    )
+    target_id = models.PositiveIntegerField(
+        null=True, 
+        blank=True,
+        help_text="ID de l'objet concerné"
+    )
+    description = models.TextField(help_text="Description détaillée de l'action")
+    
+    # Contexte technique
+    ip_address = models.GenericIPAddressField(
+        null=True, 
+        blank=True,
+        help_text="Adresse IP de l'utilisateur"
+    )
+    user_agent = models.TextField(
+        blank=True,
+        help_text="Navigateur/OS de l'utilisateur"
+    )
+    session_key = models.CharField(
+        max_length=40, 
+        blank=True,
+        help_text="Clé de session Django"
+    )
+    
+    # Données supplémentaires (JSON)
+    extra_data = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Données supplémentaires en JSON"
+    )
+    
+    # Timestamp
+    timestamp = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        verbose_name = "Log d'audit"
+        verbose_name_plural = "Logs d'audit"
+        ordering = ['-timestamp']
+    
+    def __str__(self):
+        username = self.user.username if self.user else 'Anonyme'
+        return f"{self.timestamp.strftime('%d/%m/%Y %H:%M')} - {username} - {self.get_action_display()}"
+    
+    @classmethod
+    def log_action(cls, user, action, description, **kwargs):
+        """Méthode helper pour créer facilement un log"""
+        request = kwargs.pop('request', None)
+        if request:
+            kwargs.setdefault('ip_address', cls._get_client_ip(request))
+            kwargs.setdefault('user_agent', request.META.get('HTTP_USER_AGENT', ''))
+        
+        return cls.objects.create(
+            user=user,
+            action=action,
+            description=description,
+            **kwargs
+        )
+    
+    @staticmethod
+    def _get_client_ip(request):
+        """Récupère l'IP réelle du client"""
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            ip = x_forwarded_for.split(',')[0]
+        else:
+            ip = request.META.get('REMOTE_ADDR')
+        return ip
