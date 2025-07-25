@@ -1,30 +1,161 @@
 from django.contrib import admin
 from .models import Employe, ParametrePaie, ElementPaie, Absence, BulletinPaie, ProfilUtilisateur, AuditLog
 from .models import ProfilUtilisateur
+from .models import Site, Departement
 
 
+# AJOUTER CES IMPORTS en haut du fichier paie/admin.py (après les imports existants)
+from .models import Site, Departement
 
+# AJOUTER CES CLASSES ADMIN AVANT @admin.register(Employe)
+
+@admin.register(Site)
+class SiteAdmin(admin.ModelAdmin):
+    """Interface d'administration pour les sites"""
+    
+    list_display = [
+        'code',
+        'nom', 
+        'ville',
+        'nombre_employes_display',
+        'masse_salariale_display',
+        'actif'
+    ]
+    
+    list_filter = ['actif', 'ville', 'forme_juridique']
+    search_fields = ['nom', 'code', 'raison_sociale', 'ville']
+    list_editable = ['actif']
+    
+    fieldsets = (
+        ('Informations générales', {
+            'fields': ('nom', 'code', 'actif')
+        }),
+        ('Informations légales', {
+            'fields': (
+                'raison_sociale', 
+                'forme_juridique',
+                'numero_rc',
+                'numero_cnss', 
+                'numero_patente',
+                'ice'
+            ),
+            'classes': ('collapse',)
+        }),
+        ('Coordonnées', {
+            'fields': (
+                'adresse',
+                'ville', 
+                'code_postal',
+                'telephone',
+                'email',
+                'site_web'
+            )
+        }),
+        ('Management', {
+            'fields': ('directeur_general', 'directeur_rh'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def nombre_employes_display(self, obj):
+        return obj.nombre_employes()
+    nombre_employes_display.short_description = 'Employés'
+    
+    def masse_salariale_display(self, obj):
+        return f"{obj.masse_salariale_totale():,.0f} DH"
+    masse_salariale_display.short_description = 'Masse Salariale'
+
+
+@admin.register(Departement)
+class DepartementAdmin(admin.ModelAdmin):
+    """Interface d'administration pour les départements"""
+    
+    list_display = [
+        'code',
+        'nom',
+        'site',
+        'departement_parent',
+        'responsable',
+        'nombre_employes_display',
+        'actif'
+    ]
+    
+    list_filter = ['site', 'actif', 'departement_parent']
+    search_fields = ['nom', 'code', 'site__nom', 'description']
+    list_editable = ['actif']
+    
+    # Autocomplete pour les relations
+    autocomplete_fields = ['site', 'departement_parent', 'responsable']
+    
+    fieldsets = (
+        ('Informations de base', {
+            'fields': ('site', 'nom', 'code', 'description', 'actif')
+        }),
+        ('Hiérarchie', {
+            'fields': ('departement_parent', 'responsable')
+        }),
+        ('Localisation', {
+            'fields': ('batiment', 'etage', 'bureau'),
+            'classes': ('collapse',)
+        }),
+        ('Gestion financière', {
+            'fields': ('code_analytique', 'budget_annuel'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def nombre_employes_display(self, obj):
+        return obj.nombre_employes()
+    nombre_employes_display.short_description = 'Employés'
+    
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        """Filtrer les choix selon le contexte"""
+        if db_field.name == "departement_parent":
+            # Un département ne peut avoir comme parent que des départements du même site
+            if 'site' in request.GET:
+                kwargs["queryset"] = Departement.objects.filter(site_id=request.GET['site'])
+            else:
+                kwargs["queryset"] = Departement.objects.filter(actif=True)
+        
+        if db_field.name == "responsable":
+            # Le responsable doit être du même site
+            if 'site' in request.GET:
+                kwargs["queryset"] = Employe.objects.filter(site_id=request.GET['site'], actif=True)
+            else:
+                kwargs["queryset"] = Employe.objects.filter(actif=True)
+        
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
+# REMPLACER la classe EmployeAdmin existante par cette version :
+
+# REMPLACER TEMPORAIREMENT la classe EmployeAdmin dans paie/admin.py par :
+
+# REMPLACER la classe EmployeAdmin dans paie/admin.py par :
 
 @admin.register(Employe)
 class EmployeAdmin(admin.ModelAdmin):
-    """Interface d'administration pour les employés"""
+    """Interface d'administration pour les employés - VERSION MULTI-SITES FINALE"""
     
     # Colonnes à afficher dans la liste
     list_display = [
         'matricule', 
         'nom', 
-        'prenom', 
+        'prenom',
+        'site_display',
+        'departement_display', 
         'fonction', 
+        'manager_display',
         'salaire_base', 
         'date_embauche',
-        'situation_familiale',
         'actif'
     ]
     
     # Filtres sur le côté droit
     list_filter = [
+        'site',
+        'departement',
         'actif',
         'fonction', 
+        'role_systeme',
         'situation_familiale',
         'date_embauche'
     ]
@@ -35,20 +166,34 @@ class EmployeAdmin(admin.ModelAdmin):
         'nom', 
         'prenom', 
         'cin',
-        'fonction'
+        'fonction',
+        'site__nom',
+        'departement__nom'
     ]
     
     # Champs modifiables directement dans la liste
     list_editable = ['actif']
     
+    # Autocomplete pour les relations
+    autocomplete_fields = ['user']
+    
     # Organisation des champs dans le formulaire de détail
     fieldsets = (
+        ('Affectation organisationnelle', {
+            'fields': ('site', 'departement', 'manager'),
+            'classes': ('wide',),
+            'description': 'Définir l\'affectation hiérarchique de l\'employé'
+        }),
         ('Informations de base', {
             'fields': ('matricule', 'nom', 'prenom', 'cin')
         }),
         ('Informations professionnelles', {
             'fields': ('fonction', 'date_embauche', 'salaire_base', 'actif'),
             'classes': ('wide',)
+        }),
+        ('Système utilisateur', {
+            'fields': ('user', 'role_systeme'),
+            'classes': ('collapse',)
         }),
         ('Informations personnelles', {
             'fields': ('situation_familiale', 'nombre_enfants'),
@@ -64,13 +209,78 @@ class EmployeAdmin(admin.ModelAdmin):
         }),
     )
     
-    # Tri par défaut
-    ordering = ['matricule']
+    # Tri par défaut par hiérarchie
+    ordering = ['site__nom', 'departement__nom', 'matricule']
     
     # Nombre d'éléments par page
     list_per_page = 25
-
-
+    
+    # Méthodes d'affichage personnalisées
+    def site_display(self, obj):
+        if obj.site:
+            return f"{obj.site.code} - {obj.site.nom}"
+        return "⚠️ Non assigné"
+    site_display.short_description = 'Site'
+    site_display.admin_order_field = 'site__nom'
+    
+    def departement_display(self, obj):
+        if obj.departement:
+            return f"{obj.departement.code} - {obj.departement.nom}"
+        return "⚠️ Non assigné"
+    departement_display.short_description = 'Département'
+    departement_display.admin_order_field = 'departement__nom'
+    
+    def manager_display(self, obj):
+        if obj.manager:
+            return f"{obj.manager.nom_complet()} ({obj.manager.matricule})"
+        return "—"
+    manager_display.short_description = 'Manager'
+    
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        """Filtrer les choix selon le contexte hiérarchique"""
+        
+        if db_field.name == "departement":
+            # Filtrer les départements selon le site sélectionné
+            if 'site' in request.GET:
+                kwargs["queryset"] = Departement.objects.filter(
+                    site_id=request.GET['site'], 
+                    actif=True
+                ).order_by('nom')
+            else:
+                kwargs["queryset"] = Departement.objects.filter(actif=True).order_by('site__nom', 'nom')
+        
+        elif db_field.name == "manager":
+            # Le manager doit être du même site, idéalement du même département ou niveau supérieur
+            if 'site' in request.GET:
+                kwargs["queryset"] = Employe.objects.filter(
+                    site_id=request.GET['site'], 
+                    actif=True
+                ).order_by('departement__nom', 'nom')
+            else:
+                kwargs["queryset"] = Employe.objects.filter(actif=True).order_by('site__nom', 'nom')
+        
+        elif db_field.name == "site":
+            kwargs["queryset"] = Site.objects.filter(actif=True).order_by('nom')
+        
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
+    
+    # Actions personnalisées
+    actions = ['export_par_site', 'assigner_site_departement']
+    
+    def export_par_site(self, request, queryset):
+        """Exporter les employés par site"""
+        sites = queryset.values('site__nom').distinct()
+        self.message_user(request, f'Export préparé pour {sites.count()} site(s) - {queryset.count()} employé(s)')
+    export_par_site.short_description = "📊 Exporter par site"
+    
+    def assigner_site_departement(self, request, queryset):
+        """Assistant pour assigner en masse site/département"""
+        employes_sans_site = queryset.filter(site__isnull=True).count()
+        if employes_sans_site > 0:
+            self.message_user(request, f'⚠️ {employes_sans_site} employé(s) sans site assigné', level='WARNING')
+        else:
+            self.message_user(request, '✅ Tous les employés sélectionnés ont un site assigné')
+    assigner_site_departement.short_description = "🏢 Vérifier assignations"
 @admin.register(ParametrePaie)
 class ParametrePaieAdmin(admin.ModelAdmin):
     """Interface d'administration pour les paramètres de paie"""

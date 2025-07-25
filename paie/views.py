@@ -3,6 +3,7 @@ from django.shortcuts import render, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse, HttpResponse
 from django.db.models import Count, Sum, Avg
+from django.db import models
 from django.utils import timezone
 from datetime import datetime
 from django.contrib.auth import logout
@@ -10,11 +11,14 @@ from django.shortcuts import redirect
 from django.contrib.auth import authenticate, login
 from django.contrib import messages
 # Imports locaux
-from .models import Employe, ParametrePaie, ElementPaie, Absence, BulletinPaie
+
 from .user_management import GestionnaireUtilisateurs, obtenir_role_utilisateur
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from .decorators import admin_required, rh_required, employe_required, safe_user_access
+# AJOUTER ces imports après la ligne "from .decorators import..."
+from .audit import audit_action, log_calculation, log_data_change, log_security_event
+from .models import Employe, ParametrePaie, ElementPaie, Absence, BulletinPaie, Site, Departement
 def accueil(request):
     """Page d'accueil - la redirection est gérée par le middleware"""
     
@@ -61,6 +65,7 @@ def connexion_personnalisee(request):
     
     return render(request, 'paie/connexion_simple.html')
 @login_required
+@audit_action('CREATE', 'Création compte employé {employe_id}', target_model='User')
 def creer_compte_employe(request):
     """Interface simple pour créer des comptes employés - VERSION UNIFIÉE"""
     # Vérifier que c'est un admin
@@ -291,17 +296,52 @@ def dashboard_employe(request):
     return render(request, 'paie/dashboard_employe.html', context)
 
 
+# REMPLACER la fonction liste_employes dans paie/views.py par :
+
 @login_required
 def liste_employes(request):
-    """Affiche la liste de tous les employés - Accès restreint Admin/RH"""
+    """Affiche la liste de tous les employés avec filtres hiérarchiques Site → Département"""
     
-
+    # Récupérer les paramètres de filtrage
+    site_filtre = request.GET.get('site', '')
+    departement_filtre = request.GET.get('departement', '')
+    recherche = request.GET.get('recherche', '')
     
-    # Récupérer tous les employés actifs
-    employes = Employe.objects.filter(actif=True).order_by('matricule')
+    # Base query : employés actifs avec relations
+    employes = Employe.objects.filter(actif=True).select_related('site', 'departement', 'manager')
     
-    # Statistiques rapides
+    # Appliquer les filtres
+    if site_filtre:
+        employes = employes.filter(site_id=site_filtre)
+    
+    if departement_filtre:
+        employes = employes.filter(departement_id=departement_filtre)
+    
+    if recherche:
+        employes = employes.filter(
+            models.Q(nom__icontains=recherche) |
+            models.Q(prenom__icontains=recherche) |
+            models.Q(matricule__icontains=recherche) |
+            models.Q(fonction__icontains=recherche)
+        )
+    
+    # Ordonner par hiérarchie
+    employes = employes.order_by('site__nom', 'departement__nom', 'matricule')
+    
+    # Statistiques globales
     total_employes = employes.count()
+    
+    # Statistiques par site
+    sites_stats = []
+    for site in Site.objects.filter(actif=True).order_by('nom'):
+        employes_site = employes.filter(site=site)
+        if employes_site.exists():
+            sites_stats.append({
+                'site': site,
+                'nombre_employes': employes_site.count(),
+                'masse_salariale': sum(emp.salaire_base for emp in employes_site),
+                'departements': employes_site.values('departement__nom').distinct().count()
+            })
     
     # Calculs simples
     if employes:
@@ -311,19 +351,32 @@ def liste_employes(request):
         masse_salariale_totale = 0
         salaire_moyen = 0
     
+    # Données pour les filtres
+    sites_disponibles = Site.objects.filter(actif=True).order_by('nom')
+    departements_disponibles = Departement.objects.filter(actif=True).order_by('site__nom', 'nom')
+    
+    # Si un site est sélectionné, filtrer les départements
+    if site_filtre:
+        departements_disponibles = departements_disponibles.filter(site_id=site_filtre)
+    
     # Déterminer le rôle de l'utilisateur
     role = obtenir_role_utilisateur(request.user)
+    
     context = {
         'employes': employes,
         'total_employes': total_employes,
         'masse_salariale_totale': masse_salariale_totale,
         'salaire_moyen': salaire_moyen,
+        'sites_stats': sites_stats,
+        'sites_disponibles': sites_disponibles,
+        'departements_disponibles': departements_disponibles,
+        'site_filtre': site_filtre,
+        'departement_filtre': departement_filtre,
+        'recherche': recherche,
         'user_role': role,
     }
     
-    return render(request, 'paie/liste_employes_simple.html', context)
-
-
+    return render(request, 'paie/liste_employes.html', context)
 def detail_employe(request, employe_id):
     """Affiche les détails d'un employé"""
     
@@ -358,7 +411,8 @@ def detail_employe(request, employe_id):
     return render(request, 'paie/detail_employe.html', context)
 
 
-@login_required
+@login_required  
+@audit_action('CALCULATE', 'Calcul paie mensuel - {mois}/{annee}')
 def calcul_paie(request):
     """Page de calcul de la paie mensuelle - Accès Admin/RH seulement"""
     
@@ -417,7 +471,12 @@ def calcul_paie(request):
                     'masse_salariale_nette': sum(b.net_a_payer for b in resultats['bulletins_crees'])
                 }
             })
-            
+            log_calculation(
+                user=request.user,
+                calculation_type='PAIE_MENSUELLE', 
+                details=f'Calcul paie {mois}/{annee} - {resultats["total_reussi"]} employés traités',
+                request=request
+            )
         elif action == 'preview':
             # Aperçu du calcul pour un employé
             employe_id = request.POST.get('employe_preview')
@@ -506,6 +565,7 @@ def generer_bulletin_pdf(request, bulletin_id):
 # =====================================
 
 @login_required
+@audit_action('CREATE', 'Demande absence - {type_absence}', target_model='Absence')
 def gestion_absences(request):
     """Page de gestion des absences avec permissions par rôle"""
     
@@ -612,19 +672,25 @@ def gestion_absences(request):
                         )
                         
                         context['message'] = f"Demande d'absence créée avec succès ! ({nombre_jours_ouvres} jours)"
-                        
+                        log_data_change(
+                            user=request.user,
+                            model_name='Absence',
+                            object_id=absence.id,
+                            change_type='CREATE',
+                            description=f'Demande {absence.get_type_absence_display()} - {absence.nombre_jours} jours',
+                            request=request
+                        )
                         # Rafraîchir les données
                         context['mes_absences'] = Absence.objects.filter(employe=employe_actuel).order_by('-date_creation')[:5]
                         if type_absence == 'CONGE':
                             context['solde_conges_restant'] = solde_conges_restant - nombre_jours_ouvres
-                        
         except Exception as e:
             context['erreur'] = f"Erreur lors de la création de la demande : {str(e)}"
     
     return render(request, 'paie/gestion_absences.html', context)
 
-
 @login_required
+@audit_action('UPDATE', 'Validation absence {absence_id}', target_model='Absence')  
 def valider_absence(request, absence_id):
     """Valider ou refuser une demande d'absence (RH/Admin seulement)"""
     

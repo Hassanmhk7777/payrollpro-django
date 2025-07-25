@@ -1,8 +1,132 @@
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.contrib.auth.models import User
+from decimal import Decimal
+
+# AJOUTER CES MODÈLES AVANT class Employe dans paie/models.py
+
+class Site(models.Model):
+    """
+    Modèle pour gérer plusieurs sites/entreprises
+    """
+    # Informations de base
+    nom = models.CharField(max_length=200, help_text="Nom du site/entreprise")
+    code = models.CharField(max_length=20, unique=True, help_text="Code court (ex: CAS, RAB)")
+    
+    # Informations légales
+    raison_sociale = models.CharField(max_length=250)
+    forme_juridique = models.CharField(max_length=100, default="SARL")
+    numero_rc = models.CharField(max_length=50, blank=True, help_text="Numéro registre commerce")
+    numero_cnss = models.CharField(max_length=50, blank=True, help_text="Numéro affiliation CNSS")
+    numero_patente = models.CharField(max_length=50, blank=True)
+    ice = models.CharField(max_length=20, blank=True, help_text="Identifiant Commun Entreprise")
+    
+    # Coordonnées
+    adresse = models.TextField()
+    ville = models.CharField(max_length=100)
+    code_postal = models.CharField(max_length=10, blank=True)
+    telephone = models.CharField(max_length=20, blank=True)
+    email = models.EmailField(blank=True)
+    site_web = models.URLField(blank=True)
+    
+    # Paramètres RH
+    directeur_general = models.CharField(max_length=200, blank=True)
+    directeur_rh = models.CharField(max_length=200, blank=True)
+    
+    # Gestion
+    actif = models.BooleanField(default=True)
+    date_creation = models.DateTimeField(auto_now_add=True)
+    date_modification = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "Site"
+        verbose_name_plural = "Sites"
+        ordering = ['nom']
+    
+    def __str__(self):
+        return f"{self.code} - {self.nom}"
+    
+    def nombre_employes(self):
+        """Retourne le nombre total d'employés du site"""
+        return sum(dept.nombre_employes() for dept in self.departements.filter(actif=True))
+    
+    def masse_salariale_totale(self):
+        """Calcule la masse salariale totale du site"""
+        total = Decimal('0')
+        for dept in self.departements.filter(actif=True):
+            total += dept.masse_salariale()
+        return total
 
 
+class Departement(models.Model):
+    """
+    Modèle pour gérer les départements au sein d'un site
+    """
+    # Relations
+    site = models.ForeignKey(Site, on_delete=models.CASCADE, related_name='departements')
+    
+    # Informations de base
+    nom = models.CharField(max_length=200, help_text="Nom du département")
+    code = models.CharField(max_length=20, help_text="Code court (ex: IT, RH, COMPTA)")
+    description = models.TextField(blank=True)
+    
+    # Hiérarchie
+    departement_parent = models.ForeignKey(
+        'self', 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        related_name='sous_departements',
+        help_text="Département parent si hiérarchie"
+    )
+    
+    # Management
+    responsable = models.ForeignKey(
+        'Employe', 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        related_name='departements_geres',
+        help_text="Responsable du département"
+    )
+    
+    # Localisation
+    batiment = models.CharField(max_length=100, blank=True)
+    etage = models.CharField(max_length=50, blank=True)
+    bureau = models.CharField(max_length=50, blank=True)
+    
+    # Centre de coût
+    code_analytique = models.CharField(max_length=50, blank=True, help_text="Code pour comptabilité analytique")
+    budget_annuel = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    
+    # Gestion
+    actif = models.BooleanField(default=True)
+    date_creation = models.DateTimeField(auto_now_add=True)
+    date_modification = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "Département"
+        verbose_name_plural = "Départements"
+        ordering = ['site', 'nom']
+        unique_together = ['site', 'code']  # Code unique par site
+    
+    def __str__(self):
+        return f"{self.site.code} / {self.code} - {self.nom}"
+    
+    def nombre_employes(self):
+        """Retourne le nombre d'employés du département"""
+        return self.employes.filter(actif=True).count()
+    
+    def masse_salariale(self):
+        """Calcule la masse salariale du département"""
+        employes = self.employes.filter(actif=True)
+        return sum(emp.salaire_base for emp in employes)
+    
+    def chemin_hierarchique(self):
+        """Retourne le chemin hiérarchique complet"""
+        if self.departement_parent:
+            return f"{self.departement_parent.chemin_hierarchique()} > {self.nom}"
+        return f"{self.site.nom} > {self.nom}"
 class Employe(models.Model):
     """Modèle pour les employés de l'entreprise"""
     
@@ -13,6 +137,34 @@ class Employe(models.Model):
         null=True, 
         blank=True, 
         help_text="Compte utilisateur pour l'accès au système"
+    )
+    
+    # NOUVEAU: Relations hiérarchiques (temporairement nullable)
+    site = models.ForeignKey(
+        Site, 
+        on_delete=models.CASCADE, 
+        related_name='employes',
+        null=True,  # TEMPORAIRE
+        blank=True, # TEMPORAIRE
+        help_text="Site d'affectation de l'employé"
+    )
+    departement = models.ForeignKey(
+        Departement, 
+        on_delete=models.CASCADE, 
+        related_name='employes',
+        null=True,  # TEMPORAIRE
+        blank=True, # TEMPORAIRE
+        help_text="Département d'affectation"
+    )
+    
+    # NOUVEAU: Hiérarchie managériale
+    manager = models.ForeignKey(
+        'self', 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        related_name='equipe',
+        help_text="Manager direct de l'employé"
     )
     
     # Informations personnelles
@@ -74,6 +226,25 @@ class Employe(models.Model):
         """Retourne le nom complet de l'employé"""
         return f"{self.nom} {self.prenom}"
     
+    def nom_complet_avec_site(self):
+        """Retourne le nom complet avec site et département"""
+        if self.site and self.departement:
+            return f"{self.nom_complet()} ({self.site.code}/{self.departement.code})"
+        return self.nom_complet()
+    
+    def equipe_directe(self):
+        """Retourne les employés en relation directe"""
+        return self.equipe.filter(actif=True)
+    
+    def niveau_hierarchique(self):
+        """Calcule le niveau hiérarchique (0 = top management)"""
+        niveau = 0
+        manager_actuel = self.manager
+        while manager_actuel and niveau < 10:  # Protection contre boucle infinie
+            niveau += 1
+            manager_actuel = manager_actuel.manager
+        return niveau
+    
     def est_rh(self):
         """Vérifie si l'employé a le rôle RH"""
         return self.role_systeme == 'RH'
@@ -83,8 +254,6 @@ class Employe(models.Model):
         if self.user and self.user.is_superuser:
             return True
         return self.role_systeme == 'RH'
-
-
 # Vos autres modèles restent identiques...
 class ParametrePaie(models.Model):
     """Paramètres de calcul de la paie (barème IR, taux CNSS, etc.)"""
