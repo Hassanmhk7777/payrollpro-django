@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Employe, ParametrePaie, ElementPaie, Absence, BulletinPaie, ProfilUtilisateur, AuditLog
+from .models import Employe, ParametrePaie, ElementPaie, Absence, BulletinPaie, ProfilUtilisateur, AuditLog, RubriquePersonnalisee, EmployeRubrique 
 from .models import ProfilUtilisateur
 from .models import Site, Departement
 
@@ -562,4 +562,228 @@ class AuditLogAdmin(admin.ModelAdmin):
         return False  # Pas de création manuelle
     
     def has_change_permission(self, request, obj=None):
-        return False  # Pas de modification
+        return False  # Pas de modification 
+    # 🔧 INSTRUCTIONS : Dans paie/admin.py
+# 📍 CHERCHER les imports en haut du fichier (ligne 1-5)
+# 🎯 AJOUTER ces imports aux models existants :
+
+from .models import (
+    Employe, ParametrePaie, ElementPaie, Absence, BulletinPaie, ProfilUtilisateur, 
+    AuditLog, RubriquePersonnalisee, EmployeRubrique  # ← AJOUTER CES DEUX
+)
+
+# 📍 PUIS CHERCHER la fin du fichier admin.py (après @admin.register(AuditLog))
+# 🎯 AJOUTER CES NOUVELLES CLASSES D'ADMINISTRATION :
+
+@admin.register(RubriquePersonnalisee)
+class RubriquePersonnaliseeAdmin(admin.ModelAdmin):
+    """Interface d'administration pour les rubriques personnalisées"""
+    
+    list_display = [
+        'code',
+        'nom',
+        'type_rubrique',
+        'mode_calcul',
+        'montant_fixe',
+        'pourcentage',
+        'frequence',
+        'actif',
+        'date_debut'
+    ]
+    
+    list_filter = [
+        'type_rubrique',
+        'mode_calcul',
+        'frequence',
+        'actif',
+        'soumis_ir',
+        'soumis_cnss',
+        'soumis_amo'
+    ]
+    
+    search_fields = ['code', 'nom', 'description']
+    list_editable = ['actif']
+    
+    fieldsets = (
+        ('Identification', {
+            'fields': ('code', 'nom', 'description')
+        }),
+        ('Classification', {
+            'fields': ('type_rubrique', 'mode_calcul', 'frequence')
+        }),
+        ('Paramètres de calcul', {
+            'fields': (
+                'montant_fixe',
+                'pourcentage', 
+                'formule_calcul'
+            ),
+            'description': 'Définissez le mode de calcul de la rubrique'
+        }),
+        ('Conditions d\'application', {
+            'fields': ('salaire_minimum', 'salaire_maximum'),
+            'classes': ('collapse',)
+        }),
+        ('Impact fiscal et social', {
+            'fields': ('soumis_ir', 'soumis_cnss', 'soumis_amo'),
+            'classes': ('wide',)
+        }),
+        ('Période de validité', {
+            'fields': ('actif', 'date_debut', 'date_fin')
+        }),
+        ('Métadonnées', {
+            'fields': ('cree_par',),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    readonly_fields = ['date_creation', 'date_modification']
+    ordering = ['code']
+    
+    # Actions personnalisées
+    actions = ['dupliquer_rubriques', 'activer_rubriques', 'desactiver_rubriques']
+    
+    def dupliquer_rubriques(self, request, queryset):
+        """Dupliquer les rubriques sélectionnées"""
+        count = 0
+        for rubrique in queryset:
+            # Créer une copie
+            nouveau_code = f"{rubrique.code}_COPIE"
+            if not RubriquePersonnalisee.objects.filter(code=nouveau_code).exists():
+                rubrique.pk = None
+                rubrique.code = nouveau_code
+                rubrique.nom = f"{rubrique.nom} (Copie)"
+                rubrique.actif = False
+                rubrique.save()
+                count += 1
+        
+        self.message_user(request, f'{count} rubrique(s) dupliquée(s).')
+    dupliquer_rubriques.short_description = "Dupliquer les rubriques sélectionnées"
+    
+    def activer_rubriques(self, request, queryset):
+        """Activer les rubriques sélectionnées"""
+        updated = queryset.update(actif=True)
+        self.message_user(request, f'{updated} rubrique(s) activée(s).')
+    activer_rubriques.short_description = "Activer les rubriques sélectionnées"
+    
+    def desactiver_rubriques(self, request, queryset):
+        """Désactiver les rubriques sélectionnées"""
+        updated = queryset.update(actif=False)
+        self.message_user(request, f'{updated} rubrique(s) désactivée(s).')
+    desactiver_rubriques.short_description = "Désactiver les rubriques sélectionnées"
+    
+    def save_model(self, request, obj, form, change):
+        """Sauvegarder avec l'utilisateur créateur"""
+        if not change:  # Nouvelle création
+            obj.cree_par = request.user
+        super().save_model(request, obj, form, change)
+
+
+class EmployeRubriqueInline(admin.TabularInline):
+    """Inline pour gérer les rubriques depuis la fiche employé"""
+    
+    model = EmployeRubrique
+    extra = 0
+    fields = [
+        'rubrique',
+        'montant_personnalise',
+        'pourcentage_personnalise', 
+        'date_debut',
+        'date_fin',
+        'actif',
+        'note'
+    ]
+    readonly_fields = ['date_creation']
+    
+    def get_queryset(self, request):
+        """Afficher seulement les rubriques actives par défaut"""
+        return super().get_queryset(request).select_related('rubrique')
+
+
+@admin.register(EmployeRubrique)
+class EmployeRubriqueAdmin(admin.ModelAdmin):
+    """Interface d'administration pour les associations employé-rubrique"""
+    
+    list_display = [
+        'employe',
+        'rubrique',
+        'montant_personnalise',
+        'pourcentage_personnalise',
+        'date_debut',
+        'date_fin',
+        'actif'
+    ]
+    
+    list_filter = [
+        'rubrique__type_rubrique',
+        'actif',
+        'date_debut',
+        'employe__fonction'
+    ]
+    
+    search_fields = [
+        'employe__nom',
+        'employe__prenom',
+        'employe__matricule',
+        'rubrique__code',
+        'rubrique__nom'
+    ]
+    
+    autocomplete_fields = ['employe', 'rubrique']
+    list_editable = ['actif']
+    
+    fieldsets = (
+        ('Association', {
+            'fields': ('employe', 'rubrique')
+        }),
+        ('Paramètres personnalisés', {
+            'fields': (
+                'montant_personnalise',
+                'pourcentage_personnalise'
+            ),
+            'description': 'Paramètres spécifiques à cet employé (écrasent le calcul par défaut)'
+        }),
+        ('Période et statut', {
+            'fields': ('date_debut', 'date_fin', 'actif', 'note')
+        }),
+    )
+    
+    readonly_fields = ['date_creation', 'date_modification']
+    ordering = ['employe__nom', 'rubrique__code']
+    
+    # Actions personnalisées
+    actions = ['calculer_apercu_montants', 'activer_associations', 'desactiver_associations']
+    
+    def calculer_apercu_montants(self, request, queryset):
+        """Calculer un aperçu des montants pour les associations sélectionnées"""
+        resultats = []
+        for association in queryset.select_related('employe', 'rubrique'):
+            employe = association.employe
+            montant = association.calculer_montant(employe.salaire_base, employe.salaire_base)
+            resultats.append(f"{employe.nom_complet()}: {montant} DH")
+        
+        message = "Aperçu des montants:\n" + "\n".join(resultats[:10])
+        if len(resultats) > 10:
+            message += f"\n... et {len(resultats)-10} autres"
+        
+        self.message_user(request, message)
+    calculer_apercu_montants.short_description = "Calculer aperçu des montants"
+    
+    def activer_associations(self, request, queryset):
+        """Activer les associations sélectionnées"""
+        updated = queryset.update(actif=True)
+        self.message_user(request, f'{updated} association(s) activée(s).')
+    activer_associations.short_description = "Activer les associations"
+    
+    def desactiver_associations(self, request, queryset):
+        """Désactiver les associations sélectionnées"""
+        updated = queryset.update(actif=False)
+        self.message_user(request, f'{updated} association(s) désactivée(s).')
+    desactiver_associations.short_description = "Désactiver les associations"
+
+
+# 🔧 MISE À JOUR de la classe EmployeAdmin existante
+# 📍 CHERCHER dans admin.py la classe EmployeAdmin (vers ligne 20-80)
+# 🎯 AJOUTER cette ligne dans la liste des inlines :
+
+# DANS LA CLASSE EmployeAdmin EXISTANTE, AJOUTER :
+# inlines = [EmployeRubriqueInline]  # ← AJOUTER CETTE LIGNE

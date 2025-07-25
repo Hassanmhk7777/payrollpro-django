@@ -167,7 +167,7 @@
                             </select>
                         </div>
                         
-                        <div class="col-md-6">
+                             <div class="col-md-6">
                             <label class="form-label">Actions :</label><br>
                             <div class="btn-group w-100" role="group">
                                 <button type="submit" name="action" value="calculer" class="btn btn-success">
@@ -179,6 +179,12 @@
                                 <button type="button" class="btn btn-warning" onclick="showPreview()">
                                     <i class="bi bi-eye"></i> Aperçu
                                 </button>
+                             <a href="{% url 'paie:export_bulletins_excel' %}" class="btn btn-outline-success">
+                                    <i class="bi bi-file-excel"></i> Export Excel
+                                </a>
+                                <a href="{% url 'paie:page_export_cnss' %}" class="btn btn-warning">
+                                    <i class="bi bi-file-spreadsheet"></i> Export CNSS
+                                </a>
                             </div>
                         </div>
                     </div>
@@ -397,7 +403,7 @@
                                         <span class="badge bg-warning"><i class="bi bi-clock"></i> En attente</span>
                                     {% endif %}
                                 </td>
-                                <td>
+                             <td>
                                     <div class="btn-group btn-group-sm">
                                         <button class="btn btn-outline-primary" title="Voir détails">
                                             <i class="bi bi-eye"></i>
@@ -407,6 +413,9 @@
                                         </button>
                                         <a href="{% url 'paie:bulletin_pdf' bulletin.id %}" class="btn btn-outline-info" title="Télécharger PDF" target="_blank">
                                             <i class="bi bi-file-pdf"></i>
+                                        </a>
+                                        <a href="{% url 'paie:export_bulletin_excel' bulletin.id %}" class="btn btn-outline-success" title="Export Excel" target="_blank">
+                                            <i class="bi bi-file-excel"></i>
                                         </a>
                                     </div>
                                 </td>

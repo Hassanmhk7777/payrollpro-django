@@ -1,6 +1,7 @@
 from django.urls import path
 from . import views
 from . import views_users
+from . import views_excel
 
 app_name = 'paie'
 
@@ -45,4 +46,12 @@ urlpatterns = [
     path('deconnexion/', views.deconnexion_vue, name='deconnexion'),
     path('connexion/', views.connexion_personnalisee, name='connexion_personnalisee'),
     path('creer-comptes/', views.creer_compte_employe, name='creer_comptes'),
+
+     # ===== EXPORTS EXCEL - NOUVEAUX =====
+    path('export-excel/bulletins/', views_excel.export_bulletins_massif_excel, name='export_bulletins_excel'),
+    path('export-excel/bulletin/<int:bulletin_id>/', views_excel.export_bulletin_excel, name='export_bulletin_excel'),
+    path('export-excel/cnss/', views_excel.export_cnss_excel, name='export_cnss_excel'),
+    path('export-excel/statistiques/', views_excel.statistiques_excel, name='statistiques_excel'),
+    path('export-excel/cnss/', views_excel.page_export_cnss, name='page_export_cnss'),
+    path('export-excel/cnss/<int:mois>/<int:annee>/', views_excel.export_cnss_mensuel, name='export_cnss_mensuel'),
 ]

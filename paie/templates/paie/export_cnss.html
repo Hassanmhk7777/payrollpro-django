@@ -1,0 +1,291 @@
+{% extends 'paie/base.html' %}
+
+{% block title %}Export CNSS - PayrollPro{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Title -->
+    <div class="row">
+        <div class="col-12">
+            <h1 class="page-title">
+                <i class="bi bi-file-spreadsheet"></i> Export CNSS - Bordereau Déclaration Salaires
+            </h1>
+            <p class="text-muted">Génération du fichier Excel officiel pour la CNSS Maroc</p>
+        </div>
+    </div>
+
+    <!-- Messages -->
+    {% if messages %}
+    <div class="row mb-4">
+        <div class="col-12">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Informations CNSS -->
+    <div class="row mb-4">
+        <div class="col-lg-8">
+            <div class="stats-card">
+                <h3 class="section-title">
+                    <i class="bi bi-info-circle"></i> Informations Export CNSS
+                </h3>
+                
+                <div class="alert alert-info">
+                    <h6><i class="bi bi-shield-check"></i> Format Officiel CNSS Maroc</h6>
+                    <p class="mb-2">Cet export génère le <strong>Bordereau de Déclaration des Salaires (BDS)</strong> conforme aux exigences de la CNSS.</p>
+                    <ul class="mb-0">
+                        <li>✅ Tous les calculs selon la législation 2025</li>
+                        <li>✅ Parts salariales et patronales incluses</li>
+                        <li>✅ Plafonnements CNSS respectés (6,000 DH)</li>
+                        <li>✅ Format Excel prêt pour soumission</li>
+                    </ul>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="text-primary">📊 Taux Appliqués :</h6>
+                        <table class="table table-sm">
+                            <tr>
+                                <td>CNSS Salarié :</td>
+                                <td><strong>{{ taux_cnss.cnss_salarie }}%</strong></td>
+                            </tr>
+                            <tr>
+                                <td>AMO Salarié :</td>
+                                <td><strong>{{ taux_cnss.amo_salarie }}%</strong></td>
+                            </tr>
+                            <tr class="table-warning">
+                                <td>CNSS Patronal :</td>
+                                <td><strong>{{ taux_cnss.cnss_patronal }}%</strong></td>
+                            </tr>
+                            <tr class="table-warning">
+                                <td>AMO Patronal :</td>
+                                <td><strong>{{ taux_cnss.amo_patronal }}%</strong></td>
+                            </tr>
+                            <tr class="table-warning">
+                                <td>Formation Prof. :</td>
+                                <td><strong>{{ taux_cnss.formation_prof }}%</strong></td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-success">⚡ Export Rapide :</h6>
+                        <div class="d-grid gap-2">
+                            <a href="{% url 'paie:export_cnss_mensuel' mois_actuel annee_actuelle %}" 
+                               class="btn btn-success">
+                                <i class="bi bi-download"></i> Export {{ mois_actuel|date:"F" }} {{ annee_actuelle }}
+                            </a>
+                            <a href="{% url 'paie:calcul_paie' %}" class="btn btn-outline-primary">
+                                <i class="bi bi-calculator"></i> Calculer Paie Mensuelle
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sélection période -->
+        <div class="col-lg-4">
+            <div class="stats-card">
+                <h3 class="section-title">
+                    <i class="bi bi-calendar-event"></i> Sélectionner Période
+                </h3>
+                
+                <form id="exportForm">
+                    <div class="mb-3">
+                        <label for="mois" class="form-label">Mois :</label>
+                        <select id="mois" class="form-select" required>
+                            <option value="1" {% if mois_actuel == 1 %}selected{% endif %}>Janvier</option>
+                            <option value="2" {% if mois_actuel == 2 %}selected{% endif %}>Février</option>
+                            <option value="3" {% if mois_actuel == 3 %}selected{% endif %}>Mars</option>
+                            <option value="4" {% if mois_actuel == 4 %}selected{% endif %}>Avril</option>
+                            <option value="5" {% if mois_actuel == 5 %}selected{% endif %}>Mai</option>
+                            <option value="6" {% if mois_actuel == 6 %}selected{% endif %}>Juin</option>
+                            <option value="7" {% if mois_actuel == 7 %}selected{% endif %}>Juillet</option>
+                            <option value="8" {% if mois_actuel == 8 %}selected{% endif %}>Août</option>
+                            <option value="9" {% if mois_actuel == 9 %}selected{% endif %}>Septembre</option>
+                            <option value="10" {% if mois_actuel == 10 %}selected{% endif %}>Octobre</option>
+                            <option value="11" {% if mois_actuel == 11 %}selected{% endif %}>Novembre</option>
+                            <option value="12" {% if mois_actuel == 12 %}selected{% endif %}>Décembre</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="annee" class="form-label">Année :</label>
+                        <select id="annee" class="form-select" required>
+                            <option value="2024" {% if annee_actuelle == 2024 %}selected{% endif %}>2024</option>
+                            <option value="2025" {% if annee_actuelle == 2025 %}selected{% endif %}>2025</option>
+                            <option value="2026" {% if annee_actuelle == 2026 %}selected{% endif %}>2026</option>
+                        </select>
+                    </div>
+                    
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="bi bi-file-excel"></i> Générer BDS CNSS
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Périodes disponibles -->
+    {% if periodes_disponibles %}
+    <div class="row">
+        <div class="col-12">
+            <div class="stats-card">
+                <h3 class="section-title">
+                    <i class="bi bi-clock-history"></i> Périodes Disponibles pour Export
+                </h3>
+                
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Période</th>
+                                <th>Nombre d'Employés</th>
+                                <th>Masse Salariale Brute</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for periode in periodes_disponibles %}
+                            <tr>
+                                <td>
+                                    <strong>
+                                        {% if periode.mois == 1 %}Janvier
+                                        {% elif periode.mois == 2 %}Février
+                                        {% elif periode.mois == 3 %}Mars
+                                        {% elif periode.mois == 4 %}Avril
+                                        {% elif periode.mois == 5 %}Mai
+                                        {% elif periode.mois == 6 %}Juin
+                                        {% elif periode.mois == 7 %}Juillet
+                                        {% elif periode.mois == 8 %}Août
+                                        {% elif periode.mois == 9 %}Septembre
+                                        {% elif periode.mois == 10 %}Octobre
+                                        {% elif periode.mois == 11 %}Novembre
+                                        {% elif periode.mois == 12 %}Décembre
+                                        {% endif %} {{ periode.annee }}
+                                    </strong>
+                                </td>
+                                <td>
+                                    <span class="badge bg-primary">{{ periode.nb_bulletins }} employés</span>
+                                </td>
+                                <td>
+                                    <strong>{{ periode.masse_salariale|floatformat:0 }} DH</strong>
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{% url 'paie:export_cnss_mensuel' periode.mois periode.annee %}" 
+                                           class="btn btn-success" title="Export CNSS">
+                                            <i class="bi bi-file-excel"></i> BDS
+                                        </a>
+                                        <a href="{% url 'paie:export_bulletins_massif' %}?mois={{ periode.mois }}&annee={{ periode.annee }}" 
+                                           class="btn btn-info" title="Export bulletins">
+                                            <i class="bi bi-file-text"></i> Bulletins
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="row">
+        <div class="col-12">
+            <div class="alert alert-warning">
+                <h5><i class="bi bi-exclamation-triangle"></i> Aucune donnée disponible</h5>
+                <p>Aucun bulletin de paie n'a été calculé. Veuillez d'abord :</p>
+                <ol>
+                    <li>Ajouter des employés via <a href="{% url 'paie:liste_employes' %}">Gestion des Employés</a></li>
+                    <li>Calculer la paie via <a href="{% url 'paie:calcul_paie' %}">Calcul de Paie</a></li>
+                    <li>Revenir ici pour l'export CNSS</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Aide et informations légales -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card border-warning">
+                <div class="card-body">
+                    <h6 class="card-title text-warning">
+                        <i class="bi bi-exclamation-triangle"></i> Informations Importantes
+                    </h6>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>📅 Délais CNSS :</h6>
+                            <ul class="small">
+                                <li>Déclaration : <strong>avant le 10 du mois suivant</strong></li>
+                                <li>Paiement : <strong>avant le 10 du mois suivant</strong></li>
+                                <li>Retard = majorations automatiques</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>📋 Documents requis :</h6>
+                            <ul class="small">
+                                <li>BDS (ce fichier Excel)</li>
+                                <li>Bordereau de Paiement des Cotisations (BPC)</li>
+                                <li>Justificatifs bancaires de paiement</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="text-center mt-2">
+                        <small class="text-muted">
+                            <i class="bi bi-shield-check"></i> 
+                            Export conforme à la réglementation CNSS Maroc - Version 2025
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('exportForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const mois = document.getElementById('mois').value;
+    const annee = document.getElementById('annee').value;
+    
+    // Vérifier les valeurs
+    if (!mois || !annee) {
+        alert('Veuillez sélectionner un mois et une année');
+        return;
+    }
+    
+    // Confirmer l'export
+    const moisNoms = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
+                      'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
+    
+    if (confirm(`Générer l'export CNSS pour ${moisNoms[mois]} ${annee} ?`)) {
+        // Rediriger vers l'URL d'export
+        window.location.href = `/export-excel/cnss/${mois}/${annee}/`;
+    }
+});
+
+// Précharger le mois/année actuel
+document.addEventListener('DOMContentLoaded', function() {
+    const now = new Date();
+    const moisActuel = now.getMonth() + 1;
+    const anneeActuelle = now.getFullYear();
+    
+    document.getElementById('mois').value = moisActuel;
+    document.getElementById('annee').value = anneeActuelle;
+});
+</script>
+{% endblock %}

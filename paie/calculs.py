@@ -4,6 +4,7 @@ Logique de calcul de paie selon la législation marocaine - Version avec intégr
 from decimal import Decimal, ROUND_HALF_UP
 from datetime import datetime
 from django.utils import timezone
+from django.db import models
 from django.db.models import Q
 from .models import Employe, ElementPaie, ParametrePaie, BulletinPaie, Absence
 
@@ -227,7 +228,93 @@ class CalculateurPaie:
             impot = Decimal('3666.67') + (base_imposable - Decimal('15000')) * Decimal('0.38')
         
         return self.arrondir(impot)
-    
+
+    def calculer_rubriques_personnalisees(self, employe, mois, annee):
+        """
+        Calcule les rubriques personnalisées pour un employé
+        """
+        try:
+            from .models import EmployeRubrique
+            from datetime import date
+
+            # Date de référence pour le calcul
+            date_calcul = date(annee, mois, 1)
+
+            # Récupérer les rubriques actives pour cet employé
+            rubriques_employe = EmployeRubrique.objects.filter(
+                employe=employe,
+                actif=True,
+                date_debut__lte=date_calcul,
+                rubrique__actif=True
+            ).filter(
+                models.Q(date_fin__isnull=True) | models.Q(date_fin__gte=date_calcul)
+            ).select_related('rubrique')
+
+            # Séparer les éléments par type
+            gains_supplementaires = Decimal('0')
+            retenues_supplementaires = Decimal('0')
+            cotisations_speciales = Decimal('0')
+            allocations = Decimal('0')
+
+            # Détails pour le rapport
+            details_rubriques = []
+
+            for rubrique_employe in rubriques_employe:
+                rubrique = rubrique_employe.rubrique
+
+                # Calculer le montant (on utilisera le salaire de base pour l'instant)
+                montant = rubrique_employe.calculer_montant(
+                    employe.salaire_base,
+                    employe.salaire_base
+                )
+
+                if montant > 0:
+                    # Classer selon le type de rubrique
+                    if rubrique.type_rubrique == 'GAIN':
+                        gains_supplementaires += montant
+                    elif rubrique.type_rubrique == 'RETENUE':
+                        retenues_supplementaires += montant
+                    elif rubrique.type_rubrique == 'COTISATION':
+                        cotisations_speciales += montant
+                    elif rubrique.type_rubrique == 'ALLOCATION':
+                        allocations += montant
+                    elif rubrique.type_rubrique in ['TRANSPORT', 'FORMATION', 'MEDICAL']:
+                        gains_supplementaires += montant
+
+                    # Ajouter aux détails
+                    details_rubriques.append({
+                        'code': rubrique.code,
+                        'nom': rubrique.nom,
+                        'type': rubrique.get_type_rubrique_display(),
+                        'montant': montant,
+                        'soumis_ir': rubrique.soumis_ir,
+                        'soumis_cnss': rubrique.soumis_cnss,
+                        'soumis_amo': rubrique.soumis_amo,
+                    })
+
+            return {
+                'gains_supplementaires': gains_supplementaires,
+                'retenues_supplementaires': retenues_supplementaires,
+                'cotisations_speciales': cotisations_speciales,
+                'allocations': allocations,
+                'details_rubriques': details_rubriques,
+                'total_impact_positif': gains_supplementaires + allocations,
+                'total_impact_negatif': retenues_supplementaires + cotisations_speciales
+            }
+
+        except Exception as e:
+            print(f"Erreur calcul rubriques personnalisées pour {employe.nom_complet()}: {str(e)}")
+            return {
+                'gains_supplementaires': Decimal('0'),
+                'retenues_supplementaires': Decimal('0'),
+                'cotisations_speciales': Decimal('0'),
+                'allocations': Decimal('0'),
+                'details_rubriques': [],
+                'total_impact_positif': Decimal('0'),
+                'total_impact_negatif': Decimal('0'),
+                'erreur': str(e)
+            }
+
     def calculer_bulletin_complet(self, employe, mois, annee):
         """
         Calcule un bulletin de paie complet pour un employé - AVEC INTÉGRATION ABSENCES
@@ -242,14 +329,18 @@ class CalculateurPaie:
         absences_info = self.calculer_absences(employe, mois, annee)
         deduction_absences = absences_info['deduction_montant']
         
-        # Salaire brut imposable (après déduction des absences non payées)
+        rubriques_info = self.calculer_rubriques_personnalisees(employe, mois, annee)
+        
+        # Salaire brut imposable (après déduction des absences + rubriques)
         salaire_brut_imposable = (
             salaire_base + 
             elements['primes'] + 
-            elements['heures_sup'] -
-            deduction_absences  # **NOUVELLE LIGNE**
+            elements['heures_sup'] +
+            rubriques_info['gains_supplementaires'] +
+            rubriques_info['allocations'] -
+            deduction_absences -
+            rubriques_info['retenues_supplementaires']
         )
-        
         # S'assurer que le salaire brut ne soit pas négatif
         if salaire_brut_imposable < 0:
             salaire_brut_imposable = Decimal('0')
@@ -264,7 +355,14 @@ class CalculateurPaie:
         
         # Calcul du net à payer
         total_cotisations = cnss + amo + cimr
-        total_deductions = total_cotisations + ir + elements['retenues'] + elements['avances']
+        total_deductions = (
+            total_cotisations + 
+            ir + 
+            elements['retenues'] + 
+            elements['avances'] +
+            rubriques_info['cotisations_speciales']
+        )
+        
         
         net_a_payer = salaire_brut_imposable - total_deductions
         
@@ -297,7 +395,12 @@ class CalculateurPaie:
             'salaire_net': salaire_brut_imposable - total_cotisations - ir,
             'net_a_payer': self.arrondir(net_a_payer),
             'total_cotisations': total_cotisations,
-            'total_deductions': total_deductions
+            'total_deductions': total_deductions,
+             'rubriques_gains': rubriques_info['gains_supplementaires'],
+            'rubriques_retenues': rubriques_info['retenues_supplementaires'],
+            'rubriques_allocations': rubriques_info['allocations'],
+            'rubriques_cotisations': rubriques_info['cotisations_speciales'],
+            'rubriques_details': rubriques_info['details_rubriques'],
         }
     
     def generer_bulletin(self, employe, mois, annee, utilisateur=None):
