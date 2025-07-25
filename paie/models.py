@@ -255,6 +255,103 @@ class Employe(models.Model):
         if self.user and self.user.is_superuser:
             return True
         return self.role_systeme == 'RH'
+    def anciennete_en_mois(self):
+        """
+        Calcule l'ancienneté de l'employé en mois
+        Nécessaire pour les conditions d'ancienneté des rubriques
+        """
+        from datetime import date
+        from dateutil.relativedelta import relativedelta
+        
+        if not self.date_embauche:
+            return 0
+        
+        aujourd_hui = date.today()
+        delta = relativedelta(aujourd_hui, self.date_embauche)
+        return delta.years * 12 + delta.months
+
+def get_rubriques_applicables(self, mois=None, annee=None):
+    """
+    Retourne les rubriques personnalisées applicables à cet employé
+    pour un mois/année donnés (ou le mois courant si non spécifié)
+    """
+    from datetime import date
+    
+    if mois is None or annee is None:
+        aujourd_hui = date.today()
+        mois = aujourd_hui.month
+        annee = aujourd_hui.year
+    
+    date_calcul = date(annee, mois, 1)
+    
+    # Rubriques assignées spécifiquement à cet employé
+    rubriques_assignees = self.rubriques_personnalisees.filter(
+        actif=True,
+        rubrique__actif=True
+    ).select_related('rubrique')
+    
+    rubriques_valides = []
+    
+    for assignation in rubriques_assignees:
+        # Vérifier validité de l'assignation
+        if assignation.est_valide_pour_periode(date_calcul):
+            # Vérifier validité de la rubrique elle-même
+            if assignation.rubrique.est_valide_pour_periode(date_calcul):
+                rubriques_valides.append(assignation)
+    
+    return rubriques_valides
+
+def calculer_rubriques_personnalisees(self, mois, annee, salaire_base, salaire_brut):
+    """
+    Calcule toutes les rubriques personnalisées pour cet employé
+    
+    Returns:
+        dict: {
+            'gains': [(rubrique, montant), ...],
+            'retenues': [(rubrique, montant), ...],
+            'allocations': [(rubrique, montant), ...],
+            'cotisations': [(rubrique, montant), ...],
+            'total_gains': Decimal,
+            'total_retenues': Decimal,
+            'total_allocations': Decimal,
+            'total_cotisations': Decimal
+        }
+    """
+    from decimal import Decimal
+    
+    resultats = {
+        'gains': [],
+        'retenues': [],
+        'allocations': [],
+        'cotisations': [],
+        'total_gains': Decimal('0'),
+        'total_retenues': Decimal('0'),
+        'total_allocations': Decimal('0'),
+        'total_cotisations': Decimal('0')
+    }
+    
+    rubriques_applicables = self.get_rubriques_applicables(mois, annee)
+    
+    for assignation in rubriques_applicables:
+        rubrique = assignation.rubrique
+        montant = assignation.calculer_montant(mois, annee, salaire_base, salaire_brut)
+        
+        if montant > 0:
+            type_rubrique = rubrique.type_rubrique.lower()
+            if type_rubrique == 'gain':
+                resultats['gains'].append((rubrique, montant))
+                resultats['total_gains'] += montant
+            elif type_rubrique == 'retenue':
+                resultats['retenues'].append((rubrique, montant))
+                resultats['total_retenues'] += montant
+            elif type_rubrique == 'allocation':
+                resultats['allocations'].append((rubrique, montant))
+                resultats['total_allocations'] += montant
+            elif type_rubrique == 'cotisation':
+                resultats['cotisations'].append((rubrique, montant))
+                resultats['total_cotisations'] += montant
+    
+    return resultats
 # Vos autres modèles restent identiques...
 class ParametrePaie(models.Model):
     """Paramètres de calcul de la paie (barème IR, taux CNSS, etc.)"""
@@ -568,264 +665,345 @@ class AuditLog(models.Model):
 # 📍 CHERCHER la fin de la classe AuditLog (vers ligne 350-400)
 # 🎯 AJOUTER CES NOUVELLES CLASSES APRÈS la classe AuditLog :
 
+# ÉTAPE 1 : Ajouter ces modèles dans paie/models.py
+# Localisation : après la classe ElementPaie (vers ligne 400)
+
 class RubriquePersonnalisee(models.Model):
     """
-    Rubriques personnalisées pour la paie (codes spéciaux, allocations, etc.)
+    Modèle pour les rubriques de paie personnalisées
+    Permet aux administrateurs de créer des éléments de paie flexibles
     """
     
-    # Types de rubriques
     TYPE_CHOICES = [
-        ('GAIN', 'Élément de gain'),
-        ('RETENUE', 'Élément de retenue'),
+        ('GAIN', 'Gain/Prime'),
+        ('RETENUE', 'Retenue'),
+        ('ALLOCATION', 'Allocation'),
         ('COTISATION', 'Cotisation spéciale'),
-        ('EXONERATION', 'Exonération'),
-        ('ALLOCATION', 'Allocation familiale'),
-        ('TRANSPORT', 'Frais de transport'),
-        ('FORMATION', 'Formation professionnelle'),
-        ('MEDICAL', 'Frais médicaux'),
-        ('AUTRE', 'Autre rubrique'),
     ]
     
-    # Modes de calcul
-    CALCUL_CHOICES = [
+    MODE_CALCUL_CHOICES = [
         ('FIXE', 'Montant fixe'),
-        ('POURCENTAGE_BRUT', 'Pourcentage du salaire brut'),
-        ('POURCENTAGE_BASE', 'Pourcentage du salaire de base'),
-        ('PAR_ENFANT', 'Montant par enfant'),
-        ('PAR_JOUR', 'Montant par jour travaillé'),
+        ('POURCENTAGE', 'Pourcentage du salaire'),
+        ('PAR_ENFANT', 'Par enfant'),
         ('FORMULE', 'Formule personnalisée'),
     ]
     
-    # Fréquence
-    FREQUENCE_CHOICES = [
+    PERIODICITE_CHOICES = [
         ('MENSUEL', 'Mensuel'),
         ('TRIMESTRIEL', 'Trimestriel'),
-        ('SEMESTRIEL', 'Semestriel'),
         ('ANNUEL', 'Annuel'),
         ('PONCTUEL', 'Ponctuel'),
     ]
     
-    # Informations de base
+    # Identification
     code = models.CharField(
-        max_length=10, 
+        max_length=20, 
         unique=True, 
-        help_text="Code unique (ex: ALLOC, TRANS, MED)"
+        help_text="Code unique (ex: TRANSP, MUTU, ANCIENNET)"
     )
-    nom = models.CharField(max_length=100, help_text="Nom complet de la rubrique")
-    description = models.TextField(blank=True, help_text="Description détaillée")
+    nom = models.CharField(
+        max_length=100, 
+        help_text="Nom affiché sur le bulletin (ex: Prime Transport)"
+    )
+    description = models.TextField(blank=True)
     
     # Classification
-    type_rubrique = models.CharField(max_length=20, choices=TYPE_CHOICES)
-    mode_calcul = models.CharField(max_length=20, choices=CALCUL_CHOICES, default='FIXE')
-    frequence = models.CharField(max_length=20, choices=FREQUENCE_CHOICES, default='MENSUEL')
+    type_rubrique = models.CharField(
+        max_length=20, 
+        choices=TYPE_CHOICES,
+        help_text="Type de rubrique"
+    )
+    ordre_affichage = models.PositiveIntegerField(
+        default=100,
+        help_text="Ordre d'affichage sur le bulletin (plus petit = en haut)"
+    )
     
-    # Paramètres de calcul
+    # Mode de calcul
+    mode_calcul = models.CharField(
+        max_length=20,
+        choices=MODE_CALCUL_CHOICES,
+        help_text="Comment calculer le montant"
+    )
+    
+    # Valeurs de calcul
     montant_fixe = models.DecimalField(
         max_digits=10, 
         decimal_places=2, 
-        null=True, 
-        blank=True,
-        help_text="Montant fixe en DH"
+        default=0,
+        help_text="Montant fixe en DH (si mode = FIXE)"
     )
     pourcentage = models.DecimalField(
         max_digits=5, 
         decimal_places=2, 
-        null=True, 
-        blank=True,
-        help_text="Pourcentage à appliquer"
+        default=0,
+        help_text="Pourcentage du salaire (si mode = POURCENTAGE)"
     )
-    formule_calcul = models.TextField(
+    montant_par_enfant = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2, 
+        default=0,
+        help_text="Montant par enfant (si mode = PAR_ENFANT)"
+    )
+    formule_personnalisee = models.TextField(
         blank=True,
-        help_text="Formule personnalisée (ex: salaire_base * 0.05 + 100)"
+        help_text="Formule Python (ex: salaire_base * 0.05 if anciennete > 5 else 0)"
     )
     
-    # Conditions d'application
-    salaire_minimum = models.DecimalField(
-        max_digits=10, 
-        decimal_places=2, 
-        null=True, 
-        blank=True,
-        help_text="Salaire minimum pour application"
+    # Périodicité et conditions
+    periodicite = models.CharField(
+        max_length=20,
+        choices=PERIODICITE_CHOICES,
+        default='MENSUEL'
     )
-    salaire_maximum = models.DecimalField(
-        max_digits=10, 
-        decimal_places=2, 
-        null=True, 
-        blank=True,
-        help_text="Salaire maximum pour application"
+    condition_anciennete_min = models.PositiveIntegerField(
+        default=0,
+        help_text="Ancienneté minimale en mois (0 = pas de condition)"
     )
     
     # Impact fiscal et social
-    soumis_ir = models.BooleanField(default=True, help_text="Soumis à l'impôt sur le revenu")
-    soumis_cnss = models.BooleanField(default=True, help_text="Soumis aux cotisations CNSS")
-    soumis_amo = models.BooleanField(default=True, help_text="Soumis aux cotisations AMO")
+    soumis_ir = models.BooleanField(
+        default=True,
+        help_text="Soumis à l'impôt sur le revenu"
+    )
+    soumis_cnss = models.BooleanField(
+        default=True,
+        help_text="Soumis aux cotisations CNSS"
+    )
+    soumis_amo = models.BooleanField(
+        default=True,
+        help_text="Soumis à l'AMO"
+    )
     
-    # Métadonnées
+    # Limites et plafonds
+    plafond_mensuel = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Plafond mensuel (optionnel)"
+    )
+    plancher_mensuel = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Montant minimum (optionnel)"
+    )
+    
+    # Gestion
     actif = models.BooleanField(default=True)
-    date_debut = models.DateField(help_text="Date de mise en application")
-    date_fin = models.DateField(null=True, blank=True, help_text="Date de fin (optionnelle)")
-    
-    # Création/modification
+    date_debut = models.DateField(
+        help_text="Date de début d'application"
+    )
+    date_fin = models.DateField(
+        null=True,
+        blank=True,
+        help_text="Date de fin d'application (optionnel)"
+    )
     date_creation = models.DateTimeField(auto_now_add=True)
     date_modification = models.DateTimeField(auto_now=True)
     cree_par = models.ForeignKey(
-        User, 
-        on_delete=models.SET_NULL, 
-        null=True, 
-        blank=True,
-        help_text="Utilisateur ayant créé la rubrique"
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
     )
     
     class Meta:
-        verbose_name = "Rubrique Personnalisée"
-        verbose_name_plural = "Rubriques Personnalisées"
-        ordering = ['code']
+        verbose_name = "Rubrique personnalisée"
+        verbose_name_plural = "Rubriques personnalisées"
+        ordering = ['type_rubrique', 'ordre_affichage', 'nom']
     
     def __str__(self):
         return f"{self.code} - {self.nom}"
     
-    def calculer_montant(self, employe, salaire_base, salaire_brut):
+    def est_valide_pour_periode(self, date_calcul):
+        """Vérifie si la rubrique est valide pour une période donnée"""
+        if not self.actif:
+            return False
+        if date_calcul < self.date_debut:
+            return False
+        if self.date_fin and date_calcul > self.date_fin:
+            return False
+        return True
+    
+    def calculer_montant(self, employe, mois, annee, salaire_base, salaire_brut):
         """
         Calcule le montant de la rubrique pour un employé donné
+        
+        Args:
+            employe: Instance Employe
+            mois: Mois de calcul
+            annee: Année de calcul
+            salaire_base: Salaire de base de l'employé
+            salaire_brut: Salaire brut calculé
+            
+        Returns:
+            Decimal: Montant calculé
         """
-        if not self.actif:
+        from datetime import date
+        from decimal import Decimal
+        
+        # Vérifier la validité pour la période
+        date_calcul = date(annee, mois, 1)
+        if not self.est_valide_pour_periode(date_calcul):
             return Decimal('0')
         
-        # Vérifier les conditions de salaire
-        if self.salaire_minimum and salaire_base < self.salaire_minimum:
-            return Decimal('0')
-        if self.salaire_maximum and salaire_base > self.salaire_maximum:
-            return Decimal('0')
+        # Vérifier l'ancienneté si requise
+        if self.condition_anciennete_min > 0:
+            anciennete_mois = employe.anciennete_en_mois()
+            if anciennete_mois < self.condition_anciennete_min:
+                return Decimal('0')
+        
+        montant = Decimal('0')
         
         # Calcul selon le mode
         if self.mode_calcul == 'FIXE':
-            return self.montant_fixe or Decimal('0')
-        
-        elif self.mode_calcul == 'POURCENTAGE_BRUT':
-            if self.pourcentage:
-                return salaire_brut * (self.pourcentage / Decimal('100'))
-        
-        elif self.mode_calcul == 'POURCENTAGE_BASE':
-            if self.pourcentage:
-                return salaire_base * (self.pourcentage / Decimal('100'))
-        
+            montant = self.montant_fixe
+            
+        elif self.mode_calcul == 'POURCENTAGE':
+            montant = salaire_base * (self.pourcentage / Decimal('100'))
+            
         elif self.mode_calcul == 'PAR_ENFANT':
-            if self.montant_fixe:
-                return self.montant_fixe * Decimal(str(employe.nombre_enfants))
-        
-        elif self.mode_calcul == 'PAR_JOUR':
-            if self.montant_fixe:
-                return self.montant_fixe * Decimal('26')  # 26 jours ouvrables
-        
-        elif self.mode_calcul == 'FORMULE' and self.formule_calcul:
+            nombre_enfants = employe.nombre_enfants_charges or 0
+            montant = self.montant_par_enfant * nombre_enfants
+            
+        elif self.mode_calcul == 'FORMULE' and self.formule_personnalisee:
             try:
-                # Évaluation sécurisée de la formule
+                # Variables disponibles dans la formule
                 context = {
                     'salaire_base': float(salaire_base),
                     'salaire_brut': float(salaire_brut),
-                    'nombre_enfants': employe.nombre_enfants,
-                    'anciennete_annees': (timezone.now().date() - employe.date_embauche).days // 365
+                    'anciennete': employe.anciennete_en_mois(),
+                    'nombre_enfants': employe.nombre_enfants_charges or 0,
+                    'coefficient': employe.coefficient_salaire or 1,
                 }
                 
-                # Remplacer les variables dans la formule
-                formule = self.formule_calcul
-                for var, value in context.items():
-                    formule = formule.replace(var, str(value))
-                
-                # Évaluer (attention: eval() peut être dangereux en production)
-                resultat = eval(formule, {"__builtins__": {}}, {})
-                return Decimal(str(resultat))
+                # Évaluation sécurisée de la formule
+                result = eval(self.formule_personnalisee, {"__builtins__": {}}, context)
+                montant = Decimal(str(result))
             except:
-                return Decimal('0')
+                montant = Decimal('0')  # En cas d'erreur, montant = 0
         
-        return Decimal('0')
-    
-    def is_applicable_for_employee(self, employe):
-        """
-        Vérifie si la rubrique est applicable pour un employé
-        """
-        if not self.actif:
-            return False
+        # Appliquer les limites
+        if self.plafond_mensuel and montant > self.plafond_mensuel:
+            montant = self.plafond_mensuel
+        if self.plancher_mensuel and montant < self.plancher_mensuel:
+            montant = self.plancher_mensuel
         
-        # Vérifier les dates
-        today = timezone.now().date()
-        if today < self.date_debut:
-            return False
-        if self.date_fin and today > self.date_fin:
-            return False
-        
-        return True
+        return montant.quantize(Decimal('0.01'))
 
 
 class EmployeRubrique(models.Model):
     """
     Association entre un employé et une rubrique personnalisée
+    Permet d'assigner des rubriques spécifiques à certains employés
     """
     
     employe = models.ForeignKey(
-        Employe, 
-        on_delete=models.CASCADE, 
+        'Employe',
+        on_delete=models.CASCADE,
         related_name='rubriques_personnalisees'
     )
     rubrique = models.ForeignKey(
-        RubriquePersonnalisee, 
+        'RubriquePersonnalisee',
         on_delete=models.CASCADE,
-        related_name='employes_concernes'
+        related_name='employes_assignes'
     )
     
-    # Paramètres spécifiques à l'employé
+    # Surcharge des valeurs de la rubrique pour cet employé spécifique
     montant_personnalise = models.DecimalField(
-        max_digits=10, 
-        decimal_places=2, 
-        null=True, 
+        max_digits=10,
+        decimal_places=2,
+        null=True,
         blank=True,
-        help_text="Montant spécifique pour cet employé (écrase le calcul par défaut)"
+        help_text="Montant spécifique pour cet employé (surcharge la règle générale)"
     )
     pourcentage_personnalise = models.DecimalField(
-        max_digits=5, 
-        decimal_places=2, 
-        null=True, 
+        max_digits=5,
+        decimal_places=2,
+        null=True,
         blank=True,
         help_text="Pourcentage spécifique pour cet employé"
     )
     
-    # Période d'application
-    date_debut = models.DateField(default=timezone.now)
-    date_fin = models.DateField(null=True, blank=True)
+    # Période d'application spécifique
+    date_debut = models.DateField(
+        help_text="Date de début pour cet employé"
+    )
+    date_fin = models.DateField(
+        null=True,
+        blank=True,
+        help_text="Date de fin pour cet employé (optionnel)"
+    )
     
-    # Statut
+    # Gestion
     actif = models.BooleanField(default=True)
-    note = models.TextField(blank=True, help_text="Note ou justification")
-    
-    # Métadonnées
+    commentaire = models.TextField(
+        blank=True,
+        help_text="Commentaire ou justification"
+    )
     date_creation = models.DateTimeField(auto_now_add=True)
-    date_modification = models.DateTimeField(auto_now=True)
+    cree_par = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
+    )
     
     class Meta:
-        verbose_name = "Rubrique Employé"
-        verbose_name_plural = "Rubriques Employés"
+        verbose_name = "Assignation rubrique employé"
+        verbose_name_plural = "Assignations rubriques employés"
         unique_together = ['employe', 'rubrique']
+        ordering = ['employe__matricule', 'rubrique__ordre_affichage']
     
     def __str__(self):
-        return f"{self.employe.nom_complet()} - {self.rubrique.code}"
+        return f"{self.employe.matricule} - {self.rubrique.nom}"
     
-    def calculer_montant(self, salaire_base, salaire_brut):
-        """
-        Calcule le montant en tenant compte des paramètres personnalisés
-        """
+    def est_valide_pour_periode(self, date_calcul):
+        """Vérifie si l'assignation est valide pour une période donnée"""
         if not self.actif:
+            return False
+        if date_calcul < self.date_debut:
+            return False
+        if self.date_fin and date_calcul > self.date_fin:
+            return False
+        return True
+    
+    def calculer_montant(self, mois, annee, salaire_base, salaire_brut):
+        """
+        Calcule le montant en tenant compte des personnalisations
+        """
+        from datetime import date
+        from decimal import Decimal
+        
+        date_calcul = date(annee, mois, 1)
+        if not self.est_valide_pour_periode(date_calcul):
             return Decimal('0')
         
-        # Utiliser montant personnalisé si défini
-        if self.montant_personnalise:
+        # Si montant personnalisé, l'utiliser directement
+        if self.montant_personnalise is not None:
             return self.montant_personnalise
         
-        # Utiliser pourcentage personnalisé si défini
-        if self.pourcentage_personnalise:
-            if self.rubrique.mode_calcul == 'POURCENTAGE_BRUT':
-                return salaire_brut * (self.pourcentage_personnalise / Decimal('100'))
-            elif self.rubrique.mode_calcul == 'POURCENTAGE_BASE':
-                return salaire_base * (self.pourcentage_personnalise / Decimal('100'))
+        # Sinon, utiliser la logique de la rubrique avec personnalisations
+        rubrique = self.rubrique
         
-        # Sinon utiliser le calcul par défaut de la rubrique
-        return self.rubrique.calculer_montant(self.employe, salaire_base, salaire_brut)
+        # Créer une copie temporaire avec les valeurs personnalisées
+        if self.pourcentage_personnalise is not None:
+            # Sauvegarder la valeur originale
+            pourcentage_original = rubrique.pourcentage
+            rubrique.pourcentage = self.pourcentage_personnalise
+            
+            # Calculer
+            montant = rubrique.calculer_montant(
+                self.employe, mois, annee, salaire_base, salaire_brut
+            )
+            
+            # Restaurer la valeur originale
+            rubrique.pourcentage = pourcentage_original
+            return montant
+        
+        # Calcul normal
+        return rubrique.calculer_montant(
+            self.employe, mois, annee, salaire_base, salaire_brut
+        )

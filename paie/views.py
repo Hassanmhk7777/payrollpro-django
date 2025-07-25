@@ -10,6 +10,23 @@ from django.contrib.auth import logout
 from django.shortcuts import redirect
 from django.contrib.auth import authenticate, login
 from django.contrib import messages
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.admin.views.decorators import staff_member_required
+from django.contrib import messages
+from django.http import JsonResponse
+from django.db import transaction
+from .models import Employe, RubriquePersonnalisee, EmployeRubrique, BulletinPaie
+from .forms import RubriqueRapideForm, AssignationMassiqueForm
+from decimal import Decimal
+from datetime import date
+import json
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.admin.views.decorators import staff_member_required
+from django.contrib import messages
+from django.http import JsonResponse, HttpResponse
+from .models import Employe, RubriquePersonnalisee, EmployeRubrique
+from datetime import date
+import json
 # Imports locaux
 
 from .user_management import GestionnaireUtilisateurs, obtenir_role_utilisateur
@@ -1025,4 +1042,524 @@ def page_aide(request):
         'user_role': obtenir_role_utilisateur(request.user),
     }
     
-    return render(request, 'paie/aide.html', context)
+    return render(request, 'paie/aide.html', context) 
+@staff_member_required
+def gestion_rubriques_employe(request, employe_id):
+    """
+    Interface pour gérer toutes les rubriques d'un employé spécifique
+    Permet d'ajouter/modifier/supprimer n'importe quel montant
+    """
+    employe = get_object_or_404(Employe, id=employe_id)
+    
+    # Récupérer toutes les assignations actives
+    assignations = EmployeRubrique.objects.filter(
+        employe=employe,
+        actif=True
+    ).select_related('rubrique').order_by('rubrique__type_rubrique', 'rubrique__nom')
+    
+    # Récupérer toutes les rubriques disponibles
+    rubriques_disponibles = RubriquePersonnalisee.objects.filter(
+        actif=True
+    ).order_by('type_rubrique', 'nom')
+    
+    # Calculer le total des rubriques pour cet employé
+    total_gains = sum(
+        a.calculer_montant(date.today().month, date.today().year, employe.salaire_base, employe.salaire_base)
+        for a in assignations if a.rubrique.type_rubrique == 'GAIN'
+    )
+    total_retenues = sum(
+        a.calculer_montant(date.today().month, date.today().year, employe.salaire_base, employe.salaire_base)
+        for a in assignations if a.rubrique.type_rubrique == 'RETENUE'
+    )
+    total_allocations = sum(
+        a.calculer_montant(date.today().month, date.today().year, employe.salaire_base, employe.salaire_base)
+        for a in assignations if a.rubrique.type_rubrique == 'ALLOCATION'
+    )
+    
+    context = {
+        'employe': employe,
+        'assignations': assignations,
+        'rubriques_disponibles': rubriques_disponibles,
+        'total_gains': total_gains,
+        'total_retenues': total_retenues,
+        'total_allocations': total_allocations,
+        'nouveau_salaire_brut': employe.salaire_base + total_gains + total_allocations,
+        'nouveau_net_estimé': employe.salaire_base + total_gains + total_allocations - total_retenues
+    }
+    
+    return render(request, 'paie/gestion_rubriques_employe.html', context)
+
+@staff_member_required
+def ajouter_rubrique_ponctuelle(request):
+    """
+    Ajouter une rubrique ponctuelle (montant libre) à un employé
+    AJAX endpoint pour ajouts rapides
+    """
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            employe_id = data.get('employe_id')
+            nom_rubrique = data.get('nom_rubrique')
+            type_rubrique = data.get('type_rubrique', 'GAIN')
+            montant = Decimal(str(data.get('montant', 0)))
+            commentaire = data.get('commentaire', '')
+            mois = data.get('mois', date.today().month)
+            annee = data.get('annee', date.today().year)
+            
+            employe = get_object_or_404(Employe, id=employe_id)
+            
+            # Créer une rubrique ponctuelle
+            code_rubrique = f"PONCT_{employe.matricule}_{date.today().strftime('%Y%m%d_%H%M%S')}"
+            
+            with transaction.atomic():
+                # Créer la rubrique
+                rubrique = RubriquePersonnalisee.objects.create(
+                    code=code_rubrique,
+                    nom=nom_rubrique,
+                    description=f"Rubrique ponctuelle pour {employe.nom_complet()}",
+                    type_rubrique=type_rubrique,
+                    mode_calcul='FIXE',
+                    montant_fixe=montant,
+                    periodicite='PONCTUEL',
+                    soumis_ir=(type_rubrique in ['GAIN']),
+                    soumis_cnss=(type_rubrique in ['GAIN']),
+                    soumis_amo=(type_rubrique in ['GAIN']),
+                    date_debut=date(annee, mois, 1),
+                    date_fin=date(annee, mois, 28),  # Valide que pour ce mois
+                    cree_par=request.user
+                )
+                
+                # Assigner à l'employé
+                assignation = EmployeRubrique.objects.create(
+                    employe=employe,
+                    rubrique=rubrique,
+                    date_debut=date(annee, mois, 1),
+                    date_fin=date(annee, mois, 28),
+                    actif=True,
+                    commentaire=commentaire,
+                    cree_par=request.user
+                )
+            
+            return JsonResponse({
+                'success': True,
+                'message': f'Rubrique "{nom_rubrique}" ajoutée avec succès',
+                'assignation_id': assignation.id,
+                'montant': float(montant)
+            })
+            
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'error': str(e)
+            })
+    
+    return JsonResponse({'success': False, 'error': 'Méthode non autorisée'})
+
+@staff_member_required
+def modifier_assignation_rubrique(request, assignation_id):
+    """
+    Modifier une assignation existante (montant personnalisé, dates, etc.)
+    """
+    assignation = get_object_or_404(EmployeRubrique, id=assignation_id)
+    
+    if request.method == 'POST':
+        try:
+            # Récupérer les nouvelles valeurs
+            nouveau_montant = request.POST.get('montant_personnalise')
+            nouveau_pourcentage = request.POST.get('pourcentage_personnalise')
+            date_debut = request.POST.get('date_debut')
+            date_fin = request.POST.get('date_fin')
+            commentaire = request.POST.get('commentaire', '')
+            actif = request.POST.get('actif') == 'on'
+            
+            # Mettre à jour l'assignation
+            if nouveau_montant:
+                assignation.montant_personnalise = Decimal(nouveau_montant)
+                assignation.pourcentage_personnalise = None
+            elif nouveau_pourcentage:
+                assignation.pourcentage_personnalise = Decimal(nouveau_pourcentage)
+                assignation.montant_personnalise = None
+            
+            if date_debut:
+                assignation.date_debut = date_debut
+            if date_fin:
+                assignation.date_fin = date_fin
+            
+            assignation.commentaire = commentaire
+            assignation.actif = actif
+            assignation.save()
+            
+            messages.success(request, f'Assignation "{assignation.rubrique.nom}" mise à jour')
+            
+        except Exception as e:
+            messages.error(request, f'Erreur: {e}')
+    
+    return redirect('gestion_rubriques_employe', employe_id=assignation.employe.id)
+
+@staff_member_required
+def supprimer_assignation_rubrique(request, assignation_id):
+    """
+    Supprimer une assignation de rubrique
+    """
+    assignation = get_object_or_404(EmployeRubrique, id=assignation_id)
+    employe_id = assignation.employe.id
+    nom_rubrique = assignation.rubrique.nom
+    
+    if request.method == 'POST':
+        assignation.actif = False  # Désactiver plutôt que supprimer pour historique
+        assignation.save()
+        messages.success(request, f'Rubrique "{nom_rubrique}" supprimée')
+    
+    return redirect('gestion_rubriques_employe', employe_id=employe_id)
+
+@staff_member_required
+def assignation_massive_rubriques(request):
+    """
+    Interface pour assigner une rubrique à plusieurs employés à la fois
+    """
+    if request.method == 'POST':
+        try:
+            employes_ids = request.POST.getlist('employes')
+            rubrique_id = request.POST.get('rubrique')
+            montant_personnalise = request.POST.get('montant_personnalise')
+            date_debut = request.POST.get('date_debut')
+            date_fin = request.POST.get('date_fin', '')
+            commentaire = request.POST.get('commentaire', '')
+            
+            rubrique = get_object_or_404(RubriquePersonnalisee, id=rubrique_id)
+            employes = Employe.objects.filter(id__in=employes_ids, actif=True)
+            
+            assignations_creees = 0
+            with transaction.atomic():
+                for employe in employes:
+                    # Vérifier si l'assignation existe déjà
+                    if not EmployeRubrique.objects.filter(
+                        employe=employe, 
+                        rubrique=rubrique, 
+                        actif=True
+                    ).exists():
+                        assignation = EmployeRubrique.objects.create(
+                            employe=employe,
+                            rubrique=rubrique,
+                            montant_personnalise=Decimal(montant_personnalise) if montant_personnalise else None,
+                            date_debut=date_debut,
+                            date_fin=date_fin if date_fin else None,
+                            commentaire=commentaire,
+                            actif=True,
+                            cree_par=request.user
+                        )
+                        assignations_creees += 1
+            
+            messages.success(
+                request, 
+                f'Rubrique "{rubrique.nom}" assignée à {assignations_creees} employé(s)'
+            )
+            
+        except Exception as e:
+            messages.error(request, f'Erreur lors de l\'assignation massive: {e}')
+    
+    # Récupérer les données pour le formulaire
+    employes = Employe.objects.filter(actif=True).order_by('nom', 'prenom')
+    rubriques = RubriquePersonnalisee.objects.filter(actif=True).order_by('type_rubrique', 'nom')
+    
+    context = {
+        'employes': employes,
+        'rubriques': rubriques
+    }
+    
+    return render(request, 'paie/assignation_massive.html', context)
+
+@staff_member_required
+def dashboard_rubriques_admin(request):
+    """
+    Dashboard complet pour l'admin : vue d'ensemble de toutes les rubriques
+    """
+    # Statistiques générales
+    total_rubriques = RubriquePersonnalisee.objects.filter(actif=True).count()
+    total_assignations = EmployeRubrique.objects.filter(actif=True).count()
+    
+    # Rubriques les plus utilisées
+    rubriques_populaires = RubriquePersonnalisee.objects.filter(
+        actif=True
+    ).annotate(
+        nb_assignations=models.Count('employes_assignes', filter=models.Q(employes_assignes__actif=True))
+    ).order_by('-nb_assignations')[:10]
+    
+    # Employés avec le plus de rubriques
+    employes_rubriques = Employe.objects.filter(
+        actif=True
+    ).annotate(
+        nb_rubriques=models.Count('rubriques_personnalisees', filter=models.Q(rubriques_personnalisees__actif=True))
+    ).order_by('-nb_rubriques')[:10]
+    
+    # Rubriques récentes
+    rubriques_recentes = RubriquePersonnalisee.objects.filter(
+        actif=True
+    ).order_by('-date_creation')[:10]
+    
+    # Calcul des montants totaux par type
+    from django.db.models import Sum, Case, When, DecimalField
+    
+    totaux_par_type = EmployeRubrique.objects.filter(
+        actif=True,
+        rubrique__actif=True
+    ).values('rubrique__type_rubrique').annotate(
+        total_fixe=Sum(
+            Case(
+                When(rubrique__mode_calcul='FIXE', then='rubrique__montant_fixe'),
+                default=0,
+                output_field=DecimalField()
+            )
+        ),
+        nb_assignations=Count('id')
+    )
+    
+    context = {
+        'total_rubriques': total_rubriques,
+        'total_assignations': total_assignations,
+        'rubriques_populaires': rubriques_populaires,
+        'employes_rubriques': employes_rubriques,
+        'rubriques_recentes': rubriques_recentes,
+        'totaux_par_type': totaux_par_type
+    }
+    
+    return render(request, 'paie/dashboard_rubriques_admin.html', context)
+@staff_member_required
+def gestion_rubriques_employe(request, employe_id):
+    """Interface simple pour gérer les rubriques d'un employé"""
+    employe = get_object_or_404(Employe, id=employe_id)
+    
+    # Récupérer les assignations
+    assignations = EmployeRubrique.objects.filter(
+        employe=employe,
+        actif=True
+    ).select_related('rubrique')
+    
+    # Calculer les totaux
+    total_gains = sum(
+        a.montant_personnalise or a.rubrique.montant_fixe 
+        for a in assignations 
+        if a.rubrique.type_rubrique == 'GAIN'
+    )
+    
+    total_retenues = sum(
+        a.montant_personnalise or a.rubrique.montant_fixe 
+        for a in assignations 
+        if a.rubrique.type_rubrique == 'RETENUE'
+    )
+    
+    total_allocations = sum(
+        a.montant_personnalise or a.rubrique.montant_fixe 
+        for a in assignations 
+        if a.rubrique.type_rubrique == 'ALLOCATION'
+    )
+    
+    # Template simple en HTML intégré
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Gestion Rubriques - {employe.nom_complet()}</title>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    </head>
+    <body>
+        <div class="container mt-4">
+            <h2>Gestion des Rubriques - {employe.nom_complet()}</h2>
+            
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card text-white bg-primary">
+                        <div class="card-body">
+                            <h5>Employé</h5>
+                            <p>Matricule: {employe.matricule}<br>
+                            Salaire: {employe.salaire_base} DH</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-white bg-success">
+                        <div class="card-body">
+                            <h5>Gains</h5>
+                            <h3>{total_gains} DH</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-white bg-danger">
+                        <div class="card-body">
+                            <h5>Retenues</h5>
+                            <h3>{total_retenues} DH</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-white bg-info">
+                        <div class="card-body">
+                            <h5>Allocations</h5>
+                            <h3>{total_allocations} DH</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h5>Rubriques Actives ({assignations.count()})</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Rubrique</th>
+                                <th>Type</th>
+                                <th>Montant</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+    """
+    
+    for assignation in assignations:
+        montant = assignation.montant_personnalise or assignation.rubrique.montant_fixe
+        type_badge = {
+            'GAIN': 'success',
+            'RETENUE': 'danger', 
+            'ALLOCATION': 'info',
+            'COTISATION': 'warning'
+        }.get(assignation.rubrique.type_rubrique, 'secondary')
+        
+        html_content += f"""
+                            <tr>
+                                <td><strong>{assignation.rubrique.nom}</strong><br>
+                                    <small>{assignation.rubrique.code}</small></td>
+                                <td><span class="badge bg-{type_badge}">{assignation.rubrique.type_rubrique}</span></td>
+                                <td><strong>{montant} DH</strong></td>
+                                <td>
+                                    <a href="/admin/paie/employerubrique/{assignation.id}/change/" 
+                                       class="btn btn-sm btn-primary">Modifier</a>
+                                </td>
+                            </tr>
+        """
+    
+    html_content += f"""
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <div class="mt-4">
+                <a href="/admin/paie/employerubrique/add/?employe={employe.id}" 
+                   class="btn btn-success">Ajouter Nouvelle Rubrique</a>
+                <a href="/admin/paie/employe/{employe.id}/change/" 
+                   class="btn btn-secondary">Retour à l'Employé</a>
+            </div>
+            
+            <div class="mt-4">
+                <h4>Nouveau Salaire Estimé</h4>
+                <p class="lead">
+                    Salaire base: {employe.salaire_base} DH<br>
+                    + Gains: {total_gains} DH<br>
+                    + Allocations: {total_allocations} DH<br>
+                    - Retenues: {total_retenues} DH<br>
+                    <strong>= Total estimé: {employe.salaire_base + total_gains + total_allocations - total_retenues} DH</strong>
+                </p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+    
+    return HttpResponse(html_content)
+
+@staff_member_required
+def assignation_massive_rubriques(request):
+    """Interface simple pour assignation massive"""
+    if request.method == 'POST':
+        messages.success(request, "Fonctionnalité en cours de développement")
+        return redirect('/admin/paie/employerubrique/')
+    
+    html_content = """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Assignation Massive</title>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    </head>
+    <body>
+        <div class="container mt-4">
+            <h2>Assignation Massive de Rubriques</h2>
+            <div class="alert alert-info">
+                <h4>Fonctionnalité Simplifiée</h4>
+                <p>Pour l'instant, utilisez l'admin Django pour les assignations:</p>
+                <a href="/admin/paie/employerubrique/add/" class="btn btn-primary">
+                    Ajouter une Assignation
+                </a>
+                <a href="/admin/paie/employerubrique/" class="btn btn-secondary">
+                    Voir toutes les Assignations
+                </a>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+    return HttpResponse(html_content)
+
+@staff_member_required
+def dashboard_rubriques_admin(request):
+    """Dashboard simple des rubriques"""
+    total_rubriques = RubriquePersonnalisee.objects.filter(actif=True).count()
+    total_assignations = EmployeRubrique.objects.filter(actif=True).count()
+    
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Dashboard Rubriques</title>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    </head>
+    <body>
+        <div class="container mt-4">
+            <h2>Dashboard des Rubriques Personnalisées</h2>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5>Statistiques</h5>
+                            <p>Rubriques actives: <strong>{total_rubriques}</strong></p>
+                            <p>Assignations actives: <strong>{total_assignations}</strong></p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5>Actions Rapides</h5>
+                            <a href="/admin/paie/rubriquepersonnalisee/" class="btn btn-primary">
+                                Gérer les Rubriques
+                            </a><br><br>
+                            <a href="/admin/paie/employerubrique/" class="btn btn-success">
+                                Gérer les Assignations
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+    return HttpResponse(html_content)
+
+# Vues pour les autres fonctionnalités (stubs pour éviter les erreurs)
+@staff_member_required  
+def ajouter_rubrique_ponctuelle(request):
+    return JsonResponse({'success': False, 'error': 'Fonctionnalité en développement'})
+
+@staff_member_required
+def modifier_assignation_rubrique(request, assignation_id):
+    return redirect('/admin/paie/employerubrique/')
+
+@staff_member_required
+def supprimer_assignation_rubrique(request, assignation_id):
+    return redirect('/admin/paie/employerubrique/')

@@ -1,0 +1,197 @@
+<!-- CRÉER LE FICHIER templates/paie/gestion_rubriques_employe.html -->
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestion Rubriques - {{ employe.nom_complet }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container-fluid mt-4">
+        <!-- En-tête employé -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card border-primary">
+                    <div class="card-header bg-primary text-white">
+                        <h4 class="mb-0">
+                            <i class="fas fa-user-tie"></i>
+                            Gestion des Rubriques - {{ employe.nom_complet }}
+                        </h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <strong>Matricule:</strong> {{ employe.matricule }}
+                            </div>
+                            <div class="col-md-3">
+                                <strong>Département:</strong> {{ employe.departement|default:"Non défini" }}
+                            </div>
+                            <div class="col-md-3">
+                                <strong>Salaire de base:</strong> 
+                                <span class="text-success">{{ employe.salaire_base }} DH</span>
+                            </div>
+                            <div class="col-md-3">
+                                <strong>Nouveau salaire estimé:</strong>
+                                <span class="text-info fw-bold">{{ nouveau_net_estimé }} DH</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Résumé des totaux -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card text-white bg-success">
+                    <div class="card-body">
+                        <h5 class="card-title"><i class="fas fa-plus-circle"></i> Gains/Primes</h5>
+                        <h3>{{ total_gains }} DH</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-white bg-danger">
+                    <div class="card-body">
+                        <h5 class="card-title"><i class="fas fa-minus-circle"></i> Retenues</h5>
+                        <h3>{{ total_retenues }} DH</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-white bg-info">
+                    <div class="card-body">
+                        <h5 class="card-title"><i class="fas fa-gift"></i> Allocations</h5>
+                        <h3>{{ total_allocations }} DH</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-white bg-primary">
+                    <div class="card-body">
+                        <h5 class="card-title"><i class="fas fa-calculator"></i> Nouveau Brut</h5>
+                        <h3>{{ nouveau_salaire_brut }} DH</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Boutons d'actions rapides -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-lightning-bolt"></i> Actions Rapides</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <button class="btn btn-success btn-lg w-100" onclick="ajouterRubriqueRapide('GAIN')">
+                                    <i class="fas fa-plus"></i> Ajouter Prime/Gain
+                                </button>
+                            </div>
+                            <div class="col-md-4">
+                                <button class="btn btn-danger btn-lg w-100" onclick="ajouterRubriqueRapide('RETENUE')">
+                                    <i class="fas fa-minus"></i> Ajouter Retenue
+                                </button>
+                            </div>
+                            <div class="col-md-4">
+                                <button class="btn btn-info btn-lg w-100" onclick="ajouterRubriqueRapide('ALLOCATION')">
+                                    <i class="fas fa-gift"></i> Ajouter Allocation
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Liste des rubriques actives -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5><i class="fas fa-list"></i> Rubriques Actives ({{ assignations.count }})</h5>
+                        <div>
+                            <button class="btn btn-primary btn-sm" onclick="assignerRubriqueExistante()">
+                                <i class="fas fa-plus"></i> Assigner Rubrique Existante
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        {% if assignations %}
+                            <div class="table-responsive">
+                                <table class="table table-striped table-hover">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th>Rubrique</th>
+                                            <th>Type</th>
+                                            <th>Mode Calcul</th>
+                                            <th>Valeur</th>
+                                            <th>Montant</th>
+                                            <th>Période</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for assignation in assignations %}
+                                        <tr>
+                                            <td>
+                                                <strong>{{ assignation.rubrique.nom }}</strong><br>
+                                                <small class="text-muted">{{ assignation.rubrique.code }}</small>
+                                            </td>
+                                            <td>
+                                                {% if assignation.rubrique.type_rubrique == 'GAIN' %}
+                                                    <span class="badge bg-success">{{ assignation.rubrique.type_rubrique }}</span>
+                                                {% elif assignation.rubrique.type_rubrique == 'RETENUE' %}
+                                                    <span class="badge bg-danger">{{ assignation.rubrique.type_rubrique }}</span>
+                                                {% elif assignation.rubrique.type_rubrique == 'ALLOCATION' %}
+                                                    <span class="badge bg-info">{{ assignation.rubrique.type_rubrique }}</span>
+                                                {% else %}
+                                                    <span class="badge bg-warning">{{ assignation.rubrique.type_rubrique }}</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ assignation.rubrique.get_mode_calcul_display }}</td>
+                                            <td>
+                                                {% if assignation.montant_personnalise %}
+                                                    <span class="text-primary fw-bold">{{ assignation.montant_personnalise }} DH</span>
+                                                    <small class="text-muted d-block">(Personnalisé)</small>
+                                                {% elif assignation.pourcentage_personnalise %}
+                                                    <span class="text-primary fw-bold">{{ assignation.pourcentage_personnalise }}%</span>
+                                                    <small class="text-muted d-block">(Personnalisé)</small>
+                                                {% elif assignation.rubrique.mode_calcul == 'FIXE' %}
+                                                    {{ assignation.rubrique.montant_fixe }} DH
+                                                {% elif assignation.rubrique.mode_calcul == 'POURCENTAGE' %}
+                                                    {{ assignation.rubrique.pourcentage }}%
+                                                {% elif assignation.rubrique.mode_calcul == 'PAR_ENFANT' %}
+                                                    {{ assignation.rubrique.montant_par_enfant }} DH/enfant
+                                                {% else %}
+                                                    Formule
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <strong class="text-success">
+                                                    {{ assignation.calculer_montant|default:"0" }} DH
+                                                </strong>
+                                            </td>
+                                            <td>
+                                                <small>Du {{ assignation.date_debut }}</small><br>
+                                                {% if assignation.date_fin %}
+                                                    <small>Au {{ assignation.date_fin }}</small>
+                                                {% else %}
+                                                    <small class="text-success">Permanente</small>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <div class="btn-group btn-group-sm">
+                                                    <button class="btn btn-outline-primary" 
+                                                            onclick="modifierAssignation({{ assignation.id }})"
+                                                            title="Modifier">
+                                                        <i class="fas fa-edit"></i>
+                                                    </button>
+                                                    <button class="btn btn-outline-danger" 
+                                                            onclick="supprimerAssignation({{ assignation.id }})"
+                                                            title="

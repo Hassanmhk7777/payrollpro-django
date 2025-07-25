@@ -314,95 +314,254 @@ class CalculateurPaie:
                 'total_impact_negatif': Decimal('0'),
                 'erreur': str(e)
             }
-
-    def calculer_bulletin_complet(self, employe, mois, annee):
-        """
-        Calcule un bulletin de paie complet pour un employé - AVEC INTÉGRATION ABSENCES
-        """
-        # Salaire de base
-        salaire_base = self.arrondir(employe.salaire_base)
-        
-        # Éléments de paie
-        elements = self.calculer_elements_paie(employe, mois, annee)
-        
-        # **NOUVEAU : Calcul des absences**
-        absences_info = self.calculer_absences(employe, mois, annee)
-        deduction_absences = absences_info['deduction_montant']
-        
-        rubriques_info = self.calculer_rubriques_personnalisees(employe, mois, annee)
-        
-        # Salaire brut imposable (après déduction des absences + rubriques)
-        salaire_brut_imposable = (
-            salaire_base + 
-            elements['primes'] + 
-            elements['heures_sup'] +
-            rubriques_info['gains_supplementaires'] +
-            rubriques_info['allocations'] -
-            deduction_absences -
-            rubriques_info['retenues_supplementaires']
-        )
-        # S'assurer que le salaire brut ne soit pas négatif
-        if salaire_brut_imposable < 0:
-            salaire_brut_imposable = Decimal('0')
-        
-        # Calcul des cotisations sociales (sur le brut après absences)
-        cnss = self.calculer_cotisation_cnss(salaire_brut_imposable)
-        amo = self.calculer_cotisation_amo(salaire_brut_imposable)
-        cimr = self.calculer_cotisation_cimr(salaire_brut_imposable)
-        
-        # Calcul de l'impôt sur le revenu (sur le brut après absences)
-        ir = self.calculer_impot_revenu(salaire_brut_imposable, employe.nombre_enfants)
-        
-        # Calcul du net à payer
-        total_cotisations = cnss + amo + cimr
-        total_deductions = (
-            total_cotisations + 
-            ir + 
-            elements['retenues'] + 
-            elements['avances'] +
-            rubriques_info['cotisations_speciales']
-        )
-        
-        
-        net_a_payer = salaire_brut_imposable - total_deductions
-        
-        # S'assurer que le net à payer ne soit pas négatif
-        if net_a_payer < 0:
-            net_a_payer = Decimal('0')
-        
-        return {
-            'employe': employe,
-            'mois': mois,
-            'annee': annee,
-            'salaire_base': salaire_base,
-            'heures_travaillees': 191,  # Standard
-            'heures_supplementaires': elements['heures_sup'],
-            'total_primes': elements['primes'],
-            'total_retenues': elements['retenues'],
-            'total_avances': elements['avances'],
-            
-            # **NOUVELLES DONNÉES ABSENCES**
-            'deduction_absences': deduction_absences,
-            'jours_absence': absences_info['jours_deduits'],
-            'absences_details': absences_info['absences_details'],
-            
-            'salaire_brut_imposable': salaire_brut_imposable,
-            'salaire_brut_non_imposable': Decimal('0'),
-            'cotisation_cnss': cnss,
-            'cotisation_amo': amo,
-            'cotisation_cimr': cimr,
-            'impot_revenu': ir,
-            'salaire_net': salaire_brut_imposable - total_cotisations - ir,
-            'net_a_payer': self.arrondir(net_a_payer),
-            'total_cotisations': total_cotisations,
-            'total_deductions': total_deductions,
-             'rubriques_gains': rubriques_info['gains_supplementaires'],
-            'rubriques_retenues': rubriques_info['retenues_supplementaires'],
-            'rubriques_allocations': rubriques_info['allocations'],
-            'rubriques_cotisations': rubriques_info['cotisations_speciales'],
-            'rubriques_details': rubriques_info['details_rubriques'],
-        }
+def calculer_bulletin_complet(self, employe, mois, annee):
+    """
+    Calcul complet d'un bulletin de paie avec intégration des rubriques personnalisées
+    Version améliorée avec support des rubriques personnalisées
+    """
+    from decimal import Decimal
+    from .models import BulletinPaie, ElementPaie
     
+    # 1. Calculs de base (existants)
+    salaire_base = employe.salaire_base
+    heures_supp = self.calculer_heures_supplementaires(employe, mois, annee)
+    absences_info = self.calculer_absences(employe, mois, annee)
+    
+    # 2. NOUVEAU : Calcul des rubriques personnalisées
+    rubriques_info = employe.calculer_rubriques_personnalisees(
+        mois, annee, salaire_base, salaire_base
+    )
+    
+    # 3. Calcul du salaire brut avec rubriques
+    salaire_brut_base = salaire_base + heures_supp['montant'] - absences_info['montant_deduit']
+    salaire_brut_avec_gains = salaire_brut_base + rubriques_info['total_gains']
+    
+    # Les allocations ne sont pas soumises aux cotisations dans la plupart des cas
+    salaire_brut_imposable = salaire_brut_avec_gains
+    salaire_brut_non_imposable = rubriques_info['total_allocations']
+    
+    # 4. Recalculer les rubriques avec le salaire brut définitif
+    # (pour les rubriques en pourcentage du brut)
+    rubriques_info_finale = employe.calculer_rubriques_personnalisees(
+        mois, annee, salaire_base, salaire_brut_imposable
+    )
+    
+    # 5. Calculs des cotisations (sur salaire brut imposable uniquement)
+    cotisations = self.calculer_cotisations_sociales(salaire_brut_imposable)
+    impot = self.calculer_impot_revenu(salaire_brut_imposable, cotisations, employe)
+    
+    # 6. Calcul final avec retenues personnalisées
+    total_retenues = (
+        cotisations['total'] + 
+        impot + 
+        rubriques_info_finale['total_retenues'] + 
+        rubriques_info_finale['total_cotisations']
+    )
+    
+    salaire_net = salaire_brut_imposable - total_retenues
+    net_a_payer = salaire_net + salaire_brut_non_imposable
+    
+    # 7. Créer ou mettre à jour le bulletin
+    bulletin, created = BulletinPaie.objects.get_or_create(
+        employe=employe,
+        mois=mois,
+        annee=annee,
+        defaults={
+            'salaire_base': salaire_base,
+            'salaire_brut_imposable': salaire_brut_imposable,
+            'salaire_brut_non_imposable': salaire_brut_non_imposable,
+            'cotisation_cnss': cotisations['cnss'],
+            'cotisation_amo': cotisations['amo'],
+            'cotisation_cimr': cotisations['cimr'],
+            'impot_revenu': impot,
+            'salaire_net': salaire_net,
+            'net_a_payer': net_a_payer,
+            'heures_supplementaires': heures_supp['heures'],
+            'montant_heures_supp': heures_supp['montant'],
+            'jours_absence': absences_info['jours_deduits'],
+            'montant_absences': absences_info['montant_deduit'],
+            'total_primes': rubriques_info_finale['total_gains'],
+            'total_retenues': rubriques_info_finale['total_retenues'] + rubriques_info_finale['total_cotisations'],
+            'total_allocations': rubriques_info_finale['total_allocations']
+        }
+    )
+    
+    # Mettre à jour si existant
+    if not created:
+        bulletin.salaire_base = salaire_base
+        bulletin.salaire_brut_imposable = salaire_brut_imposable
+        bulletin.salaire_brut_non_imposable = salaire_brut_non_imposable
+        bulletin.cotisation_cnss = cotisations['cnss']
+        bulletin.cotisation_amo = cotisations['amo']
+        bulletin.cotisation_cimr = cotisations['cimr']
+        bulletin.impot_revenu = impot
+        bulletin.salaire_net = salaire_net
+        bulletin.net_a_payer = net_a_payer
+        bulletin.heures_supplementaires = heures_supp['heures']
+        bulletin.montant_heures_supp = heures_supp['montant']
+        bulletin.jours_absence = absences_info['jours_deduits']
+        bulletin.montant_absences = absences_info['montant_deduit']
+        bulletin.total_primes = rubriques_info_finale['total_gains']
+        bulletin.total_retenues = rubriques_info_finale['total_retenues'] + rubriques_info_finale['total_cotisations']
+        bulletin.total_allocations = rubriques_info_finale['total_allocations']
+        bulletin.save()
+    
+    # 8. NOUVEAU : Créer les éléments de paie pour les rubriques personnalisées
+    self._creer_elements_rubriques_personnalisees(bulletin, rubriques_info_finale)
+    
+    return {
+        'bulletin': bulletin,
+        'details': {
+            'salaire_base': salaire_base,
+            'heures_supp': heures_supp,
+            'absences': absences_info,
+            'rubriques': rubriques_info_finale,
+            'cotisations': cotisations,
+            'impot': impot,
+            'salaire_net': salaire_net,
+            'net_a_payer': net_a_payer
+        }
+    }
+
+# 2. NOUVELLE MÉTHODE : Créer les éléments de paie pour les rubriques
+def _creer_elements_rubriques_personnalisees(self, bulletin, rubriques_info):
+    """
+    Crée les éléments de paie pour chaque rubrique personnalisée calculée
+    """
+    from .models import ElementPaie
+    
+    # Supprimer les anciens éléments de rubriques personnalisées
+    ElementPaie.objects.filter(
+        bulletin=bulletin,
+        type_element__in=['RUBRIQUE_GAIN', 'RUBRIQUE_RETENUE', 'RUBRIQUE_ALLOCATION', 'RUBRIQUE_COTISATION']
+    ).delete()
+    
+    # Créer les nouveaux éléments
+    elements_a_creer = []
+    
+    # Gains
+    for rubrique, montant in rubriques_info['gains']:
+        elements_a_creer.append(ElementPaie(
+            bulletin=bulletin,
+            type_element='RUBRIQUE_GAIN',
+            libelle=rubrique.nom,
+            code=rubrique.code,
+            base_calcul=bulletin.salaire_base,
+            taux=rubrique.pourcentage if rubrique.mode_calcul == 'POURCENTAGE' else None,
+            montant=montant,
+            soumis_ir=rubrique.soumis_ir,
+            soumis_cnss=rubrique.soumis_cnss,
+            commentaire=f"Rubrique personnalisée: {rubrique.description}"
+        ))
+    
+    # Retenues
+    for rubrique, montant in rubriques_info['retenues']:
+        elements_a_creer.append(ElementPaie(
+            bulletin=bulletin,
+            type_element='RUBRIQUE_RETENUE',
+            libelle=rubrique.nom,
+            code=rubrique.code,
+            base_calcul=bulletin.salaire_base,
+            taux=rubrique.pourcentage if rubrique.mode_calcul == 'POURCENTAGE' else None,
+            montant=montant,
+            soumis_ir=rubrique.soumis_ir,
+            soumis_cnss=rubrique.soumis_cnss,
+            commentaire=f"Rubrique personnalisée: {rubrique.description}"
+        ))
+    
+    # Allocations
+    for rubrique, montant in rubriques_info['allocations']:
+        elements_a_creer.append(ElementPaie(
+            bulletin=bulletin,
+            type_element='RUBRIQUE_ALLOCATION',
+            libelle=rubrique.nom,
+            code=rubrique.code,
+            base_calcul=None,  # Les allocations ne dépendent généralement pas du salaire
+            taux=None,
+            montant=montant,
+            soumis_ir=rubrique.soumis_ir,
+            soumis_cnss=rubrique.soumis_cnss,
+            commentaire=f"Rubrique personnalisée: {rubrique.description}"
+        ))
+    
+    # Cotisations spéciales
+    for rubrique, montant in rubriques_info['cotisations']:
+        elements_a_creer.append(ElementPaie(
+            bulletin=bulletin,
+            type_element='RUBRIQUE_COTISATION',
+            libelle=rubrique.nom,
+            code=rubrique.code,
+            base_calcul=bulletin.salaire_base,
+            taux=rubrique.pourcentage if rubrique.mode_calcul == 'POURCENTAGE' else None,
+            montant=montant,
+            soumis_ir=rubrique.soumis_ir,
+            soumis_cnss=rubrique.soumis_cnss,
+            commentaire=f"Rubrique personnalisée: {rubrique.description}"
+        ))
+    
+    # Création en lot pour optimiser les performances
+    if elements_a_creer:
+        ElementPaie.objects.bulk_create(elements_a_creer)
+
+# 3. NOUVELLE MÉTHODE : Récupérer le détail des rubriques pour affichage
+def get_detail_rubriques_personnalisees(self, employe, mois, annee):
+    """
+    Retourne le détail formaté des rubriques personnalisées pour l'affichage
+    """
+    rubriques_info = employe.calculer_rubriques_personnalisees(
+        mois, annee, employe.salaire_base, employe.salaire_base
+    )
+    
+    detail = {
+        'gains': [],
+        'retenues': [],
+        'allocations': [],
+        'cotisations': []
+    }
+    
+    for rubrique, montant in rubriques_info['gains']:
+        detail['gains'].append({
+            'code': rubrique.code,
+            'nom': rubrique.nom,
+            'montant': montant,
+            'description': rubrique.description,
+            'soumis_ir': rubrique.soumis_ir,
+            'soumis_cnss': rubrique.soumis_cnss
+        })
+    
+    # Répéter pour retenues, allocations, cotisations...
+    for rubrique, montant in rubriques_info['retenues']:
+        detail['retenues'].append({
+            'code': rubrique.code,
+            'nom': rubrique.nom,
+            'montant': montant,
+            'description': rubrique.description,
+            'soumis_ir': rubrique.soumis_ir,
+            'soumis_cnss': rubrique.soumis_cnss
+        })
+    
+    for rubrique, montant in rubriques_info['allocations']:
+        detail['allocations'].append({
+            'code': rubrique.code,
+            'nom': rubrique.nom,
+            'montant': montant,
+            'description': rubrique.description,
+            'soumis_ir': rubrique.soumis_ir,
+            'soumis_cnss': rubrique.soumis_cnss
+        })
+    
+    for rubrique, montant in rubriques_info['cotisations']:
+        detail['cotisations'].append({
+            'code': rubrique.code,
+            'nom': rubrique.nom,
+            'montant': montant,
+            'description': rubrique.description,
+            'soumis_ir': rubrique.soumis_ir,
+            'soumis_cnss': rubrique.soumis_cnss
+        })
+    
+    return detail
+   
     def generer_bulletin(self, employe, mois, annee, utilisateur=None):
         """
         Génère et sauvegarde un bulletin de paie - AVEC ABSENCES

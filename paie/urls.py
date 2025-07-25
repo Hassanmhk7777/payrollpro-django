@@ -54,4 +54,51 @@ urlpatterns = [
     path('export-excel/statistiques/', views_excel.statistiques_excel, name='statistiques_excel'),
     path('export-excel/cnss/', views_excel.page_export_cnss, name='page_export_cnss'),
     path('export-excel/cnss/<int:mois>/<int:annee>/', views_excel.export_cnss_mensuel, name='export_cnss_mensuel'),
+    # Gestion flexible des rubriques
+    path('employe/<int:employe_id>/rubriques/', 
+         views.gestion_rubriques_employe, 
+         name='gestion_rubriques_employe'),
+    
+    path('ajax/ajouter-rubrique-ponctuelle/', 
+         views.ajouter_rubrique_ponctuelle, 
+         name='ajouter_rubrique_ponctuelle'),
+    
+    path('assignation/<int:assignation_id>/modifier/', 
+         views.modifier_assignation_rubrique, 
+         name='modifier_assignation_rubrique'),
+    
+    path('assignation/<int:assignation_id>/supprimer/', 
+         views.supprimer_assignation_rubrique, 
+         name='supprimer_assignation_rubrique'),
+    
+    path('rubriques/assignation-massive/', 
+         views.assignation_massive_rubriques, 
+         name='assignation_massive_rubriques'),
+    
+    path('admin/dashboard-rubriques/', 
+         views.dashboard_rubriques_admin, 
+         name='dashboard_rubriques_admin'),
+         path('employe/<int:employe_id>/rubriques/', 
+         views.gestion_rubriques_employe, 
+         name='gestion_rubriques_employe'),
+    
+    path('ajax/ajouter-rubrique-ponctuelle/', 
+         views.ajouter_rubrique_ponctuelle, 
+         name='ajouter_rubrique_ponctuelle'),
+    
+    path('assignation/<int:assignation_id>/modifier/', 
+         views.modifier_assignation_rubrique, 
+         name='modifier_assignation_rubrique'),
+    
+    path('assignation/<int:assignation_id>/supprimer/', 
+         views.supprimer_assignation_rubrique, 
+         name='supprimer_assignation_rubrique'),
+    
+    path('rubriques/assignation-massive/', 
+         views.assignation_massive_rubriques, 
+         name='assignation_massive_rubriques'),
+    
+    path('admin/dashboard-rubriques/', 
+         views.dashboard_rubriques_admin, 
+         name='dashboard_rubriques_admin'),
 ]
