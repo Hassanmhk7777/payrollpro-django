@@ -1,0 +1,1263 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PayrollPro - Calcul de la Paie</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --success-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --warning-gradient: linear-gradient(135deg, #fdbb2d 0%, #22c1c3 100%);
+            --sidebar-bg: linear-gradient(180deg, #2c3e50 0%, #3498db 100%);
+            --card-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            --hover-shadow: 0 15px 40px rgba(0,0,0,0.15);
+        }
+
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+        }
+
+        /* Styles identiques aux autres pages */
+        .sidebar {
+            background: var(--sidebar-bg);
+            min-height: 100vh;
+            width: 280px;
+            position: fixed;
+            left: 0;
+            top: 0;
+            z-index: 1000;
+            transition: all 0.3s ease;
+            box-shadow: 5px 0 15px rgba(0,0,0,0.1);
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .sidebar-header h4 {
+            color: white;
+            margin: 0;
+            font-weight: 600;
+        }
+
+        .nav-item {
+            margin: 5px 15px;
+        }
+
+        .nav-link {
+            color: rgba(255,255,255,0.8) !important;
+            border-radius: 10px;
+            padding: 12px 15px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            background: rgba(255,255,255,0.2);
+            color: white !important;
+            transform: translateX(5px);
+        }
+
+        .main-content {
+            margin-left: 280px;
+            transition: all 0.3s ease;
+            padding: 20px;
+        }
+
+        .modern-header {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: var(--card-shadow);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .modern-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--primary-gradient);
+        }
+
+        .calculation-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: var(--card-shadow);
+            transition: all 0.3s ease;
+        }
+
+        .calculation-card:hover {
+            box-shadow: var(--hover-shadow);
+        }
+
+        .calculation-header {
+            background: var(--primary-gradient);
+            color: white;
+            padding: 20px 25px;
+            border-radius: 15px 15px 0 0;
+            margin: -25px -25px 25px -25px;
+            font-weight: 600;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stats-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            box-shadow: var(--card-shadow);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stats-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+        }
+
+        .stats-card.primary::before {
+            background: var(--primary-gradient);
+        }
+
+        .stats-card.success::before {
+            background: var(--success-gradient);
+        }
+
+        .stats-card.warning::before {
+            background: var(--warning-gradient);
+        }
+
+        .stats-card.secondary::before {
+            background: var(--secondary-gradient);
+        }
+
+        .stats-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--hover-shadow);
+        }
+
+        .stats-number {
+            font-size: 2.2rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .stats-label {
+            color: #6c757d;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 0.85rem;
+        }
+
+        .btn-modern {
+            border-radius: 10px;
+            padding: 12px 24px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border: none;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-modern::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            transition: left 0.5s;
+        }
+
+        .btn-modern:hover::before {
+            left: 100%;
+        }
+
+        .btn-primary-modern {
+            background: var(--primary-gradient);
+            color: white;
+        }
+
+        .btn-success-modern {
+            background: var(--success-gradient);
+            color: white;
+        }
+
+        .btn-warning-modern {
+            background: var(--warning-gradient);
+            color: white;
+        }
+
+        .btn-secondary-modern {
+            background: var(--secondary-gradient);
+            color: white;
+        }
+
+        .modern-select, .modern-input {
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            padding: 12px 15px;
+            transition: all 0.3s ease;
+        }
+
+        .modern-select:focus, .modern-input:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+            outline: none;
+        }
+
+        .calculation-progress {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .progress-modern {
+            height: 8px;
+            border-radius: 10px;
+            background: #e9ecef;
+        }
+
+        .progress-bar-modern {
+            background: var(--success-gradient);
+            border-radius: 10px;
+            transition: width 0.6s ease;
+        }
+
+        .employee-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            transition: all 0.3s ease;
+            border-left: 4px solid transparent;
+        }
+
+        .employee-card:hover {
+            transform: translateX(5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.12);
+        }
+
+        .employee-card.calculated {
+            border-left-color: #28a745;
+            background: linear-gradient(135deg, #f8fff9 0%, #e8f5e8 100%);
+        }
+
+        .employee-card.pending {
+            border-left-color: #ffc107;
+            background: linear-gradient(135deg, #fffbf0 0%, #fff3cd 100%);
+        }
+
+        .employee-card.error {
+            border-left-color: #dc3545;
+            background: linear-gradient(135deg, #fff5f5 0%, #f8d7da 100%);
+        }
+
+        .salary-breakdown {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+
+        .breakdown-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .breakdown-item:last-child {
+            border-bottom: none;
+            font-weight: bold;
+            color: #28a745;
+        }
+
+        .filter-section {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: var(--card-shadow);
+        }
+
+        .test-integration-banner {
+            background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+            color: white;
+            border-radius: 10px;
+            padding: 15px 20px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .slide-in {
+            animation: slideInUp 0.6s ease forwards;
+        }
+
+        @keyframes slideInUp {
+            from {
+                transform: translateY(30px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .calculation-status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-calculated {
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+        }
+
+        .status-pending {
+            background: linear-gradient(135deg, #FF9800, #F57C00);
+            color: white;
+        }
+
+        .status-error {
+            background: linear-gradient(135deg, #f44336, #da190b);
+            color: white;
+        }
+
+        .system-params {
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+            border-radius: 10px;
+            padding: 20px;
+            border-left: 4px solid #2196F3;
+        }
+
+        .param-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(33, 150, 243, 0.1);
+        }
+
+        .param-item:last-child {
+            border-bottom: none;
+        }
+
+        .param-label {
+            color: #1976D2;
+            font-weight: 500;
+        }
+
+        .param-value {
+            color: #0D47A1;
+            font-weight: 600;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 70px;
+            }
+            
+            .main-content {
+                margin-left: 70px;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <h4><i class="fas fa-money-check-alt me-2"></i>PayrollPro</h4>
+        </div>
+        <ul class="nav flex-column">
+            <li class="nav-item">
+                <a class="nav-link" href="#"><i class="fas fa-tachometer-alt"></i>Dashboard</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#"><i class="fas fa-users"></i>Employés</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#"><i class="fas fa-user-cog"></i>Utilisateurs</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link active" href="#"><i class="fas fa-calculator"></i>Calcul Paie</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#"><i class="fas fa-calendar-times"></i>Absences</a>
+            </li>
+        </ul>
+    </nav>
+
+    <!-- Contenu principal -->
+    <div class="main-content">
+        <!-- Header -->
+        <div class="modern-header slide-in">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="mb-1"><i class="fas fa-calculator me-3"></i>Calcul de la Paie Mensuelle</h2>
+                    <p class="text-muted mb-0">Système automatique de calcul selon la législation marocaine</p>
+                </div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-modern btn-warning-modern" onclick="testIntegration()">
+                        <i class="fas fa-vial me-2"></i>Tester l'Intégration
+                    </button>
+                    <button class="btn btn-modern btn-success-modern" onclick="exportResults()">
+                        <i class="fas fa-download me-2"></i>Export Excel
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Banner d'intégration des absences -->
+        <div class="test-integration-banner slide-in" style="animation-delay: 0.1s">
+            <div>
+                <h6 class="mb-1"><i class="fas fa-info-circle me-2"></i>Test d'Intégration Absences → Paie</h6>
+                <small>Vérifiez que les absences sans solde impactent correctement les calculs avant le traitement en lot.</small>
+            </div>
+            <button class="btn btn-light btn-sm" onclick="testIntegration()">
+                <i class="fas fa-vial me-1"></i>Tester l'Intégration
+            </button>
+        </div>
+
+        <div class="row">
+            <!-- Paramètres de calcul -->
+            <div class="col-lg-4">
+                <div class="calculation-card slide-in" style="animation-delay: 0.2s">
+                    <div class="calculation-header">
+                        <h5 class="mb-0"><i class="fas fa-sliders-h me-2"></i>Paramètres de Calcul</h5>
+                    </div>
+                    
+                    <div class="filter-group mb-3">
+                        <label class="form-label fw-bold">Période</label>
+                        <div class="row">
+                            <div class="col-6">
+                                <select class="form-select modern-select" id="monthSelect">
+                                    <option value="1">Janvier</option>
+                                    <option value="2">Février</option>
+                                    <option value="3">Mars</option>
+                                    <option value="4">Avril</option>
+                                    <option value="5">Mai</option>
+                                    <option value="6">Juin</option>
+                                    <option value="7" selected>Juillet</option>
+                                    <option value="8">Août</option>
+                                    <option value="9">Septembre</option>
+                                    <option value="10">Octobre</option>
+                                    <option value="11">Novembre</option>
+                                    <option value="12">Décembre</option>
+                                </select>
+                            </div>
+                            <div class="col-6">
+                                <select class="form-select modern-select" id="yearSelect">
+                                    <option value="2024">2024</option>
+                                    <option value="2025" selected>2025</option>
+                                    <option value="2026">2026</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="filter-group mb-3">
+                        <label class="form-label fw-bold">Filtres</label>
+                        <div class="mb-2">
+                            <select class="form-select modern-select mb-2" id="siteFilterCalc">
+                                <option value="">Tous les sites</option>
+                                <option value="1">Casablanca - Siège</option>
+                                <option value="2">Rabat - Succursale</option>
+                                <option value="3">Marrakech - Agence</option>
+                            </select>
+                        </div>
+                        <div class="mb-2">
+                            <select class="form-select modern-select mb-2" id="departmentFilterCalc">
+                                <option value="">Tous les départements</option>
+                                <option value="1">Ressources Humaines</option>
+                                <option value="2">Informatique</option>
+                                <option value="3">Comptabilité</option>
+                                <option value="4">Commercial</option>
+                            </select>
+                        </div>
+                        <div class="mb-2">
+                            <input type="text" class="form-control modern-input" id="employeeSearch" 
+                                   placeholder="Rechercher un employé...">
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-modern btn-success-modern" onclick="calculateAll()">
+                            <i class="fas fa-play me-2"></i>Calculer Tout
+                        </button>
+                        <button class="btn btn-modern btn-primary-modern" onclick="selectEmployees()">
+                            <i class="fas fa-users me-2"></i>Sélectionner Employés
+                        </button>
+                        <button class="btn btn-modern btn-warning-modern" onclick="showPreview()">
+                            <i class="fas fa-eye me-2"></i>Aperçu
+                        </button>
+                    </div>
+
+                    <hr>
+
+                    <div class="system-params">
+                        <h6 class="mb-3"><i class="fas fa-cog me-2"></i>Paramètres Système</h6>
+                        <div class="param-item">
+                            <span class="param-label">CNSS (salarié):</span>
+                            <span class="param-value">4.48%</span>
+                        </div>
+                        <div class="param-item">
+                            <span class="param-label">AMO (salarié):</span>
+                            <span class="param-value">2.26%</span>
+                        </div>
+                        <div class="param-item">
+                            <span class="param-label">CIMR:</span>
+                            <span class="param-value">6.00%</span>
+                        </div>
+                        <div class="param-item">
+                            <span class="param-label">Frais prof.:</span>
+                            <span class="param-value">20%</span>
+                        </div>
+                        <div class="param-item">
+                            <span class="param-label">Plafond CNSS:</span>
+                            <span class="param-value">6,000 DH</span>
+                        </div>
+                        <button class="btn btn-outline-primary btn-sm mt-2 w-100">
+                            <i class="fas fa-edit me-1"></i>Modifier Paramètres
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Résultats et bulletins -->
+            <div class="col-lg-8">
+                <!-- Statistiques de calcul -->
+                <div class="stats-grid slide-in" style="animation-delay: 0.3s">
+                    <div class="stats-card primary">
+                        <div class="stats-number text-primary">4</div>
+                        <div class="stats-label">Employés Total</div>
+                    </div>
+                    <div class="stats-card success">
+                        <div class="stats-number text-success">4</div>
+                        <div class="stats-label">Calculés</div>
+                    </div>
+                    <div class="stats-card warning">
+                        <div class="stats-number text-warning">0</div>
+                        <div class="stats-label">En Attente</div>
+                    </div>
+                    <div class="stats-card secondary">
+                        <div class="stats-number text-danger">0</div>
+                        <div class="stats-label">Erreurs</div>
+                    </div>
+                </div>
+
+                <!-- Progress de calcul -->
+                <div class="calculation-progress slide-in" style="animation-delay: 0.4s" id="calculationProgress" style="display: none;">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="fw-bold">Calcul en cours...</span>
+                        <span id="progressPercentage">0%</span>
+                    </div>
+                    <div class="progress-modern">
+                        <div class="progress-bar-modern" id="progressBar" style="width: 0%"></div>
+                    </div>
+                    <small class="text-muted mt-2" id="progressStatus">Initialisation...</small>
+                </div>
+
+                <!-- Liste des bulletins -->
+                <div class="calculation-card slide-in" style="animation-delay: 0.5s">
+                    <h5 class="mb-4"><i class="fas fa-receipt me-2"></i>Bulletins du Mois en Cours</h5>
+                    
+                    <div id="employeesList">
+                        <!-- Employé 1 -->
+                        <div class="employee-card calculated">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="d-flex align-items-center">
+                                    <div class="me-3">
+                                        <div style="width: 50px; height: 50px; border-radius: 50%; background: var(--primary-gradient); color: white; display: flex; align-items: center; justify-content: center; font-weight: bold;">
+                                            BA
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-1">BENALI Ahmed</h6>
+                                        <small class="text-muted">S001 - Technicien</small>
+                                    </div>
+                                </div>
+                                <div class="text-end">
+                                    <span class="calculation-status status-calculated">Calculé</span>
+                                    <div class="mt-1">
+                                        <small class="text-muted">Net à payer:</small>
+                                        <div class="fw-bold text-success">3,823 DH</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="salary-breakdown">
+                                <div class="breakdown-item">
+                                    <span>Salaire Brut:</span>
+                                    <span class="fw-bold">4,500 DH</span>
+                                </div>
+                                <div class="breakdown-item">
+                                    <span>Cotisations:</span>
+                                    <span class="text-danger">-572 DH</span>
+                                </div>
+                                <div class="breakdown-item">
+                                    <span>Impôt:</span>
+                                    <span class="text-danger">-104 DH</span>
+                                </div>
+                                <div class="breakdown-item">
+                                    <span>Net à Payer:</span>
+                                    <span class="text-success">3,823 DH</span>
+                                </div>
+                            </div>
+
+                            <div class="d-flex gap-2 mt-3">
+                                <button class="btn btn-sm btn-outline-primary flex-fill">
+                                    <i class="fas fa-eye me-1"></i>Voir
+                                </button>
+                                <button class="btn btn-sm btn-outline-success">
+                                    <i class="fas fa-file-pdf me-1"></i>PDF
+                                </button>
+                                <button class="btn btn-sm btn-outline-warning">
+                                    <i class="fas fa-edit me-1"></i>Modifier
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger">
+                                    <i class="fas fa-trash me-1"></i>Supprimer
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Employé 3 -->
+                        <div class="employee-card calculated">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="d-flex align-items-center">
+                                    <div class="me-3">
+                                        <div style="width: 50px; height: 50px; border-radius: 50%; background: var(--warning-gradient); color: white; display: flex; align-items: center; justify-content: center; font-weight: bold;">
+                                            HO
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-1">HAFIDI Omar</h6>
+                                        <small class="text-muted">S003 - Commercial</small>
+                                    </div>
+                                </div>
+                                <div class="text-end">
+                                    <span class="calculation-status status-calculated">Calculé</span>
+                                    <div class="mt-1">
+                                        <small class="text-muted">Net à payer:</small>
+                                        <div class="fw-bold text-success">3,305 DH</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="salary-breakdown">
+                                <div class="breakdown-item">
+                                    <span>Salaire Brut:</span>
+                                    <span class="fw-bold">3,850 DH</span>
+                                </div>
+                                <div class="breakdown-item">
+                                    <span>Cotisations:</span>
+                                    <span class="text-danger">-490 DH</span>
+                                </div>
+                                <div class="breakdown-item">
+                                    <span>Impôt:</span>
+                                    <span class="text-danger">-55 DH</span>
+                                </div>
+                                <div class="breakdown-item">
+                                    <span>Net à Payer:</span>
+                                    <span class="text-success">3,305 DH</span>
+                                </div>
+                            </div>
+
+                            <div class="d-flex gap-2 mt-3">
+                                <button class="btn btn-sm btn-outline-primary flex-fill">
+                                    <i class="fas fa-eye me-1"></i>Voir
+                                </button>
+                                <button class="btn btn-sm btn-outline-success">
+                                    <i class="fas fa-file-pdf me-1"></i>PDF
+                                </button>
+                                <button class="btn btn-sm btn-outline-warning">
+                                    <i class="fas fa-edit me-1"></i>Modifier
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger">
+                                    <i class="fas fa-trash me-1"></i>Supprimer
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Employé 4 -->
+                        <div class="employee-card calculated">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="d-flex align-items-center">
+                                    <div class="me-3">
+                                        <div style="width: 50px; height: 50px; border-radius: 50%; background: var(--secondary-gradient); color: white; display: flex; align-items: center; justify-content: center; font-weight: bold;">
+                                            PO
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-1">POKO Omar</h6>
+                                        <small class="text-muted">hassan - Commercial</small>
+                                    </div>
+                                </div>
+                                <div class="text-end">
+                                    <span class="calculation-status status-calculated">Calculé</span>
+                                    <div class="mt-1">
+                                        <small class="text-muted">Net à payer:</small>
+                                        <div class="fw-bold text-success">3,420 DH</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="salary-breakdown">
+                                <div class="breakdown-item">
+                                    <span>Salaire Brut:</span>
+                                    <span class="fw-bold">4,000 DH</span>
+                                </div>
+                                <div class="breakdown-item">
+                                    <span>Cotisations:</span>
+                                    <span class="text-danger">-509 DH</span>
+                                </div>
+                                <div class="breakdown-item">
+                                    <span>Impôt:</span>
+                                    <span class="text-danger">-70 DH</span>
+                                </div>
+                                <div class="breakdown-item">
+                                    <span>Net à Payer:</span>
+                                    <span class="text-success">3,420 DH</span>
+                                </div>
+                            </div>
+
+                            <div class="d-flex gap-2 mt-3">
+                                <button class="btn btn-sm btn-outline-primary flex-fill">
+                                    <i class="fas fa-eye me-1"></i>Voir
+                                </button>
+                                <button class="btn btn-sm btn-outline-success">
+                                    <i class="fas fa-file-pdf me-1"></i>PDF
+                                </button>
+                                <button class="btn btn-sm btn-outline-warning">
+                                    <i class="fas fa-edit me-1"></i>Modifier
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger">
+                                    <i class="fas fa-trash me-1"></i>Supprimer
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Actions en lot -->
+                    <div class="d-flex flex-wrap gap-2 mt-4">
+                        <button class="btn btn-modern btn-success-modern">
+                            <i class="fas fa-file-excel me-2"></i>Export Excel
+                        </button>
+                        <button class="btn btn-modern btn-primary-modern">
+                            <i class="fas fa-file-pdf me-2"></i>Export PDF
+                        </button>
+                        <button class="btn btn-modern btn-warning-modern">
+                            <i class="fas fa-file-spreadsheet me-2"></i>Export CNSS
+                        </button>
+                        <button class="btn btn-modern btn-secondary-modern">
+                            <i class="fas fa-envelope me-2"></i>Email Groupe
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de sélection d'employés -->
+    <div class="modal fade" id="employeeSelectionModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header" style="background: var(--primary-gradient); color: white;">
+                    <h5 class="modal-title"><i class="fas fa-users me-2"></i>Sélectionner les Employés</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <input type="text" class="form-control modern-input" placeholder="Rechercher un employé..." id="modalEmployeeSearch">
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-building me-2"></i>Par Site</h6>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="site1" checked>
+                                <label class="form-check-label" for="site1">Casablanca - Siège (2 employés)</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="site2" checked>
+                                <label class="form-check-label" for="site2">Rabat - Succursale (2 employés)</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-briefcase me-2"></i>Par Département</h6>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="dept1" checked>
+                                <label class="form-check-label" for="dept1">Informatique (1 employé)</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="dept2" checked>
+                                <label class="form-check-label" for="dept2">Finance (1 employé)</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="dept3" checked>
+                                <label class="form-check-label" for="dept3">Commercial (2 employés)</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <h6><i class="fas fa-user me-2"></i>Employés Individuels</h6>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="emp1" checked>
+                                <label class="form-check-label" for="emp1">BENALI Ahmed (S001)</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="emp2" checked>
+                                <label class="form-check-label" for="emp2">ALAMI Sara (S002)</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="emp3" checked>
+                                <label class="form-check-label" for="emp3">HAFIDI Omar (S003)</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="emp4" checked>
+                                <label class="form-check-label" for="emp4">POKO Omar (hassan)</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <div class="me-auto">
+                        <button class="btn btn-outline-primary btn-sm" onclick="selectAll()">Tout sélectionner</button>
+                        <button class="btn btn-outline-secondary btn-sm" onclick="deselectAll()">Tout désélectionner</button>
+                    </div>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="button" class="btn btn-modern btn-primary-modern" onclick="confirmSelection()">
+                        <i class="fas fa-check me-2"></i>Confirmer (4 sélectionnés)
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal d'aperçu -->
+    <div class="modal fade" id="previewModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header" style="background: var(--success-gradient); color: white;">
+                    <h5 class="modal-title"><i class="fas fa-eye me-2"></i>Aperçu des Calculs</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="text-center p-3 bg-light rounded">
+                                <h4 class="text-primary">4</h4>
+                                <small>Employés sélectionnés</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center p-3 bg-light rounded">
+                                <h4 class="text-success">18,225 DH</h4>
+                                <small>Masse salariale brute</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center p-3 bg-light rounded">
+                                <h4 class="text-warning">2,318 DH</h4>
+                                <small>Total cotisations</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center p-3 bg-light rounded">
+                                <h4 class="text-info">15,401 DH</h4>
+                                <small>Total net à payer</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead style="background: var(--primary-gradient); color: white;">
+                                <tr>
+                                    <th>Employé</th>
+                                    <th>Salaire Brut</th>
+                                    <th>Cotisations</th>
+                                    <th>Impôt</th>
+                                    <th>Net à Payer</th>
+                                    <th>Statut</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>BENALI Ahmed</strong><br><small>S001 - Technicien</small></td>
+                                    <td><strong>4,500 DH</strong></td>
+                                    <td><span class="text-danger">572 DH</span></td>
+                                    <td><span class="text-danger">104 DH</span></td>
+                                    <td><strong class="text-success">3,823 DH</strong></td>
+                                    <td><span class="badge bg-success">En attente</span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>ALAMI Sara</strong><br><small>S002 - Comptable</small></td>
+                                    <td><strong>5,875 DH</strong></td>
+                                    <td><span class="text-danger">747 DH</span></td>
+                                    <td><span class="text-danger">273 DH</span></td>
+                                    <td><strong class="text-success">4,853 DH</strong></td>
+                                    <td><span class="badge bg-success">En attente</span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>HAFIDI Omar</strong><br><small>S003 - Commercial</small></td>
+                                    <td><strong>3,850 DH</strong></td>
+                                    <td><span class="text-danger">490 DH</span></td>
+                                    <td><span class="text-danger">55 DH</span></td>
+                                    <td><strong class="text-success">3,305 DH</strong></td>
+                                    <td><span class="badge bg-success">En attente</span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>POKO Omar</strong><br><small>hassan - Commercial</small></td>
+                                    <td><strong>4,000 DH</strong></td>
+                                    <td><span class="text-danger">509 DH</span></td>
+                                    <td><span class="text-danger">70 DH</span></td>
+                                    <td><strong class="text-success">3,420 DH</strong></td>
+                                    <td><span class="badge bg-success">En attente</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                    <button type="button" class="btn btn-modern btn-success-modern" onclick="proceedWithCalculation()">
+                        <i class="fas fa-play me-2"></i>Procéder au Calcul
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Variables globales
+        let selectedEmployees = ['1', '2', '3', '4'];
+        let calculationInProgress = false;
+
+        // Fonctions principales
+        function testIntegration() {
+            showNotification('Test d\'intégration des absences...', 'info');
+            showProgress();
+            
+            // Simulation du test
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += 10;
+                updateProgress(progress, 'Vérification intégration absences...');
+                
+                if (progress >= 100) {
+                    clearInterval(interval);
+                    hideProgress();
+                    showNotification('✅ Test réussi : Les absences impactent correctement les calculs', 'success');
+                }
+            }, 200);
+        }
+
+        function calculateAll() {
+            if (calculationInProgress) {
+                showNotification('Un calcul est déjà en cours...', 'warning');
+                return;
+            }
+
+            calculationInProgress = true;
+            showNotification('Démarrage du calcul pour tous les employés...', 'info');
+            showProgress();
+
+            // Simulation du calcul
+            let progress = 0;
+            const employees = ['BENALI Ahmed', 'ALAMI Sara', 'HAFIDI Omar', 'POKO Omar'];
+            let currentEmployee = 0;
+
+            const interval = setInterval(() => {
+                progress += 25;
+                updateProgress(progress, `Calcul en cours pour ${employees[currentEmployee]}...`);
+                
+                if (progress >= 100) {
+                    clearInterval(interval);
+                    hideProgress();
+                    calculationInProgress = false;
+                    updateCalculationStats();
+                    showNotification('✅ Calcul terminé pour 4 employés', 'success');
+                }
+                currentEmployee++;
+            }, 800);
+        }
+
+        function selectEmployees() {
+            new bootstrap.Modal(document.getElementById('employeeSelectionModal')).show();
+        }
+
+        function showPreview() {
+            new bootstrap.Modal(document.getElementById('previewModal')).show();
+        }
+
+        function exportResults() {
+            showNotification('Génération de l\'export Excel...', 'info');
+            setTimeout(() => {
+                showNotification('📊 Export Excel généré avec succès !', 'success');
+            }, 1500);
+        }
+
+        // Fonctions de progression
+        function showProgress() {
+            document.getElementById('calculationProgress').style.display = 'block';
+        }
+
+        function hideProgress() {
+            document.getElementById('calculationProgress').style.display = 'none';
+        }
+
+        function updateProgress(percentage, status) {
+            document.getElementById('progressBar').style.width = percentage + '%';
+            document.getElementById('progressPercentage').textContent = percentage + '%';
+            document.getElementById('progressStatus').textContent = status;
+        }
+
+        function updateCalculationStats() {
+            // Mettre à jour les statistiques après calcul
+            const statsCards = document.querySelectorAll('.stats-card .stats-number');
+            statsCards[1].textContent = '4'; // Calculés
+            statsCards[2].textContent = '0'; // En attente
+            statsCards[3].textContent = '0'; // Erreurs
+        }
+
+        // Fonctions du modal de sélection
+        function selectAll() {
+            document.querySelectorAll('#employeeSelectionModal input[type="checkbox"]').forEach(cb => {
+                cb.checked = true;
+            });
+            updateSelectionCounter();
+        }
+
+        function deselectAll() {
+            document.querySelectorAll('#employeeSelectionModal input[type="checkbox"]').forEach(cb => {
+                cb.checked = false;
+            });
+            updateSelectionCounter();
+        }
+
+        function updateSelectionCounter() {
+            const checked = document.querySelectorAll('#employeeSelectionModal input[type="checkbox"]:checked').length;
+            document.querySelector('#employeeSelectionModal .btn-primary-modern').innerHTML = 
+                `<i class="fas fa-check me-2"></i>Confirmer (${checked} sélectionnés)`;
+        }
+
+        function confirmSelection() {
+            const checked = document.querySelectorAll('#employeeSelectionModal input[type="checkbox"]:checked').length;
+            bootstrap.Modal.getInstance(document.getElementById('employeeSelectionModal')).hide();
+            showNotification(`${checked} employé(s) sélectionné(s) pour le calcul`, 'success');
+        }
+
+        function proceedWithCalculation() {
+            bootstrap.Modal.getInstance(document.getElementById('previewModal')).hide();
+            setTimeout(() => {
+                calculateAll();
+            }, 500);
+        }
+
+        // Fonction de notification
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            const colors = {
+                'success': 'bg-success',
+                'error': 'bg-danger',
+                'warning': 'bg-warning',
+                'info': 'bg-info'
+            };
+
+            notification.className = `position-fixed top-0 end-0 m-3 p-3 rounded text-white ${colors[type]}`;
+            notification.style.zIndex = '9999';
+            notification.style.opacity = '0';
+            notification.style.transform = 'translateX(100%)';
+            notification.innerHTML = `
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-${type === 'success' ? 'check' : type === 'error' ? 'times' : type === 'warning' ? 'exclamation' : 'info'}-circle me-2"></i>
+                    ${message}
+                </div>
+            `;
+
+            document.body.appendChild(notification);
+
+            setTimeout(() => {
+                notification.style.transition = 'all 0.3s ease';
+                notification.style.opacity = '1';
+                notification.style.transform = 'translateX(0)';
+            }, 100);
+
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                notification.style.transform = 'translateX(100%)';
+                setTimeout(() => {
+                    document.body.removeChild(notification);
+                }, 300);
+            }, 3000);
+        }
+
+        // Filtrage en temps réel
+        document.getElementById('employeeSearch').addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            document.querySelectorAll('.employee-card').forEach(card => {
+                const employeeName = card.querySelector('h6').textContent.toLowerCase();
+                if (employeeName.includes(searchTerm) || searchTerm === '') {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        });
+
+        // Event listeners pour les modals
+        document.addEventListener('change', function(e) {
+            if (e.target.closest('#employeeSelectionModal') && e.target.type === 'checkbox') {
+                updateSelectionCounter();
+            }
+        });
+
+        // Initialisation
+        document.addEventListener('DOMContentLoaded', function() {
+            // Animation d'entrée
+            document.querySelectorAll('.slide-in').forEach((element, index) => {
+                element.style.opacity = '0';
+                element.style.transform = 'translateY(20px)';
+                setTimeout(() => {
+                    element.style.transition = 'all 0.6s ease';
+                    element.style.opacity = '1';
+                    element.style.transform = 'translateY(0)';
+                }, index * 100);
+            });
+
+            // Message de bienvenue
+            setTimeout(() => {
+                showNotification('Interface de calcul de paie chargée !', 'success');
+            }, 1000);
+
+            // Initialiser le compteur de sélection
+            updateSelectionCounter();
+        });
+
+        // Raccourcis clavier
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.key === 'Enter') {
+                e.preventDefault();
+                calculateAll();
+            }
+            
+            if (e.key === 'F5') {
+                e.preventDefault();
+                testIntegration();
+            }
+        });
+    </script>
+</body>
+</html>"></i>Supprimer
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Employé 2 (MANQUANT dans votre fichier) -->
+                        <div class="employee-card calculated">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="d-flex align-items-center">
+                                    <div class="me-3">
+                                        <div style="width: 50px; height: 50px; border-radius: 50%; background: var(--success-gradient); color: white; display: flex; align-items: center; justify-content: center; font-weight: bold;">
+                                            AS
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-1">ALAMI Sara</h6>
+                                        <small class="text-muted">S002 - Comptable</small>
+                                    </div>
+                                </div>
+                                <div class="text-end">
+                                    <span class="calculation-status status-calculated">Calculé</span>
+                                    <div class="mt-1">
+                                        <small class="text-muted">Net à payer:</small>
+                                        <div class="fw-bold text-success">4,853 DH</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="salary-breakdown">
+                                <div class="breakdown-item">
+                                    <span>Salaire Brut:</span>
+                                    <span class="fw-bold">5,875 DH</span>
+                                </div>
+                                <div class="breakdown-item">
+                                    <span>Cotisations:</span>
+                                    <span class="text-danger">-747 DH</span>
+                                </div>
+                                <div class="breakdown-item">
+                                    <span>Impôt:</span>
+                                    <span class="text-danger">-273 DH</span>
+                                </div>
+                                <div class="breakdown-item">
+                                    <span>Net à Payer:</span>
+                                    <span class="text-success">4,853 DH</span>
+                                </div>
+                            </div>
+
+                            <div class="d-flex gap-2 mt-3">
+                                <button class="btn btn-sm btn-outline-primary flex-fill">
+                                    <i class="fas fa-eye me-1"></i>Voir
+                                </button>
+                                <button class="btn btn-sm btn-outline-success">
+                                    <i class="fas fa-file-pdf me-1"></i>PDF
+                                </button>
+                                <button class="btn btn-sm btn-outline-warning">
+                                    <i class="fas fa-edit me-1"></i>Modifier
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger">
+                                    <i class="fas fa-trash me-1"></i>Supprimer
+                                </button>
+                            </div>
+                        </div>
