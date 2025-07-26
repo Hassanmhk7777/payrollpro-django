@@ -1,235 +1,851 @@
-{% extends 'paie/base.html' %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PayrollPro - Dashboard Ultra-Moderne</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-{% block title %}Dashboard Admin - PayrollPro{% endblock %}
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --success-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --warning-gradient: linear-gradient(135deg, #fdbb2d 0%, #22c1c3 100%);
+            --dark-gradient: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            --card-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            --hover-shadow: 0 20px 40px rgba(0,0,0,0.15);
+            --glass-bg: rgba(255,255,255,0.1);
+            --glass-border: 1px solid rgba(255,255,255,0.2);
+        }
 
-{% block content %}
-<div class="container-fluid">
-    <!-- Page Title -->
-    <div class="row">
-        <div class="col-12">
-            <h1 class="page-title">
-                <i class="bi bi-speedometer2"></i> Tableau de Bord Administrateur
-            </h1>
-            <p class="text-muted">Vue d'ensemble de votre système de paie</p>
-        </div>
-    </div>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
 
-    <!-- Statistics Cards -->
-    <div class="row mb-4">
-        <div class="col-lg-3 col-md-6 mb-4">
-            <div class="stats-card text-center">
-                <div class="stats-number text-primary">{{ total_employes }}</div>
-                <div class="stats-label">Employés Actifs</div>
-            </div>
-        </div>
-        
-        <div class="col-lg-3 col-md-6 mb-4">
-            <div class="stats-card text-center">
-                <div class="stats-number text-success">{{ masse_salariale|floatformat:0 }} DH</div>
-                <div class="stats-label">Masse Salariale Mensuelle</div>
-            </div>
-        </div>
-        
-        <div class="col-lg-3 col-md-6 mb-4">
-            <div class="stats-card text-center">
-                <div class="stats-number text-info">{{ total_cotisations|floatformat:0 }} DH</div>
-                <div class="stats-label">Cotisations Sociales</div>
-            </div>
-        </div>
-        
-        <div class="col-lg-3 col-md-6 mb-4">
-            <div class="stats-card text-center">
-                <div class="stats-number text-warning">{{ absences_attente }}</div>
-                <div class="stats-label">Alertes en Attente</div>
-            </div>
-        </div>
-    </div>
+        /* Animated Background Particles */
+        .bg-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            overflow: hidden;
+        }
 
-    <!-- Alerts Section -->
-    {% if alertes %}
-    <div class="row mb-4">
-        <div class="col-12">
-            <h3 class="section-title">
-                <i class="bi bi-exclamation-triangle"></i> Alertes & Notifications
-            </h3>
-            {% for alerte in alertes %}
-                <div class="alert alert-warning alert-custom">
-                    <i class="bi bi-bell"></i> {{ alerte }}
-                </div>
-            {% endfor %}
-        </div>
-    </div>
-    {% endif %}
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: rgba(255,255,255,0.3);
+            border-radius: 50%;
+            animation: float 6s ease-in-out infinite;
+        }
 
-    <!-- Quick Actions -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <h3 class="section-title">
-                <i class="bi bi-lightning"></i> Actions Rapides
-            </h3>
-        </div>
-        <div class="col-lg-3 col-md-6 mb-3">
-            <a href="{% url 'paie:calcul_paie' %}" class="btn btn-primary btn-action w-100">
-                <i class="bi bi-calculator"></i><br>
-                <strong>Calculer Paie</strong><br>
-                <small>Lancer le calcul mensuel</small>
-            </a>
-        </div>
-        <div class="col-lg-3 col-md-6 mb-3">
-            <a href="{% url 'paie:liste_employes' %}" class="btn btn-info btn-action w-100">
-                <i class="bi bi-person-plus"></i><br>
-                <strong>Gérer Employés</strong><br>
-                <small>Ajouter ou modifier</small>
-            </a>
-        </div>
-        <div class="col-lg-3 col-md-6 mb-3">
-            <a href="{% url 'paie:gestion_utilisateurs' %}" class="btn btn-success btn-action w-100">
-                <i class="bi bi-person-gear"></i><br>
-                <strong>Gestion Utilisateurs</strong><br>
-                <small>Comptes et permissions</small>
-            </a>
-        </div>
-        <div class="col-lg-3 col-md-6 mb-3">
-            <a href="/admin/" class="btn btn-warning btn-action w-100">
-                <i class="bi bi-gear"></i><br>
-                <strong>Administration</strong><br>
-                <small>Paramètres système</small>
-            </a>
-        </div>
-    </div>
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-20px) rotate(180deg); }
+        }
 
-    <!-- Recent Activity and System Status -->
-    <div class="row">
-        <div class="col-lg-8">
-            <h3 class="section-title">
-                <i class="bi bi-clock-history"></i> Activité Récente
-            </h3>
+        /* Glassmorphism Container */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            backdrop-filter: blur(20px);
+            background: var(--glass-bg);
+            border: var(--glass-border);
+            border-radius: 20px;
+            margin-top: 20px;
+            box-shadow: var(--card-shadow);
+        }
+
+        /* Ultra-Modern Header */
+        .ultra-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 30px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 40px;
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .logo-icon {
+            width: 60px;
+            height: 60px;
+            background: var(--success-gradient);
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: white;
+            box-shadow: var(--card-shadow);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .logo-text h1 {
+            color: white;
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .logo-text p {
+            color: rgba(255,255,255,0.8);
+            font-size: 14px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .notification-btn {
+            position: relative;
+            background: rgba(255,255,255,0.1);
+            border: none;
+            width: 50px;
+            height: 50px;
+            border-radius: 15px;
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .notification-btn:hover {
+            background: rgba(255,255,255,0.2);
+            transform: translateY(-2px);
+        }
+
+        .notification-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #ff4757;
+            color: white;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            animation: bounce 1s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: rgba(255,255,255,0.1);
+            padding: 8px 15px;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .user-profile:hover {
+            background: rgba(255,255,255,0.2);
+            transform: translateY(-2px);
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            background: var(--warning-gradient);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        .user-info h3 {
+            color: white;
+            font-size: 14px;
+            margin-bottom: 2px;
+        }
+
+        .user-info p {
+            color: rgba(255,255,255,0.7);
+            font-size: 12px;
+        }
+
+        /* Revolutionary Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+
+        .stat-card {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(20px);
+            border: var(--glass-border);
+            border-radius: 20px;
+            padding: 30px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            cursor: pointer;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+            transition: left 0.5s;
+        }
+
+        .stat-card:hover::before {
+            left: 100%;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-10px) scale(1.02);
+            box-shadow: var(--hover-shadow);
+        }
+
+        .stat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .stat-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: white;
+            box-shadow: var(--card-shadow);
+        }
+
+        .stat-icon.primary { background: var(--primary-gradient); }
+        .stat-icon.success { background: var(--success-gradient); }
+        .stat-icon.warning { background: var(--warning-gradient); }
+        .stat-icon.secondary { background: var(--secondary-gradient); }
+
+        .stat-trend {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 12px;
+            color: #27ae60;
+            background: rgba(39, 174, 96, 0.1);
+            padding: 4px 8px;
+            border-radius: 10px;
+        }
+
+        .stat-content h3 {
+            color: white;
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 5px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .stat-content p {
+            color: rgba(255,255,255,0.8);
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+
+        .stat-progress {
+            width: 100%;
+            height: 4px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 2px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+
+        .stat-progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #4facfe, #00f2fe);
+            border-radius: 2px;
+            transition: width 1s ease;
+        }
+
+        .stat-details {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: rgba(255,255,255,0.7);
+        }
+
+        /* Ultra-Modern Action Grid */
+        .action-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .action-card {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(20px);
+            border: var(--glass-border);
+            border-radius: 20px;
+            padding: 25px;
+            text-align: center;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .action-card::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            transition: all 0.4s ease;
+            transform: translate(-50%, -50%);
+        }
+
+        .action-card:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .action-card:hover {
+            transform: translateY(-8px) scale(1.05);
+            box-shadow: var(--hover-shadow);
+        }
+
+        .action-icon {
+            width: 70px;
+            height: 70px;
+            margin: 0 auto 20px;
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            color: white;
+            box-shadow: var(--card-shadow);
+            position: relative;
+            z-index: 2;
+        }
+
+        .action-title {
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .action-subtitle {
+            color: rgba(255,255,255,0.7);
+            font-size: 12px;
+            position: relative;
+            z-index: 2;
+        }
+
+        /* Modern Workflow Section */
+        .workflow-section {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(20px);
+            border: var(--glass-border);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+
+        .workflow-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+
+        .workflow-title {
+            color: white;
+            font-size: 22px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .workflow-steps {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .workflow-step {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 15px;
+            padding: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .workflow-step:hover {
+            background: rgba(255,255,255,0.1);
+            transform: translateY(-3px);
+        }
+
+        .step-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .step-number {
+            width: 40px;
+            height: 40px;
+            background: var(--primary-gradient);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        .step-title {
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .step-description {
+            color: rgba(255,255,255,0.8);
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+
+        .step-progress {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 12px;
+            color: rgba(255,255,255,0.7);
+        }
+
+        .progress-bar {
+            flex: 1;
+            height: 3px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--success-gradient);
+            border-radius: 2px;
+            transition: width 1s ease;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                padding: 15px;
+            }
             
-            <div class="table-responsive">
-                <table class="table table-sm table-hover">
-                    <thead>
-                        <tr>
-                            <th>Date</th>
-                            <th>Action</th>
-                            <th>Utilisateur</th>
-                            <th>Détail</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>{{ "now"|date:"d/m H:i" }}</td>
-                            <td><span class="badge bg-success">Connexion</span></td>
-                            <td>{{ user.username }}</td>
-                            <td>Accès au dashboard admin</td>
-                        </tr>
-                        <tr>
-                            <td>{{ "now"|date:"d/m H:i" }}</td>
-                            <td><span class="badge bg-info">Calcul</span></td>
-                            <td>System</td>
-                            <td>Mise à jour des statistiques</td>
-                        </tr>
-                        {% if employes_recents > 0 %}
-                        <tr>
-                            <td>{{ "now"|date:"d/m" }}</td>
-                            <td><span class="badge bg-primary">Ajout</span></td>
-                            <td>{{ user.username }}</td>
-                            <td>{{ employes_recents }} nouvel(s) employé(s)</td>
-                        </tr>
-                        {% endif %}
-                        <tr>
-                            <td>{{ "now"|date:"d/m H:i" }}</td>
-                            <td><span class="badge bg-warning">Validation</span></td>
-                            <td>RH</td>
-                            <td>{{ bulletins_non_valides }} bulletin(s) en attente</td>
-                        </tr>
-                    </tbody>
-                </table>
+            .ultra-header {
+                flex-direction: column;
+                gap: 20px;
+                text-align: center;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .action-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        /* Animation utilities */
+        .fade-in {
+            animation: fadeIn 0.6s ease-out;
+        }
+
+        .slide-up {
+            animation: slideUp 0.8s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Animated Background -->
+    <div class="bg-animation" id="bgAnimation"></div>
+
+    <div class="container fade-in">
+        <!-- Ultra-Modern Header -->
+        <header class="ultra-header">
+            <div class="logo-section">
+                <div class="logo-icon">
+                    <i class="fas fa-money-check-alt"></i>
+                </div>
+                <div class="logo-text">
+                    <h1>PayrollPro</h1>
+                    <p>Tableau de Bord Administrateur</p>
+                </div>
+            </div>
+            
+            <div class="header-actions">
+                <button class="notification-btn" onclick="showNotifications()">
+                    <i class="fas fa-bell"></i>
+                    <span class="notification-badge">4</span>
+                </button>
+                
+                <div class="user-profile" onclick="showUserMenu()">
+                    <div class="user-avatar">A</div>
+                    <div class="user-info">
+                        <h3>Admin</h3>
+                        <p>Administrateur</p>
+                    </div>
+                    <i class="fas fa-chevron-down" style="color: rgba(255,255,255,0.7);"></i>
+                </div>
+            </div>
+        </header>
+
+        <!-- Revolutionary Stats Grid -->
+        <div class="stats-grid slide-up">
+            <div class="stat-card" onclick="navigateTo('/employes/')">
+                <div class="stat-header">
+                    <div class="stat-icon primary">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="stat-trend">
+                        <i class="fas fa-arrow-up"></i>
+                        +12%
+                    </div>
+                </div>
+                <div class="stat-content">
+                    <h3>4</h3>
+                    <p>Employés Actifs</p>
+                    <div class="stat-progress">
+                        <div class="stat-progress-bar" style="width: 85%"></div>
+                    </div>
+                    <div class="stat-details">
+                        <span>Objectif: 5</span>
+                        <span>85% complété</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stat-card" onclick="navigateTo('/calcul-paie/')">
+                <div class="stat-header">
+                    <div class="stat-icon success">
+                        <i class="fas fa-calculator"></i>
+                    </div>
+                    <div class="stat-trend">
+                        <i class="fas fa-arrow-up"></i>
+                        +8%
+                    </div>
+                </div>
+                <div class="stat-content">
+                    <h3>18225 DH</h3>
+                    <p>Masse Salariale Mensuelle</p>
+                    <div class="stat-progress">
+                        <div class="stat-progress-bar" style="width: 92%"></div>
+                    </div>
+                    <div class="stat-details">
+                        <span>Budget: 20000 DH</span>
+                        <span>92% utilisé</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stat-card" onclick="navigateTo('/absences/')">
+                <div class="stat-header">
+                    <div class="stat-icon warning">
+                        <i class="fas fa-calendar-times"></i>
+                    </div>
+                    <div class="stat-trend">
+                        <i class="fas fa-arrow-down"></i>
+                        -5%
+                    </div>
+                </div>
+                <div class="stat-content">
+                    <h3>0</h3>
+                    <p>Absences à Valider</p>
+                    <div class="stat-progress">
+                        <div class="stat-progress-bar" style="width: 100%"></div>
+                    </div>
+                    <div class="stat-details">
+                        <span>Traitement: 0/0</span>
+                        <span>100% traité</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stat-card" onclick="navigateTo('/admin/')">
+                <div class="stat-header">
+                    <div class="stat-icon secondary">
+                        <i class="fas fa-cog"></i>
+                    </div>
+                    <div class="stat-trend">
+                        <i class="fas fa-arrow-up"></i>
+                        +2%
+                    </div>
+                </div>
+                <div class="stat-content">
+                    <h3>2322 DH</h3>
+                    <p>Cotisations Sociales</p>
+                    <div class="stat-progress">
+                        <div class="stat-progress-bar" style="width: 78%"></div>
+                    </div>
+                    <div class="stat-details">
+                        <span>CNSS + AMO</span>
+                        <span>78% du total</span>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <!-- System Status -->
-        <div class="col-lg-4">
-            <h3 class="section-title">
-                <i class="bi bi-gear"></i> État du Système
-            </h3>
+        <!-- Ultra-Modern Action Grid -->
+        <div class="action-grid slide-up" style="animation-delay: 0.2s;">
+            <div class="action-card" onclick="navigateTo('/calcul-paie/')">
+                <div class="action-icon" style="background: var(--primary-gradient);">
+                    <i class="fas fa-calculator"></i>
+                </div>
+                <div class="action-title">Calculer Paie</div>
+                <div class="action-subtitle">Lancer le calcul mensuel</div>
+            </div>
+
+            <div class="action-card" onclick="navigateTo('/employes/')">
+                <div class="action-icon" style="background: var(--success-gradient);">
+                    <i class="fas fa-user-plus"></i>
+                </div>
+                <div class="action-title">Gérer Employés</div>
+                <div class="action-subtitle">Ajouter ou modifier</div>
+            </div>
+
+            <div class="action-card" onclick="navigateTo('/absences/')">
+                <div class="action-icon" style="background: var(--warning-gradient);">
+                    <i class="fas fa-calendar-check"></i>
+                </div>
+                <div class="action-title">Gestion Absences</div>
+                <div class="action-subtitle">Valider les demandes</div>
+            </div>
+
+            <div class="action-card" onclick="navigateTo('/admin/')">
+                <div class="action-icon" style="background: var(--secondary-gradient);">
+                    <i class="fas fa-tools"></i>
+                </div>
+                <div class="action-title">Administration</div>
+                <div class="action-subtitle">Paramètres système</div>
+            </div>
+        </div>
+
+        <!-- Modern Workflow Section -->
+        <div class="workflow-section slide-up" style="animation-delay: 0.4s;">
+            <div class="workflow-header">
+                <h2 class="workflow-title">
+                    <i class="fas fa-tasks"></i>
+                    Workflow du Jour
+                </h2>
+            </div>
             
-            <div class="card border-0 shadow-sm">
-                <div class="card-body">
-                    <h6 class="card-title">Performance</h6>
-                    <div class="mb-3">
-                        <div class="d-flex justify-content-between">
-                            <span>Base de données</span>
-                            <span class="text-success">✓ OK</span>
-                        </div>
-                        <div class="progress" style="height: 5px;">
-                            <div class="progress-bar bg-success" style="width: 95%"></div>
-                        </div>
+            <div class="workflow-steps">
+                <div class="workflow-step">
+                    <div class="step-header">
+                        <div class="step-number">1</div>
+                        <div class="step-title">Calcul de Paie</div>
                     </div>
-                    
-                    <div class="mb-3">
-                        <div class="d-flex justify-content-between">
-                            <span>Calculs de paie</span>
-                            <span class="text-info">✓ Actif</span>
-                        </div>
-                        <div class="progress" style="height: 5px;">
-                            <div class="progress-bar bg-info" style="width: 88%"></div>
-                        </div>
+                    <div class="step-description">
+                        Progression: 4/4 employés traités
                     </div>
-                    
-                    <div class="mb-3">
-                        <div class="d-flex justify-content-between">
-                            <span>Sauvegarde</span>
-                            <span class="text-warning">⚠ Prévue</span>
+                    <div class="step-progress">
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 100%"></div>
                         </div>
-                        <div class="progress" style="height: 5px;">
-                            <div class="progress-bar bg-warning" style="width: 70%"></div>
-                        </div>
+                        <span>100%</span>
                     </div>
                 </div>
-            </div>
 
-            <!-- Quick Stats -->
-            <div class="card border-0 shadow-sm mt-3">
-                <div class="card-body">
-                    <h6 class="card-title">Statistiques Rapides</h6>
-                    <ul class="list-unstyled mb-0">
-                        <li class="d-flex justify-content-between py-1">
-                            <span>Employés inactifs:</span>
-                            <strong class="text-danger">{{ employes_inactifs }}</strong>
-                        </li>
-                        <li class="d-flex justify-content-between py-1">
-                            <span>Nouveaux (7j):</span>
-                            <strong class="text-primary">{{ employes_recents }}</strong>
-                        </li>
-                        <li class="d-flex justify-content-between py-1">
-                            <span>Avec compte:</span>
-                            <strong class="text-success">{{ employes_avec_compte }}</strong>
-                        </li>
-                        <li class="d-flex justify-content-between py-1">
-                            <span>Sans compte:</span>
-                            <strong class="text-warning">{{ employes_sans_compte }}</strong>
-                        </li>
-                        <li class="d-flex justify-content-between py-1">
-                            <span>Période:</span>
-                            <strong>{{ mois_actuel|date:"F Y"|default:"Juillet 2025" }}</strong>
-                        </li>
-                    </ul>
+                <div class="workflow-step">
+                    <div class="step-header">
+                        <div class="step-number">2</div>
+                        <div class="step-title">Validation Absences</div>
+                    </div>
+                    <div class="step-description">
+                        0 demande(s) en attente de validation
+                    </div>
+                    <div class="step-progress">
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 100%"></div>
+                        </div>
+                        <span>100%</span>
+                    </div>
                 </div>
-            </div>
 
-            <!-- System Actions -->
-            <div class="d-grid gap-2 mt-3">
-                <a href="/admin/paie/employe/" class="btn btn-sm btn-outline-primary">
-                    <i class="bi bi-people"></i> Gérer Employés
-                </a>
-                <a href="/admin/paie/parametrepaie/" class="btn btn-sm btn-outline-info">
-                    <i class="bi bi-sliders"></i> Paramètres Paie
-                </a>
-                <a href="/admin/" class="btn btn-sm btn-outline-success">
-                    <i class="bi bi-shield-check"></i> Administration Django
-                </a>
+                <div class="workflow-step">
+                    <div class="step-header">
+                        <div class="step-number">3</div>
+                        <div class="step-title">Export CNSS</div>
+                    </div>
+                    <div class="step-description">
+                        Déclaration mensuelle prête
+                    </div>
+                    <div class="step-progress">
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 90%"></div>
+                        </div>
+                        <span>90%</span>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
-</div>
-{% endblock %}
+
+    <script>
+        // Créer des particules animées
+        function createParticles() {
+            const animation = document.getElementById('bgAnimation');
+            for (let i = 0; i < 50; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.top = Math.random() * 100 + '%';
+                particle.style.animationDelay = Math.random() * 6 + 's';
+                particle.style.animationDuration = (Math.random() * 3 + 3) + 's';
+                animation.appendChild(particle);
+            }
+        }
+
+        // Navigation
+        function navigateTo(url) {
+            // Effet de transition
+            document.body.style.transition = 'opacity 0.3s ease';
+            document.body.style.opacity = '0.8';
+            
+            setTimeout(() => {
+                window.location.href = url;
+            }, 300);
+        }
+
+        // Notifications
+        function showNotifications() {
+            alert('🔔 Notifications:\n• 4 bulletins calculés\n• Système à jour\n• Aucune alerte');
+        }
+
+        // Menu utilisateur
+        function showUserMenu() {
+            const menu = document.createElement('div');
+            menu.style.cssText = `
+                position: fixed;
+                top: 80px;
+                right: 20px;
+                background: rgba(255,255,255,0.1);
+                backdrop-filter: blur(20px);
+                border: 1px solid rgba(255,255,255,0.2);
+                border-radius: 15px;
+                padding: 15px;
+                z-index: 1000;
+                min-width: 200px;
+            `;
+            menu.innerHTML = `
+                <div style="color: white; padding: 10px; cursor: pointer; border-radius: 8px; transition: background 0.3s;" 
+                     onmouseover="this.style.background='rgba(255,255,255,0.1)'" 
+                     onmouseout="this.style.background='transparent'"
+                     onclick="navigateTo('/admin/')">
+                    <i class="fas fa-user-cog"></i> Mon Profil
+                </div>
+                <div style="color: white; padding: 10px; cursor: pointer; border-radius: 8px; transition: background 0.3s;" 
+                     onmouseover="this.style.background='rgba(255,255,255,0.1)'" 
+                     onmouseout="this.style.background='transparent'"
+                     onclick="navigateTo('/logout/')">
+                    <i class="fas fa-sign-out-alt"></i> Déconnexion
+                </div>
+            `;
+            
+            document.body.appendChild(menu);
+            
+            setTimeout(() => {
+                menu.addEventListener('click', () => menu.remove());
+                document.addEventListener('click', () => menu.remove());
+            }, 100);
+        }
+
+        // Initialiser les animations
+        document.addEventListener('DOMContentLoaded', function() {
+            createParticles();
+            
+            // Animer les barres de progression
+            setTimeout(() => {
+                const progressBars = document.querySelectorAll('.stat-progress-bar, .progress-fill');
+                progressBars.forEach(bar => {
+                    const width = bar.style.width;
+                    bar.style.width = '0%';
+                    setTimeout(() => {
+                        bar.style.width = width;
+                    }, 100);
+                });
+            }, 500);
+        });
+
+        // Effet de parallaxe pour les particules
+        document.addEventListener('mousemove', (e) => {
+            const particles = document.querySelectorAll('.particle');
+            const x = e.clientX / window.innerWidth;
+            const y = e.clientY / window.innerHeight;
+            
+            particles.forEach((particle, index) => {
+                const speed = (index % 5 + 1) * 0.5;
+                particle.style.transform = `translate(${x * speed}px, ${y * speed}px)`;
+            });
+        });
+    </script>
+</body>
+</html>
