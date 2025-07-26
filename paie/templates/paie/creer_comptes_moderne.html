@@ -1,0 +1,344 @@
+{% extends 'paie/base.html' %}
+{% load static %}
+
+{% block title %}Gestion des Utilisateurs - PayrollPro{% endblock %}
+
+{% block extra_css %}
+<style>
+    .users-section {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 3rem 0;
+        margin-bottom: 2rem;
+    }
+    
+    .user-card {
+        background: white;
+        border-radius: 15px;
+        padding: 2rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+        border: none;
+    }
+    
+    .user-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 12px 35px rgba(0, 0, 0, 0.15);
+    }
+    
+    .stats-card {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        color: white;
+        border-radius: 15px;
+        padding: 2rem;
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+    
+    .stats-number {
+        font-size: 2.5rem;
+        font-weight: bold;
+        margin-bottom: 0.5rem;
+    }
+    
+    .employee-item {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        border-left: 4px solid #667eea;
+        transition: all 0.3s ease;
+    }
+    
+    .employee-item:hover {
+        background: #e9ecef;
+        transform: translateX(5px);
+    }
+    
+    .role-badge {
+        padding: 0.5rem 1rem;
+        border-radius: 25px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .role-employe {
+        background: linear-gradient(45deg, #28a745, #20c997);
+        color: white;
+    }
+    
+    .role-rh {
+        background: linear-gradient(45deg, #17a2b8, #6f42c1);
+        color: white;
+    }
+    
+    .role-admin {
+        background: linear-gradient(45deg, #dc3545, #fd7e14);
+        color: white;
+    }
+    
+    .action-btn {
+        border-radius: 25px;
+        padding: 0.7rem 1.5rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        border: none;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .btn-create {
+        background: linear-gradient(45deg, #28a745, #20c997);
+        color: white;
+    }
+    
+    .btn-create:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(40, 167, 69, 0.3);
+        color: white;
+    }
+    
+    .info-card {
+        background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+        border-radius: 15px;
+        padding: 2rem;
+        border: none;
+    }
+    
+    .page-header {
+        background: white;
+        border-radius: 15px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    }
+    
+    .form-select-modern {
+        border-radius: 10px;
+        border: 2px solid #e9ecef;
+        padding: 0.75rem 1rem;
+        transition: all 0.3s ease;
+    }
+    
+    .form-select-modern:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 0.25rem rgba(102, 126, 234, 0.25);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="users-section">
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-8 mx-auto text-center">
+                <h1><i class="fas fa-users-cog"></i> Gestion des Utilisateurs</h1>
+                <p class="lead">Administration complète des comptes utilisateurs du système</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container-fluid">
+    <!-- Messages -->
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}success{% endif %} alert-dismissible fade show">
+                <i class="fas fa-{% if message.tags == 'error' %}exclamation-triangle{% else %}check-circle{% endif %}"></i>
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- Statistiques -->
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6">
+            <div class="stats-card">
+                <div class="stats-number">{{ employes_sans_compte.count }}</div>
+                <div>Employés sans compte</div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <div class="stats-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                <div class="stats-number">{{ total_employes|default:0 }}</div>
+                <div>Total Employés</div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <div class="stats-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                <div class="stats-number">{{ total_users|default:0 }}</div>
+                <div>Utilisateurs Actifs</div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <div class="stats-card" style="background: linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%);">
+                <div class="stats-number">{{ admins_count|default:1 }}</div>
+                <div>Administrateurs</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contenu principal -->
+    <div class="row">
+        <!-- Liste des employés sans compte -->
+        <div class="col-lg-8">
+            <div class="user-card">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h3><i class="fas fa-user-plus text-primary"></i> Employés sans compte utilisateur</h3>
+                    {% if employes_sans_compte %}
+                        <span class="badge bg-warning fs-6">{{ employes_sans_compte.count }} en attente</span>
+                    {% endif %}
+                </div>
+                
+                {% if employes_sans_compte %}
+                    <form method="post" id="createAccountForm">
+                        {% csrf_token %}
+                        {% for employe in employes_sans_compte %}
+                            <div class="employee-item">
+                                <div class="row align-items-center">
+                                    <div class="col-lg-4">
+                                        <div class="d-flex align-items-center">
+                                            <div class="avatar-circle me-3">
+                                                <i class="fas fa-user"></i>
+                                            </div>
+                                            <div>
+                                                <h6 class="mb-1 fw-bold">{{ employe.nom_complet }}</h6>
+                                                <small class="text-muted">
+                                                    <i class="fas fa-id-badge"></i> {{ employe.matricule }}
+                                                </small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-lg-3">
+                                        <div class="text-muted">
+                                            <i class="fas fa-briefcase"></i> {{ employe.fonction|default:"Non définie" }}
+                                        </div>
+                                    </div>
+                                    <div class="col-lg-3">
+                                        <select name="role_{{ employe.id }}" class="form-select form-select-modern form-select-sm">
+                                            <option value="EMPLOYE">👤 Employé</option>
+                                            <option value="RH">👥 Ressources Humaines</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-lg-2">
+                                        <button type="submit" name="employe_id" value="{{ employe.id }}" 
+                                                class="btn action-btn btn-create btn-sm w-100"
+                                                onclick="setRole({{ employe.id }})">
+                                            <i class="fas fa-plus"></i> Créer
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                        
+                        <input type="hidden" name="role" id="selectedRole">
+                    </form>
+                {% else %}
+                    <div class="text-center py-5">
+                        <div class="mb-3">
+                            <i class="fas fa-check-circle text-success" style="font-size: 4rem;"></i>
+                        </div>
+                        <h4 class="text-success">Tous les employés ont un compte !</h4>
+                        <p class="text-muted">Tous les employés actifs disposent déjà d'un compte utilisateur dans le système.</p>
+                        <a href="{% url 'paie:liste_employes' %}" class="btn btn-primary">
+                            <i class="fas fa-users"></i> Voir tous les employés
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Panneau d'informations -->
+        <div class="col-lg-4">
+            <div class="info-card">
+                <h5><i class="fas fa-info-circle"></i> Configuration des comptes</h5>
+                <hr>
+                
+                <div class="mb-3">
+                    <h6><i class="fas fa-key text-primary"></i> Format des identifiants</h6>
+                    <ul class="list-unstyled small">
+                        <li><strong>Nom d'utilisateur :</strong> emp_matricule</li>
+                        <li><strong>Mot de passe :</strong> 3 premières lettres du prénom + 3 derniers chiffres du matricule</li>
+                    </ul>
+                </div>
+                
+                <div class="mb-3">
+                    <h6><i class="fas fa-example text-info"></i> Exemple</h6>
+                    <div class="bg-white p-3 rounded">
+                        <strong>Ahmed Benali (S001)</strong><br>
+                        <span class="text-muted">
+                            👤 Username: <code>emp_s001</code><br>
+                            🔐 Password: <code>ahm001</code>
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <h6><i class="fas fa-shield-alt text-warning"></i> Rôles disponibles</h6>
+                    <div class="d-flex flex-column gap-2">
+                        <span class="role-badge role-employe">
+                            <i class="fas fa-user"></i> Employé
+                        </span>
+                        <span class="role-badge role-rh">
+                            <i class="fas fa-users"></i> Ressources Humaines
+                        </span>
+                        <span class="role-badge role-admin">
+                            <i class="fas fa-crown"></i> Administrateur
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <strong>Important :</strong> Les employés devront changer leur mot de passe lors de leur première connexion.
+                </div>
+            </div>
+            
+            <!-- Actions rapides -->
+            <div class="user-card">
+                <h6><i class="fas fa-bolt text-warning"></i> Actions rapides</h6>
+                <div class="d-grid gap-2">
+                    <a href="{% url 'paie:liste_employes' %}" class="btn btn-outline-primary">
+                        <i class="fas fa-list"></i> Liste des employés
+                    </a>
+                    <a href="/admin/auth/user/" class="btn btn-outline-secondary">
+                        <i class="fas fa-cog"></i> Admin Django
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function setRole(employeId) {
+    const selectElement = document.querySelector(`select[name="role_${employeId}"]`);
+    if (selectElement) {
+        document.getElementById('selectedRole').value = selectElement.value;
+    }
+}
+
+// Style pour l'avatar
+document.addEventListener('DOMContentLoaded', function() {
+    const style = document.createElement('style');
+    style.textContent = `
+        .avatar-circle {
+            width: 45px;
+            height: 45px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.2rem;
+        }
+    `;
+    document.head.appendChild(style);
+});
+</script>
+{% endblock %}

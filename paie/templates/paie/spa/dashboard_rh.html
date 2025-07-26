@@ -1,0 +1,109 @@
+<div class="rh-dashboard">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h3><i class="fas fa-user-tie me-2"></i>Dashboard RH</h3>
+                </div>
+                <div class="card-body">
+                    <!-- Statistiques RH -->
+                    <div class="row">
+                        <div class="col-md-3 mb-4">
+                            <div class="card bg-gradient-primary text-white">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-users fa-3x mb-3"></i>
+                                    <h4>{{ total_employes|default:0 }}</h4>
+                                    <p>Employés Actifs</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-4">
+                            <div class="card bg-gradient-warning text-white">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-calendar-times fa-3x mb-3"></i>
+                                    <h4>{{ absences_attente|default:0 }}</h4>
+                                    <p>Absences en Attente</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-4">
+                            <div class="card bg-gradient-success text-white">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-check-circle fa-3x mb-3"></i>
+                                    <h4>12</h4>
+                                    <p>Approuvées ce mois</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-4">
+                            <div class="card bg-gradient-info text-white">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-calculator fa-3x mb-3"></i>
+                                    <h4>8</h4>
+                                    <p>Paies Calculées</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Actions rapides RH -->
+                    <div class="row mt-4">
+                        <div class="col-md-4 mb-3">
+                            <div class="card h-100">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-users fa-2x text-primary mb-3"></i>
+                                    <h5>Gestion Employés</h5>
+                                    <p class="text-muted">Ajouter, modifier, gérer les employés</p>
+                                    <button onclick="loadSPAContent('employees')" class="btn btn-primary">
+                                        <i class="fas fa-arrow-right me-2"></i>Accéder
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="card h-100">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-calendar-check fa-2x text-success mb-3"></i>
+                                    <h5>Gestion Absences</h5>
+                                    <p class="text-muted">Approuver, rejeter les demandes d'absence</p>
+                                    <button onclick="loadSPAContent('absences')" class="btn btn-success">
+                                        <i class="fas fa-arrow-right me-2"></i>Accéder
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="card h-100">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-calculator fa-2x text-warning mb-3"></i>
+                                    <h5>Calcul de Paie</h5>
+                                    <p class="text-muted">Calculer et générer les bulletins de paie</p>
+                                    <button onclick="loadSPAContent('payroll')" class="btn btn-warning">
+                                        <i class="fas fa-arrow-right me-2"></i>Accéder
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Section Rubriques personnalisées -->
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5><i class="fas fa-list-alt me-2"></i>Rubriques Personnalisées</h5>
+                                </div>
+                                <div class="card-body">
+                                    <p class="text-muted">Gérer les rubriques de paie personnalisées pour votre organisation.</p>
+                                    <button onclick="loadSPAContent('rubriques')" class="btn btn-outline-info">
+                                        <i class="fas fa-cog me-2"></i>Gérer les Rubriques
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

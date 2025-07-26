@@ -53,7 +53,36 @@ def accueil(request):
         'masse_salariale': masse_salariale,
     }
     
-    return render(request, 'paie/accueil.html', context)
+    return render(request, 'paie/accueil_moderne.html', context)
+
+@login_required
+def accueil_moderne(request):
+    """Page d'accueil SPA moderne"""
+    
+    # Mêmes statistiques que la page d'accueil
+    total_employes = Employe.objects.filter(actif=True).count()
+    absences_attente = Absence.objects.filter(statut='EN_ATTENTE').count()
+    
+    # Calcul simple de la masse salariale
+    employes_actifs = Employe.objects.filter(actif=True)
+    masse_salariale = sum(employe.salaire_base for employe in employes_actifs)
+    
+    # Nouveaux employés du mois
+    from datetime import datetime, timedelta
+    debut_mois = datetime.now().replace(day=1)
+    nouveaux_employes = Employe.objects.filter(
+        date_embauche__gte=debut_mois,
+        actif=True
+    ).count()
+    
+    context = {
+        'total_employes': total_employes,
+        'absences_attente': absences_attente,
+        'masse_salariale': masse_salariale,
+        'nouveaux_employes': nouveaux_employes,
+    }
+    
+    return render(request, 'paie/accueil_moderne.html', context)
 
 def connexion_personnalisee(request):
     """Connexion avec redirection selon le rôle"""
@@ -80,7 +109,7 @@ def connexion_personnalisee(request):
         else:
             messages.error(request, 'Nom d\'utilisateur ou mot de passe incorrect')
     
-    return render(request, 'paie/connexion_simple.html')
+    return render(request, 'paie/connexion_moderne.html')
 @login_required
 @audit_action('CREATE', 'Création compte employé {employe_id}', target_model='User')
 def creer_compte_employe(request):
@@ -127,28 +156,11 @@ def creer_compte_employe(request):
     context = {
         'employes_sans_compte': employes_sans_compte
     }
-    return render(request, 'paie/creer_comptes.html', context)
+    return render(request, 'paie/creer_comptes_moderne.html', context)
 @login_required
 def dashboard_admin(request):
-    """Dashboard pour les administrateurs"""
-
-    
-    # Statistiques générales
-    total_employes = Employe.objects.filter(actif=True).count()
-    employes_inactifs = Employe.objects.filter(actif=False).count()
-    
-    # Statistiques de paie du mois en cours
-    mois_actuel = timezone.now().month
-    annee_actuelle = timezone.now().year
-    
-    # Bulletins du mois
-    bulletins_mois = BulletinPaie.objects.filter(
-        mois=mois_actuel, 
-        annee=annee_actuelle
-    )
-    
-    # Calculs financiers
-    masse_salariale = bulletins_mois.aggregate(Sum('salaire_brut_imposable'))['salaire_brut_imposable__sum'] or 0
+    """Dashboard pour les administrateurs - Redirection vers SPA moderne"""
+    return redirect('paie:accueil_moderne')
     total_cotisations = bulletins_mois.aggregate(
         total_cnss=Sum('cotisation_cnss'),
         total_amo=Sum('cotisation_amo'),
@@ -200,32 +212,13 @@ def dashboard_admin(request):
         'annee_actuelle': annee_actuelle,
     }
     
-    return render(request, 'paie/dashboard_admin.html', context)
+    return render(request, 'paie/dashboard_admin.html', context)  # Already modern
 
 
 @login_required
 def dashboard_rh(request):
-    """Dashboard pour les responsables RH"""
-    
-
-    
-    # Tâches du jour
-    mois_actuel = timezone.now().month
-    annee_actuelle = timezone.now().year
-    
-    # Employés actifs
-    employes_actifs = Employe.objects.filter(actif=True)
-    total_employes = employes_actifs.count()
-    
-    # Bulletins de paie du mois
-    bulletins_mois = BulletinPaie.objects.filter(mois=mois_actuel, annee=annee_actuelle)
-    bulletins_calcules = bulletins_mois.count()
-    
-    # Absences à valider
-    absences_attente = Absence.objects.filter(statut='EN_ATTENTE')
-    nb_absences_attente = absences_attente.count()
-    
-    # Employés avec éléments de paie à traiter
+    """Dashboard pour les responsables RH - Redirection vers SPA moderne"""
+    return redirect('paie:accueil_moderne')
     elements_mois = ElementPaie.objects.filter(
         mois_application=mois_actuel,
         annee_application=annee_actuelle
@@ -262,29 +255,13 @@ def dashboard_rh(request):
         'annee_actuelle': annee_actuelle,
     }
     
-    return render(request, 'paie/dashboard_rh.html', context)
+    return render(request, 'paie/dashboard_rh.html', context)  # Already modern
 
 
 @login_required
 def dashboard_employe(request):
-    """Dashboard pour les employés"""
-    
-    # Récupérer l'employé lié à l'utilisateur
-    gestionnaire = GestionnaireUtilisateurs()
-    employe = gestionnaire.obtenir_employe_par_user(request.user)
-    
-    if not employe:
-        # Si l'utilisateur n'est pas lié à un employé, rediriger vers admin
-        if request.user.is_superuser:
-            return redirect('paie:dashboard_admin')
-        else:
-            # Cas d'erreur - utilisateur sans employé associé
-            return render(request, 'paie/erreur_acces.html', {
-                'message': "Votre compte n'est pas associé à un employé. Contactez votre administrateur."
-            })
-    
-    # Dernier bulletin de paie
-    dernier_bulletin = BulletinPaie.objects.filter(employe=employe).first()
+    """Dashboard pour les employés - Redirection vers SPA moderne"""
+    return redirect('paie:accueil_moderne')
     
     # Solde de congés (simulation - à calculer vraiment plus tard)
     from django.db.models import Sum
@@ -310,7 +287,7 @@ def dashboard_employe(request):
         'absences_recentes': absences_recentes,
     }
     
-    return render(request, 'paie/dashboard_employe.html', context)
+    return render(request, 'paie/dashboard_employe.html', context)  # Already modern
 
 
 # REMPLACER la fonction liste_employes dans paie/views.py par :
@@ -393,7 +370,7 @@ def liste_employes(request):
         'user_role': role,
     }
     
-    return render(request, 'paie/liste_employes.html', context)
+    return render(request, 'paie/liste_employes_moderne.html', context)
 def detail_employe(request, employe_id):
     """Affiche les détails d'un employé"""
     
@@ -425,7 +402,7 @@ def detail_employe(request, employe_id):
         'user_role': role,
     }
     
-    return render(request, 'paie/detail_employe.html', context)
+    return render(request, 'paie/detail_employe_moderne.html', context)
 
 
 @login_required  
@@ -514,7 +491,7 @@ def calcul_paie(request):
     
     context['bulletins_existants'] = bulletins_existants
     
-    return render(request, 'paie/calcul_paie.html', context)
+    return render(request, 'paie/calcul_paie_moderne.html', context)
 
 
 @login_required
@@ -704,7 +681,7 @@ def gestion_absences(request):
         except Exception as e:
             context['erreur'] = f"Erreur lors de la création de la demande : {str(e)}"
     
-    return render(request, 'paie/gestion_absences.html', context)
+    return render(request, 'paie/gestion_absences_moderne.html', context)  # Already modern
 
 @login_required
 @audit_action('UPDATE', 'Validation absence {absence_id}', target_model='Absence')  
@@ -933,7 +910,7 @@ def statistiques_absences(request):
             'total_absences': emp['total_absences']
         })
     
-    return JsonResponse(stats)
+    return render(request, 'paie/statistiques_absences_moderne.html', {'stats': stats, 'user_role': role})
 
 
 @login_required
@@ -957,7 +934,7 @@ def calendrier_absences(request):
         'user_role': role,
     }
     
-    return render(request, 'paie/calendrier_absences.html', context)
+    return render(request, 'paie/calendrier_absences_moderne.html', context)
 
 
 @login_required
@@ -1024,7 +1001,7 @@ def test_calcul_absences(request):
                     'erreur': str(e)
                 })
     
-    return render(request, 'paie/test_calcul_absences.html', context)
+    return render(request, 'paie/test_calcul_absences_moderne.html', context)
 
 
 @login_required
@@ -1042,7 +1019,7 @@ def page_aide(request):
         'user_role': obtenir_role_utilisateur(request.user),
     }
     
-    return render(request, 'paie/aide.html', context) 
+    return render(request, 'paie/aide_moderne.html', context)
 @staff_member_required
 def gestion_rubriques_employe(request, employe_id):
     """
@@ -1087,7 +1064,7 @@ def gestion_rubriques_employe(request, employe_id):
         'nouveau_net_estimé': employe.salaire_base + total_gains + total_allocations - total_retenues
     }
     
-    return render(request, 'paie/gestion_rubriques_employe.html', context)
+    return render(request, 'paie/gestion_rubriques_employe_moderne.html', context)
 
 @staff_member_required
 def ajouter_rubrique_ponctuelle(request):
@@ -1267,7 +1244,7 @@ def assignation_massive_rubriques(request):
         'rubriques': rubriques
     }
     
-    return render(request, 'paie/assignation_massive.html', context)
+    return render(request, 'paie/assignation_massive_moderne.html', context)
 
 @staff_member_required
 def dashboard_rubriques_admin(request):
@@ -1323,7 +1300,7 @@ def dashboard_rubriques_admin(request):
         'totaux_par_type': totaux_par_type
     }
     
-    return render(request, 'paie/dashboard_rubriques_admin.html', context)
+    return render(request, 'paie/dashboard_rubriques_admin_moderne.html', context)
 @staff_member_required
 def gestion_rubriques_employe(request, employe_id):
     """Interface simple pour gérer les rubriques d'un employé"""
@@ -1563,3 +1540,93 @@ def modifier_assignation_rubrique(request, assignation_id):
 @staff_member_required
 def supprimer_assignation_rubrique(request, assignation_id):
     return redirect('/admin/paie/employerubrique/')
+
+# Vues modernes manquantes
+
+@login_required
+def dashboard_admin_moderne(request):
+    """Dashboard moderne pour les administrateurs - Redirection vers SPA"""
+    return redirect('paie:accueil_moderne')
+
+@login_required 
+def dashboard_rh_moderne(request):
+    """Dashboard moderne pour les RH - Redirection vers SPA"""
+    return redirect('paie:accueil_moderne')
+
+@login_required
+def aide(request):
+    """Page d'aide du système"""
+    context = {
+        'titre': 'Aide & Documentation',
+        'utilisateur_connecte': request.user,
+        'role_utilisateur': obtenir_role_utilisateur(request.user),
+    }
+    return render(request, 'paie/aide_moderne.html', context)
+
+# Vues API pour la gestion des absences
+
+@login_required
+def api_approve_absence(request, absence_id):
+    """API pour approuver une absence"""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Méthode non autorisée'}, status=405)
+    
+    try:
+        # Vérification des permissions
+        role = obtenir_role_utilisateur(request.user)
+        if role not in ['admin', 'rh']:
+            return JsonResponse({'success': False, 'error': 'Permissions insuffisantes'}, status=403)
+        
+        absence = get_object_or_404(Absence, id=absence_id)
+        absence.statut = 'APPROUVE'
+        absence.save()
+        
+        # Log de l'action
+        audit_action(
+            request.user,
+            'MODIFICATION',
+            f"Absence approuvée pour {absence.employe.nom} {absence.employe.prenom}",
+            {'absence_id': absence_id, 'nouveau_statut': 'APPROUVE'}
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Absence approuvée avec succès',
+            'new_status': 'APPROUVE'
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+@login_required
+def api_reject_absence(request, absence_id):
+    """API pour rejeter une absence"""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Méthode non autorisée'}, status=405)
+    
+    try:
+        # Vérification des permissions
+        role = obtenir_role_utilisateur(request.user)
+        if role not in ['admin', 'rh']:
+            return JsonResponse({'success': False, 'error': 'Permissions insuffisantes'}, status=403)
+        
+        absence = get_object_or_404(Absence, id=absence_id)
+        absence.statut = 'REFUSE'
+        absence.save()
+        
+        # Log de l'action
+        audit_action(
+            request.user,
+            'MODIFICATION',
+            f"Absence refusée pour {absence.employe.nom} {absence.employe.prenom}",
+            {'absence_id': absence_id, 'nouveau_statut': 'REFUSE'}
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Absence refusée',
+            'new_status': 'REFUSE'
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)

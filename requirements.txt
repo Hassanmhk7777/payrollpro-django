@@ -1,0 +1,127 @@
+# PayrollPro - Système de Gestion de Paie Marocain
+# Dépendances Python pour l'application Django
+
+# Framework Django
+Django==5.1.4
+django-extensions==3.2.3
+
+# Base de données et ORM
+psycopg2-binary==2.9.9  # Pour PostgreSQL en production
+django-model-utils==4.3.1
+
+# Gestion des fichiers Excel/CSV
+openpyxl==3.1.2         # Lecture/écriture Excel (.xlsx)
+xlwt==1.3.0             # Écriture Excel (.xls)
+xlrd==2.0.1             # Lecture Excel (.xls)
+pandas==2.1.4           # Manipulation de données
+numpy==1.26.2           # Calculs numériques
+
+# Génération de PDF
+reportlab==4.0.7        # Bulletins de paie PDF
+weasyprint==60.2        # PDF depuis HTML/CSS
+Pillow==10.1.0          # Manipulation d'images
+
+# API et sérialisation
+djangorestframework==3.14.0
+django-cors-headers==4.3.1
+
+# Authentification et sécurité
+django-guardian==2.4.0  # Permissions objet
+cryptography==41.0.8    # Chiffrement
+
+# Gestion des formulaires
+django-crispy-forms==2.1
+crispy-bootstrap5==0.7
+
+# Interface d'administration améliorée
+django-grappelli==3.0.8
+django-admin-interface==0.25.1
+
+# Gestion des tâches asynchrones
+celery==5.3.4           # Tâches en arrière-plan
+redis==5.0.1            # Cache et broker pour Celery
+django-celery-beat==2.5.0  # Tâches planifiées
+
+# API de données marocaines
+requests==2.31.0       # Requêtes HTTP
+python-dateutil==2.8.2 # Manipulation de dates
+
+# Validation et formatage
+django-phonenumber-field==7.2.0  # Numéros de téléphone
+phonenumbers==8.13.26
+django-localflavor==4.0  # Données locales (Maroc)
+
+# Cache et performance
+django-redis==5.4.0
+django-debug-toolbar==4.2.0  # Debug en développement
+
+# Gestion des médias et fichiers
+django-storages==1.14.2
+boto3==1.34.0           # Pour AWS S3 (optionnel)
+
+# Tests et qualité de code
+pytest==7.4.3
+pytest-django==4.7.0
+coverage==7.3.2
+factory-boy==3.3.0     # Factories pour tests
+
+# Variables d'environnement
+python-decouple==3.8   # Gestion des variables d'env
+django-environ==0.11.2
+
+# Monitoring et logs
+sentry-sdk[django]==1.38.0  # Monitoring d'erreurs
+structlog==23.2.0       # Logs structurés
+
+# Interface utilisateur
+django-widget-tweaks==1.5.0  # Customisation widgets
+django-bootstrap5==23.3
+
+# Backup et migration de données
+django-dbbackup==4.0.2
+
+# Développement et productivité
+ipython==8.18.1        # Shell interactif amélioré
+django-shell-plus==1.1.7
+
+# Compatibilité timezone Maroc
+pytz==2023.3.post1
+
+# ============================================
+# DÉPENDANCES SPÉCIFIQUES AU MAROC
+# ============================================
+
+# Calculs fiscaux marocains
+babel==2.13.1          # Formatage nombres/devises en arabe
+
+# Génération de rapports
+matplotlib==3.8.2      # Graphiques pour tableaux de bord
+seaborn==0.13.0        # Visualisations statistiques
+
+# ============================================
+# VERSIONS DE DÉVELOPPEMENT (commentées)
+# ============================================
+
+# django-silk==5.0.4    # Profiling performance
+# django-extensions==3.2.3  # Commandes utiles
+# werkzeug==3.0.1       # Debugger avancé
+
+# ============================================
+# NOTES D'INSTALLATION
+# ============================================
+
+# Installation complète:
+# pip install -r requirements.txt
+
+# Installation minimale (sans monitoring):
+# pip install Django openpyxl reportlab pandas
+
+# Pour la production, ajouter:
+# gunicorn==21.2.0
+# whitenoise==6.6.0
+
+# Commandes utiles après installation:
+# python manage.py collectstatic --noinput
+# python manage.py migrate
+# python manage.py createsuperuser
+# python manage.py creer_donnees_exemple

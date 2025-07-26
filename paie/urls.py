@@ -1,74 +1,115 @@
+
 from django.urls import path
+from django.http import HttpResponse
+from django.shortcuts import redirect
 from . import views
-from . import views_users
-from . import views_excel
-from . import views_advanced
+from . import views_excel  # Import des vues Excel
+from . import views_spa  # Import des vues SPA
 
 app_name = 'paie'
 
+# Vues temporaires simples pour éviter les erreurs
+def dashboard_admin_moderne(request):
+    return HttpResponse("""
+    <h1>🏢 Dashboard Admin Moderne</h1>
+    <p>Dashboard administrateur en cours de configuration...</p>
+    <a href="/admin/">← Retour à l'administration</a>
+    """)
+
+def dashboard_rh_moderne(request):
+    return HttpResponse("""
+    <h1>👥 Dashboard RH Moderne</h1>
+    <p>Dashboard RH en cours de configuration...</p>
+    <a href="/admin/">← Retour à l'administration</a>
+    """)
+
+def dashboard_employe_moderne(request):
+    return HttpResponse("""
+    <h1>💼 Dashboard Employé</h1>
+    <p>Dashboard employé en cours de configuration...</p>
+    <a href="/admin/">← Retour à l'administration</a>
+    """)
+
+def gestion_absences_moderne(request):
+    return HttpResponse("""
+    <h1>📅 Gestion des Absences</h1>
+    <p>Module de gestion des absences en cours de configuration...</p>
+    <a href="/admin/">← Retour à l'administration</a>
+    """)
+
+def liste_employes_moderne(request):
+    return HttpResponse("""
+    <h1>👥 Liste des Employés</h1>
+    <p>Module de gestion des employés en cours de configuration...</p>
+    <a href="/admin/">← Retour à l'administration</a>
+    """)
+
+def calcul_paie_moderne(request):
+    return HttpResponse("""
+    <h1>💰 Calcul de Paie</h1>
+    <p>Module de calcul de paie en cours de configuration...</p>
+    <a href="/admin/">← Retour à l'administration</a>
+    """)
+
+def gestion_utilisateurs_moderne(request):
+    return HttpResponse("""
+    <h1>👤 Gestion des Utilisateurs</h1>
+    <p>Module de gestion des utilisateurs en cours de configuration...</p>
+    <a href="/admin/">← Retour à l'administration</a>
+    """)
+
+from . import views
+
+def test_fonctionnalites(request):
+    """Page de test pour vérifier toutes les fonctionnalités"""
+    from django.shortcuts import render
+    return render(request, 'paie/test_fonctionnalites.html')
+
 urlpatterns = [
-    # Pages principales
-    path('', views.accueil, name='accueil'),
+    # Page de test des fonctionnalités
+    path('test/', test_fonctionnalites, name='test_fonctionnalites'),
+    
+    # Redirection par défaut vers la version moderne
+    path('', lambda request: redirect('paie:accueil_moderne', permanent=False)),
+    path('accueil/', views.accueil, name='accueil'),
+    # Page moderne principale SPA
+    path('accueil_moderne/', views.accueil_moderne, name='accueil_moderne'),
+    
+    # API SPA pour chargement dynamique de contenu
+    path('api/spa/dashboard/', views_spa.spa_dashboard_admin, name='spa_dashboard_admin'),
+    path('api/spa/dashboard-rh/', views_spa.spa_dashboard_rh, name='spa_dashboard_rh'),
+    path('api/spa/employees/', views_spa.spa_employees, name='spa_employees'),
+    path('api/spa/absences/', views_spa.spa_absences, name='spa_absences'),
+    path('api/spa/payroll/', views_spa.spa_payroll, name='spa_payroll'),
+    path('api/spa/reports/', views_spa.spa_reports, name='spa_reports'),
+    # Dashboards réels
     path('dashboard/admin/', views.dashboard_admin, name='dashboard_admin'),
     path('dashboard/rh/', views.dashboard_rh, name='dashboard_rh'),
     path('dashboard/employe/', views.dashboard_employe, name='dashboard_employe'),
-    
-    # ===== NOUVELLES INTERFACES MODERNES (remplacent les anciennes) =====
-    
-    # Gestion des employés - VERSION MODERNE
-    path('employes/', views_advanced.liste_employes_avancee, name='liste_employes'),
-    path('employes/<int:employe_id>/', views.detail_employe, name='detail_employe'),
-    path('employes/moderne/', views_advanced.liste_employes_avancee, name='liste_employes_moderne'),
-    path('employes/export-filtre/', views_advanced.export_employes_excel_avance, name='export_employes_filtre'),
-    
-    # Calcul de paie - VERSION MODERNE
-    path('calcul-paie/', views_advanced.calcul_paie_avance, name='calcul_paie'),
-    path('calcul-paie/moderne/', views_advanced.calcul_paie_avance, name='calcul_paie_moderne'),
-    path('bulletin/<int:bulletin_id>/pdf/', views.generer_bulletin_pdf, name='bulletin_pdf'),
-    
-    # Gestion des absences - VERSION MODERNE
-    path('absences/', views_advanced.gestion_absences_avancee, name='gestion_absences'),
-    path('absences/moderne/', views_advanced.gestion_absences_avancee, name='gestion_absences_moderne'),
-    path('absences/<int:absence_id>/valider/', views.valider_absence, name='valider_absence'),
-    path('absences/validation-lot/', views.validation_lot_absences, name='validation_lot_absences'),
-    path('absences/statistiques/', views.statistiques_absences, name='statistiques_absences'),
-    path('calendrier-absences/', views.calendrier_absences, name='calendrier_absences'),
-    path('test-absences/', views.test_calcul_absences, name='test_calcul_absences'),
-    
-    # Gestion des utilisateurs - VERSION MODERNE
-    path('gestion-utilisateurs/', views_advanced.gestion_utilisateurs_avancee, name='gestion_utilisateurs'),
-    path('utilisateurs/moderne/', views_advanced.gestion_utilisateurs_avancee, name='gestion_utilisateurs_moderne'),
-    path('gestion-utilisateurs/creer/<int:employe_id>/', views_users.creer_compte_employe, name='creer_compte_employe'),
-    path('gestion-utilisateurs/modifier-role/<int:employe_id>/', views_users.modifier_role_employe, name='modifier_role_employe'),
-    path('gestion-utilisateurs/desactiver/<int:employe_id>/', views_users.desactiver_compte, name='desactiver_compte'),
-    path('gestion-utilisateurs/reactiver/<int:employe_id>/', views_users.reactiver_compte, name='reactiver_compte'),
-    path('gestion-utilisateurs/reinitialiser-mdp/<int:employe_id>/', views_users.reinitialiser_mot_de_passe, name='reinitialiser_mot_de_passe'),
-    
-    # ===== APIs POUR FILTRES DYNAMIQUES =====
-    path('api/site/<int:site_id>/departements/', views_advanced.api_departements_par_site, name='api_departements_site'),
-    path('api/site/<int:site_id>/stats/', views_advanced.api_statistiques_site, name='api_stats_site'),
-    path('api/infos-session/', views_users.obtenir_infos_session, name='infos_session'),
-    path('api/statistiques-utilisateurs/', views_users.statistiques_utilisateurs, name='statistiques_utilisateurs'),
-    
-    # ===== EXPORTS EXCEL =====
-    path('export-excel/bulletins/', views_excel.export_bulletins_massif_excel, name='export_bulletins_excel'),
-    path('export-excel/bulletin/<int:bulletin_id>/', views_excel.export_bulletin_excel, name='export_bulletin_excel'),
-    path('export-excel/cnss/', views_excel.export_cnss_excel, name='export_cnss_excel'),
-    path('export-excel/statistiques/', views_excel.statistiques_excel, name='statistiques_excel'),
-    path('export-excel/cnss/', views_excel.page_export_cnss, name='page_export_cnss'),
-    path('export-excel/cnss/<int:mois>/<int:annee>/', views_excel.export_cnss_mensuel, name='export_cnss_mensuel'),
-    
-    # ===== GESTION DES RUBRIQUES PERSONNALISÉES =====
-    path('employe/<int:employe_id>/rubriques/', views.gestion_rubriques_employe, name='gestion_rubriques_employe'),
-    path('ajax/ajouter-rubrique-ponctuelle/', views.ajouter_rubrique_ponctuelle, name='ajouter_rubrique_ponctuelle'),
-    path('assignation/<int:assignation_id>/modifier/', views.modifier_assignation_rubrique, name='modifier_assignation_rubrique'),
-    path('assignation/<int:assignation_id>/supprimer/', views.supprimer_assignation_rubrique, name='supprimer_assignation_rubrique'),
-    path('rubriques/assignation-massive/', views.assignation_massive_rubriques, name='assignation_massive_rubriques'),
-    path('admin/dashboard-rubriques/', views.dashboard_rubriques_admin, name='dashboard_rubriques_admin'),
-    
-    # ===== PAGES UTILITAIRES =====
-    path('aide/', views.page_aide, name='aide'),
+    # Dashboards modernes
+    path('dashboard/admin/moderne/', views.dashboard_admin_moderne, name='dashboard_admin_moderne'),
+    path('dashboard/rh/moderne/', views.dashboard_rh_moderne, name='dashboard_rh_moderne'),
+    path('dashboard/employe/moderne/', dashboard_employe_moderne, name='dashboard_employe_moderne'),
+    # Pages principales
+    path('gestion-absences/', views.gestion_absences, name='gestion_absences_moderne'),
+    path('liste-employes/', views.liste_employes, name='liste_employes'),
+    path('gestion-utilisateurs/', views.creer_compte_employe, name='gestion_utilisateurs'),
+    path('calcul-paie/', views.calcul_paie, name='calcul_paie'),
+    path('aide/', views.aide, name='aide'),
     path('deconnexion/', views.deconnexion_vue, name='deconnexion'),
-    path('connexion/', views.connexion_personnalisee, name='connexion_personnalisee'),
-    path('creer-comptes/', views.creer_compte_employe, name='creer_comptes'),
+    # Excel et exports
+    path('export/cnss/excel/', views_excel.export_cnss_excel, name='export_cnss_excel'),
+    path('export/statistiques/excel/', views_excel.statistiques_excel, name='statistiques_excel'),
+    path('export/cnss/<int:mois>/<int:annee>/', views_excel.export_cnss_mensuel, name='export_cnss_mensuel'),
+    # API Routes pour les absences
+    path('api/absence/<int:absence_id>/approve/', views.api_approve_absence, name='api_approve_absence'),
+    path('api/absence/<int:absence_id>/reject/', views.api_reject_absence, name='api_reject_absence'),
+    # URLs temporaires (gardez-les si besoin)
+    path('absences/moderne/', gestion_absences_moderne, name='gestion_absences_moderne_temp'),
+    path('employes/moderne/', liste_employes_moderne, name='liste_employes_moderne'),
+    path('calcul-paie/moderne/', calcul_paie_moderne, name='calcul_paie_moderne'),
+    path('utilisateurs/moderne/', gestion_utilisateurs_moderne, name='gestion_utilisateurs_moderne'),
+    # Compatibilité pour anciens liens
+    path('employes/', lambda request: redirect('paie:liste_employes', permanent=True)),
+    path('absences/', lambda request: redirect('paie:gestion_absences_moderne', permanent=True)),
 ]

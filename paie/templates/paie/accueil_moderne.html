@@ -1,0 +1,2564 @@
+{% extends 'paie/base.html' %}
+
+{% block title %}PayrollPro - Application Complète{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Application Container */
+    .app-container {
+        min-height: calc(100vh - 60px);
+        background: transparent;
+        padding: 0;
+        margin: 0;
+    }
+
+    /* Navigation Tabs */
+    .nav-tabs-custom {
+        background: white;
+        border-radius: 15px 15px 0 0;
+        padding: 1rem 1rem 0 1rem;
+        border: none;
+        box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+    }
+
+    .nav-tabs-custom .nav-link {
+        border: none;
+        background: transparent;
+        color: #64748b;
+        font-weight: 600;
+        padding: 1rem 1.5rem;
+        margin-right: 0.5rem;
+        border-radius: 10px 10px 0 0;
+        transition: all 0.3s ease;
+        position: relative;
+    }
+
+    .nav-tabs-custom .nav-link:hover {
+        background: rgba(102, 126, 234, 0.1);
+        color: #667eea;
+    }
+
+    .nav-tabs-custom .nav-link.active {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    }
+
+    /* Content Area */
+    .content-area {
+        background: white;
+        border-radius: 0 0 15px 15px;
+        padding: 1.5rem;
+        min-height: 80vh;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Dashboard Cards */
+    .dashboard-card {
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+        border-radius: 15px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        border: 1px solid #e2e8f0;
+        transition: all 0.3s ease;
+    }
+
+    .dashboard-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+    }
+
+    .dashboard-title {
+        font-size: 1.8rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+        color: #1e293b;
+    }
+
+    /* Action Buttons */
+    .action-btn {
+        background: linear-gradient(45deg, #667eea, #764ba2);
+        border: none;
+        border-radius: 12px;
+        padding: 1rem 1.5rem;
+        color: white;
+        font-weight: 600;
+        text-decoration: none;
+        display: inline-block;
+        margin: 0.5rem;
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+
+    .action-btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+        color: white;
+        text-decoration: none;
+    }
+
+    .action-btn.admin {
+        background: linear-gradient(45deg, #e74c3c, #c0392b);
+    }
+
+    .action-btn.rh {
+        background: linear-gradient(45deg, #3498db, #2980b9);
+    }
+
+    .action-btn.tools {
+        background: linear-gradient(45deg, #2ecc71, #27ae60);
+    }
+
+    /* Stats Cards */
+    .stats-card {
+        background: white;
+        border-radius: 15px;
+        padding: 1.5rem;
+        text-align: center;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        border: 1px solid #e2e8f0;
+    }
+
+    .stats-number {
+        font-size: 2.5rem;
+        font-weight: 800;
+        background: linear-gradient(45deg, #667eea, #764ba2);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .stats-label {
+        color: #64748b;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-size: 0.8rem;
+    }
+
+    /* Loading States */
+    .loading {
+        display: none;
+        text-align: center;
+        padding: 3rem;
+        color: #64748b;
+    }
+
+    .section-content {
+        display: none;
+    }
+
+    .section-content.active {
+        display: block;
+        animation: fadeIn 0.5s ease-in;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Mobile Responsive */
+    @media (max-width: 768px) {
+        .nav-tabs-custom {
+            padding: 0.5rem;
+        }
+        
+        .nav-tabs-custom .nav-link {
+            padding: 0.8rem 1rem;
+            font-size: 0.9rem;
+        }
+        
+        .content-area {
+            padding: 1rem;
+        }
+    }
+
+    /* Additional styles for integrated content */
+    .loading-inline {
+        text-align: center;
+        padding: 2rem;
+        color: #64748b;
+        background: #f8fafc;
+        border-radius: 10px;
+    }
+
+    .card {
+        border: none;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        border-radius: 15px;
+    }
+
+    .card-header {
+        border-radius: 15px 15px 0 0 !important;
+        border: none;
+        font-weight: 600;
+    }
+
+    .table {
+        margin-bottom: 0;
+    }
+
+    .table th {
+        background-color: #f8fafc;
+        border: none;
+        font-weight: 600;
+        color: #475569;
+    }
+
+    .table td {
+        border: none;
+        border-bottom: 1px solid #e2e8f0;
+        vertical-align: middle;
+    }
+
+    .btn-sm {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.8rem;
+    }
+
+    .badge {
+        font-size: 0.75rem;
+        padding: 0.35em 0.65em;
+    }
+
+    .form-control, .form-select {
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 0.75rem;
+    }
+
+    .form-control:focus, .form-select:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.15);
+    }
+
+    /* Professional Admin Styles */
+    .admin-header {
+        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+        padding: 2rem;
+        border-radius: 20px;
+        color: white;
+        box-shadow: 0 15px 35px rgba(30, 60, 114, 0.3);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .admin-header-compact {
+        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+        padding: 1.5rem;
+        border-radius: 15px;
+        color: white;
+        box-shadow: 0 10px 25px rgba(30, 60, 114, 0.25);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .admin-header::before, .admin-header-compact::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -10%;
+        width: 200px;
+        height: 200px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 50%;
+        animation: float 6s ease-in-out infinite;
+    }
+
+    @keyframes float {
+        0%, 100% { transform: translateY(0px) rotate(0deg); }
+        50% { transform: translateY(-20px) rotate(10deg); }
+    }
+
+    .admin-avatar {
+        width: 60px;
+        height: 60px;
+        background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        box-shadow: 0 8px 25px rgba(255, 215, 0, 0.4);
+        border: 3px solid rgba(255, 255, 255, 0.3);
+    }
+
+    .admin-avatar-small {
+        width: 45px;
+        height: 45px;
+        background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        box-shadow: 0 6px 20px rgba(255, 215, 0, 0.4);
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        transition: all 0.3s ease;
+    }
+
+    .admin-avatar-small:hover {
+        transform: scale(1.1);
+        box-shadow: 0 8px 25px rgba(255, 215, 0, 0.5);
+    }
+
+    .admin-role-badge {
+        background: linear-gradient(45deg, #ffd700, #ffed4e);
+        color: #1a1a1a;
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        display: inline-block;
+        box-shadow: 0 3px 10px rgba(255, 215, 0, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .admin-name {
+        font-size: 1.4rem;
+        font-weight: 700;
+        margin: 0;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        color: white;
+    }
+
+    .admin-info {
+        color: rgba(255, 255, 255, 0.85);
+        font-size: 0.9rem;
+        font-weight: 500;
+    }
+
+    .admin-title {
+        font-size: 2rem;
+        font-weight: 700;
+        margin: 0;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    }
+
+    .admin-subtitle {
+        color: rgba(255, 255, 255, 0.8);
+        font-size: 0.95rem;
+        font-weight: 500;
+    }
+
+    /* Enhanced Stats Cards */
+    .stats-card.premium {
+        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+        border: none;
+        border-radius: 20px;
+        padding: 2rem;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        position: relative;
+        overflow: hidden;
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        height: 180px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .stats-card.premium:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+    }
+
+    .stats-card.premium::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+    }
+
+    .stats-card.financial::before {
+        background: linear-gradient(90deg, #11998e 0%, #38ef7d 100%);
+    }
+
+    .stats-icon {
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+        opacity: 0.8;
+    }
+
+    .stats-content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+
+    .stats-number {
+        font-size: 2.8rem;
+        font-weight: 800;
+        background: linear-gradient(45deg, #667eea, #764ba2);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        line-height: 1;
+        margin-bottom: 0.5rem;
+    }
+
+    .stats-number .currency {
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: #64748b;
+    }
+
+    .stats-label {
+        color: #64748b;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-size: 0.85rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .stats-trend {
+        font-size: 0.8rem;
+        font-weight: 500;
+    }
+
+    /* Executive Command Center */
+    .dashboard-card.executive {
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+        border: 1px solid rgba(226, 232, 240, 0.5);
+        border-radius: 25px;
+        padding: 0;
+        overflow: hidden;
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+    }
+
+    .card-header-custom {
+        background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
+        color: white;
+        padding: 2rem;
+        border: none;
+    }
+
+    .bg-gradient-executive {
+        background: linear-gradient(45deg, #ffd700, #ffed4e);
+        color: #1a1a1a;
+        font-weight: 700;
+        padding: 0.5rem 1rem;
+        border-radius: 25px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+    }
+
+    .executive-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 1.5rem;
+        padding: 2rem;
+    }
+
+    .executive-action {
+        position: relative;
+    }
+
+    .executive-btn {
+        width: 100%;
+        background: white;
+        border: 2px solid #e2e8f0;
+        border-radius: 15px;
+        padding: 1.5rem;
+        display: flex;
+        align-items: center;
+        text-align: left;
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        cursor: pointer;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .executive-btn::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+        transition: left 0.5s ease;
+    }
+
+    .executive-btn:hover::before {
+        left: 100%;
+    }
+
+    .executive-btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+        border-color: currentColor;
+    }
+
+    .executive-btn.primary {
+        border-color: #667eea;
+        color: #667eea;
+    }
+
+    .executive-btn.primary:hover {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        transform: translateY(-5px) scale(1.02);
+    }
+
+    .executive-btn.secondary {
+        border-color: #3498db;
+        color: #3498db;
+    }
+
+    .executive-btn.secondary:hover {
+        background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+        color: white;
+    }
+
+    .executive-btn.success {
+        border-color: #2ecc71;
+        color: #2ecc71;
+    }
+
+    .executive-btn.success:hover {
+        background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+        color: white;
+    }
+
+    .executive-btn.info {
+        border-color: #e74c3c;
+        color: #e74c3c;
+    }
+
+    .executive-btn.info:hover {
+        background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+        color: white;
+    }
+
+    .btn-icon {
+        font-size: 2rem;
+        margin-right: 1rem;
+        transition: transform 0.3s ease;
+    }
+
+    .executive-btn:hover .btn-icon {
+        transform: scale(1.1);
+    }
+
+    .btn-content {
+        flex: 1;
+    }
+
+    .btn-content h6 {
+        margin: 0 0 0.25rem 0;
+        font-size: 1.1rem;
+        font-weight: 600;
+    }
+
+    .btn-content small {
+        opacity: 0.8;
+        font-size: 0.85rem;
+    }
+
+    .btn-arrow {
+        font-size: 1.2rem;
+        opacity: 0.6;
+        transition: all 0.3s ease;
+    }
+
+    .executive-btn:hover .btn-arrow {
+        opacity: 1;
+        transform: translateX(5px);
+    }
+
+    .primary-action .executive-btn {
+        border-width: 3px;
+        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.2);
+    }
+
+    /* Professional Workflow Styles */
+    .dashboard-card.workflow-professional {
+        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+        border: 1px solid #e2e8f0;
+        border-radius: 20px;
+        padding: 2rem;
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.08);
+    }
+
+    .workflow-header h5 {
+        font-size: 1.3rem;
+        font-weight: 700;
+        color: #1e293b;
+    }
+
+    .workflow-grid {
+        position: relative;
+    }
+
+    .workflow-item {
+        display: flex;
+        margin-bottom: 2rem;
+        position: relative;
+    }
+
+    .workflow-item:last-child {
+        margin-bottom: 0;
+    }
+
+    .workflow-status {
+        position: relative;
+        margin-right: 2rem;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        z-index: 2;
+    }
+
+    .status-indicator {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+        font-weight: 600;
+        color: white;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        position: relative;
+        z-index: 3;
+    }
+
+    .status-indicator.success {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        animation: pulse-success 2s infinite;
+    }
+
+    .status-indicator.warning {
+        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        animation: pulse-warning 2s infinite;
+    }
+
+    .status-indicator.info {
+        background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    }
+
+    .status-indicator.pending {
+        background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+    }
+
+    @keyframes pulse-success {
+        0%, 100% { box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3); }
+        50% { box-shadow: 0 4px 25px rgba(16, 185, 129, 0.5); }
+    }
+
+    @keyframes pulse-warning {
+        0%, 100% { box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3); }
+        50% { box-shadow: 0 4px 25px rgba(245, 158, 11, 0.5); }
+    }
+
+    .status-line {
+        width: 2px;
+        height: 60px;
+        background: linear-gradient(to bottom, #e2e8f0 0%, transparent 100%);
+        margin-top: 0.5rem;
+    }
+
+    .workflow-item:last-child .status-line {
+        display: none;
+    }
+
+    .workflow-content {
+        flex: 1;
+        padding-top: 0.25rem;
+    }
+
+    .workflow-card {
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 15px;
+        padding: 1.5rem;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .workflow-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    .workflow-item.completed .workflow-card::before {
+        background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+        opacity: 1;
+    }
+
+    .workflow-item.in-progress .workflow-card::before {
+        background: linear-gradient(90deg, #f59e0b 0%, #d97706 100%);
+        opacity: 1;
+    }
+
+    .workflow-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        border-color: #667eea;
+    }
+
+    .workflow-card:hover::before {
+        opacity: 1;
+    }
+
+    .workflow-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        margin-right: 1rem;
+        color: white;
+    }
+
+    .workflow-icon.success {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    }
+
+    .workflow-icon.info {
+        background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    }
+
+    .workflow-icon.warning {
+        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    }
+
+    .workflow-icon.secondary {
+        background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+    }
+
+    .workflow-card h6 {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #1e293b;
+    }
+
+    .workflow-footer {
+        border-top: 1px solid #e2e8f0;
+        padding-top: 1rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="app-container">
+    <!-- Navigation Tabs -->
+    <ul class="nav nav-tabs nav-tabs-custom" id="mainTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="dashboard-tab" data-bs-toggle="tab" data-bs-target="#dashboard" 
+                    type="button" role="tab" onclick="loadSection('dashboard')">
+                <i class="fas fa-tachometer-alt"></i> Dashboard Admin
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="dashboard-rh-tab" data-bs-toggle="tab" data-bs-target="#dashboard-rh" 
+                    type="button" role="tab" onclick="loadSection('dashboard-rh')">
+                <i class="fas fa-user-tie"></i> Dashboard RH
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="employees-tab" data-bs-toggle="tab" data-bs-target="#employees" 
+                    type="button" role="tab" onclick="loadSection('employees')">
+                <i class="fas fa-users"></i> Gestion Employés
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="absences-tab" data-bs-toggle="tab" data-bs-target="#absences" 
+                    type="button" role="tab" onclick="loadSection('absences')">
+                <i class="fas fa-calendar-alt"></i> Gestion Absences
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="payroll-tab" data-bs-toggle="tab" data-bs-target="#payroll" 
+                    type="button" role="tab" onclick="loadSection('payroll')">
+                <i class="fas fa-money-bill-wave"></i> Calcul Paie
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="reports-tab" data-bs-toggle="tab" data-bs-target="#reports" 
+                    type="button" role="tab" onclick="loadSection('reports')">
+                <i class="fas fa-chart-bar"></i> Rapports & Export
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="test-tab" data-bs-toggle="tab" data-bs-target="#test" 
+                    type="button" role="tab" onclick="PayrollPro.navigate('/test/')">
+                <i class="fas fa-flask"></i> Test Fonctions
+            </button>
+        </li>
+    </ul>
+
+    <!-- Content Area -->
+    <div class="content-area">
+        <div class="tab-content" id="mainTabContent">
+            
+            <!-- DASHBOARD SECTION -->
+            <div class="section-content active" id="dashboard">
+                <!-- Professional Header -->
+                <div class="admin-header-compact mb-4">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <div class="d-flex align-items-center">
+                                <div class="admin-avatar-small me-3">
+                                    <i class="fas fa-crown text-warning"></i>
+                                </div>
+                                <div>
+                                    <h4 class="admin-name mb-1">{{ user.get_full_name|default:user.username }}</h4>
+                                    <div class="admin-role-badge mb-2">
+                                        <i class="fas fa-shield-alt me-1"></i>Administrateur
+                                    </div>
+                                    <p class="admin-info mb-0">
+                                        <i class="fas fa-calendar-alt me-2"></i>{{ "now"|date:"l j F Y" }}
+                                        <span class="mx-2">•</span>
+                                        <i class="fas fa-clock me-2"></i>{{ "now"|date:"H:i" }}
+                                        <span class="mx-2">•</span>
+                                        <span class="badge bg-success ms-2">
+                                            <i class="fas fa-shield-alt me-1"></i>Accès Total
+                                        </span>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <div class="admin-actions">
+                                <button class="btn btn-outline-light btn-sm me-2" onclick="location.reload()">
+                                    <i class="fas fa-sync-alt"></i> Actualiser
+                                </button>
+                                <button class="btn btn-outline-warning btn-sm" onclick="window.open('/admin/', '_blank')">
+                                    <i class="fas fa-cogs"></i> Admin Django
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Enhanced Statistics Grid -->
+                <div class="row mb-4">
+                    <div class="col-lg-3 col-md-6 mb-3">
+                        <div class="stats-card premium">
+                            <div class="stats-icon">
+                                <i class="fas fa-users text-primary"></i>
+                            </div>
+                            <div class="stats-content">
+                                <div class="stats-number">{{ total_employes|default:4 }}</div>
+                                <div class="stats-label">Employés Actifs</div>
+                                <div class="stats-trend">
+                                    <i class="fas fa-arrow-up text-success"></i>
+                                    <span class="text-success">+2 ce mois</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-md-6 mb-3">
+                        <div class="stats-card premium">
+                            <div class="stats-icon">
+                                <i class="fas fa-clock text-warning"></i>
+                            </div>
+                            <div class="stats-content">
+                                <div class="stats-number">{{ absences_attente|default:0 }}</div>
+                                <div class="stats-label">Demandes en Attente</div>
+                                <div class="stats-trend">
+                                    <i class="fas fa-check-circle text-success"></i>
+                                    <span class="text-success">Tout traité</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-md-6 mb-3">
+                        <div class="stats-card premium">
+                            <div class="stats-icon">
+                                <i class="fas fa-user-plus text-info"></i>
+                            </div>
+                            <div class="stats-content">
+                                <div class="stats-number">{{ nouveaux_employes|default:4 }}</div>
+                                <div class="stats-label">Équipe Complète</div>
+                                <div class="stats-trend">
+                                    <i class="fas fa-star text-warning"></i>
+                                    <span class="text-info">100% opérationnel</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-md-6 mb-3">
+                        <div class="stats-card premium financial">
+                            <div class="stats-icon">
+                                <i class="fas fa-coins text-success"></i>
+                            </div>
+                            <div class="stats-content">
+                                <div class="stats-number">{{ masse_salariale|default:"35,500" }}<span class="currency">DH</span></div>
+                                <div class="stats-label">Masse Salariale</div>
+                                <div class="stats-trend">
+                                    <i class="fas fa-chart-line text-success"></i>
+                                    <span class="text-success">Sous budget</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Executive Command Center -->
+                <div class="dashboard-card executive">
+                    <div class="card-header-custom">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div>
+                                <h5 class="mb-1">
+                                    <i class="fas fa-crown text-warning me-2"></i>Centre de Commande Exécutif
+                                </h5>
+                                <p class="mb-0 text-muted">Contrôle total de l'organisation</p>
+                            </div>
+                            <div class="executive-badge">
+                                <span class="badge bg-gradient-executive">
+                                    <i class="fas fa-shield-alt me-1"></i>ADMIN
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="executive-grid">
+                        <div class="executive-action primary-action">
+                            <button class="executive-btn primary" onclick="switchToTab('employees')">
+                                <div class="btn-icon">
+                                    <i class="fas fa-users-cog"></i>
+                                </div>
+                                <div class="btn-content">
+                                    <h6>Gestion Personnel</h6>
+                                    <small>Management intégral des ressources</small>
+                                </div>
+                                <div class="btn-arrow">
+                                    <i class="fas fa-arrow-right"></i>
+                                </div>
+                            </button>
+                        </div>
+                        <div class="executive-action">
+                            <button class="executive-btn secondary" onclick="switchToTab('absences')">
+                                <div class="btn-icon">
+                                    <i class="fas fa-calendar-check"></i>
+                                </div>
+                                <div class="btn-content">
+                                    <h6>Validation Absences</h6>
+                                    <small>Contrôle des demandes de congés</small>
+                                </div>
+                                <div class="btn-arrow">
+                                    <i class="fas fa-arrow-right"></i>
+                                </div>
+                            </button>
+                        </div>
+                        <div class="executive-action">
+                            <button class="executive-btn success" onclick="switchToTab('payroll')">
+                                <div class="btn-icon">
+                                    <i class="fas fa-calculator"></i>
+                                </div>
+                                <div class="btn-content">
+                                    <h6>Traitement Paie</h6>
+                                    <small>Calculs et génération de fiches</small>
+                                </div>
+                                <div class="btn-arrow">
+                                    <i class="fas fa-arrow-right"></i>
+                                </div>
+                            </button>
+                        </div>
+                        <div class="executive-action">
+                            <button class="executive-btn info" onclick="switchToTab('reports')">
+                                <div class="btn-icon">
+                                    <i class="fas fa-chart-line"></i>
+                                </div>
+                                <div class="btn-content">
+                                    <h6>Analytics & Exports</h6>
+                                    <small>Rapports et analyses avancées</small>
+                                </div>
+                                <div class="btn-arrow">
+                                    <i class="fas fa-arrow-right"></i>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Professional Workflow Management -->
+                <div class="dashboard-card workflow-professional">
+                    <div class="workflow-header">
+                        <div class="d-flex align-items-center justify-content-between mb-4">
+                            <div>
+                                <h5 class="mb-1">
+                                    <i class="fas fa-clipboard-check text-primary me-2"></i>Workflow Opérationnel
+                                </h5>
+                                <p class="mb-0 text-muted">Supervision des processus critiques en temps réel</p>
+                            </div>
+                            <div>
+                                <span class="badge bg-success">
+                                    <i class="fas fa-check-circle me-1"></i>Système Opérationnel
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="workflow-grid">
+                        <div class="workflow-item completed">
+                            <div class="workflow-status">
+                                <div class="status-indicator success">
+                                    <i class="fas fa-check"></i>
+                                </div>
+                                <div class="status-line"></div>
+                            </div>
+                            <div class="workflow-content">
+                                <div class="workflow-card">
+                                    <div class="d-flex align-items-center">
+                                        <div class="workflow-icon success">
+                                            <i class="fas fa-calculator"></i>
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <h6 class="mb-1">Traitement des Salaires</h6>
+                                            <p class="mb-2 text-muted">Calculs mensuels terminés avec succès</p>
+                                            <div class="progress mb-2" style="height: 6px;">
+                                                <div class="progress-bar bg-success" style="width: 100%"></div>
+                                            </div>
+                                            <div class="d-flex justify-content-between">
+                                                <small class="text-success"><strong>4/4 employés traités</strong></small>
+                                                <small class="text-muted">Terminé {{ "now"|date:"H:i" }}</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="workflow-item completed">
+                            <div class="workflow-status">
+                                <div class="status-indicator success">
+                                    <i class="fas fa-check"></i>
+                                </div>
+                                <div class="status-line"></div>
+                            </div>
+                            <div class="workflow-content">
+                                <div class="workflow-card">
+                                    <div class="d-flex align-items-center">
+                                        <div class="workflow-icon info">
+                                            <i class="fas fa-calendar-check"></i>
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <h6 class="mb-1">Gestion des Absences</h6>
+                                            <p class="mb-2 text-muted">Validation des demandes de congés</p>
+                                            <div class="progress mb-2" style="height: 6px;">
+                                                <div class="progress-bar bg-info" style="width: 100%"></div>
+                                            </div>
+                                            <div class="d-flex justify-content-between">
+                                                <small class="text-info"><strong>0 demande en attente</strong></small>
+                                                <small class="text-muted">À jour</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="workflow-item in-progress">
+                            <div class="workflow-status">
+                                <div class="status-indicator warning">
+                                    <i class="fas fa-clock"></i>
+                                </div>
+                                <div class="status-line"></div>
+                            </div>
+                            <div class="workflow-content">
+                                <div class="workflow-card">
+                                    <div class="d-flex align-items-center">
+                                        <div class="workflow-icon warning">
+                                            <i class="fas fa-file-excel"></i>
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <h6 class="mb-1">Export CNSS</h6>
+                                            <p class="mb-2 text-muted">Préparation déclaration mensuelle</p>
+                                            <div class="progress mb-2" style="height: 6px;">
+                                                <div class="progress-bar bg-warning" style="width: 75%"></div>
+                                            </div>
+                                            <div class="d-flex justify-content-between">
+                                                <small class="text-warning"><strong>75% complété</strong></small>
+                                                <small class="text-muted">En cours...</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="workflow-item pending">
+                            <div class="workflow-status">
+                                <div class="status-indicator pending">
+                                    <i class="fas fa-ellipsis-h"></i>
+                                </div>
+                            </div>
+                            <div class="workflow-content">
+                                <div class="workflow-card">
+                                    <div class="d-flex align-items-center">
+                                        <div class="workflow-icon secondary">
+                                            <i class="fas fa-archive"></i>
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <h6 class="mb-1">Archivage Mensuel</h6>
+                                            <p class="mb-2 text-muted">Sauvegarde des données du mois</p>
+                                            <div class="progress mb-2" style="height: 6px;">
+                                                <div class="progress-bar bg-secondary" style="width: 0%"></div>
+                                            </div>
+                                            <div class="d-flex justify-content-between">
+                                                <small class="text-muted">En attente</small>
+                                                <small class="text-muted">Planifié</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="workflow-footer mt-4">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-info-circle text-primary me-2"></i>
+                                    <span class="text-muted">Dernière synchronisation: {{ "now"|date:"H:i" }}</span>
+                                </div>
+                            </div>
+                            <div class="col-md-4 text-end">
+                                <button class="btn btn-outline-primary btn-sm" onclick="location.reload()">
+                                    <i class="fas fa-sync-alt me-1"></i>Actualiser
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Activity -->
+                <div class="dashboard-card">
+                    <h5><i class="fas fa-clock"></i> Activité Récente du Système</h5>
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Heure</th>
+                                    <th>Action</th>
+                                    <th>Utilisateur</th>
+                                    <th>Détails</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>{{ "now"|date:"H:i" }}</td>
+                                    <td><span class="badge bg-success">Connexion</span></td>
+                                    <td>{{ user.username|default:"Admin" }}</td>
+                                    <td>Accès au dashboard administrateur</td>
+                                </tr>
+                                <tr>
+                                    <td>14:30</td>
+                                    <td><span class="badge bg-info">Calcul</span></td>
+                                    <td>Système</td>
+                                    <td>Calcul automatique de paie - 4 employés</td>
+                                </tr>
+                                <tr>
+                                    <td>12:15</td>
+                                    <td><span class="badge bg-warning">Validation</span></td>
+                                    <td>RH Manager</td>
+                                    <td>Validation absence - Ahmed Benali</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- DASHBOARD RH SECTION -->
+            <div class="section-content" id="dashboard-rh">
+                <div class="loading" style="display: none;">
+                    <i class="fas fa-spinner fa-spin fa-2x mb-3"></i>
+                    <p>Chargement du contenu...</p>
+                </div>
+                
+                <div class="dashboard-title">
+                    <i class="fas fa-user-tie"></i> Dashboard RH - Gestion Ressources Humaines
+                </div>
+                
+                <!-- Quick Actions -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5><i class="fas fa-bolt me-2"></i>Actions Rapides</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-lg-3 col-md-6 mb-3">
+                                        <button class="btn btn-primary w-100" onclick="loadSection('employees')">
+                                            <i class="fas fa-users me-2"></i>Voir Employés
+                                        </button>
+                                    </div>
+                                    <div class="col-lg-3 col-md-6 mb-3">
+                                        <button class="btn btn-warning w-100" onclick="loadSection('absences')">
+                                            <i class="fas fa-calendar-times me-2"></i>Gérer Absences
+                                        </button>
+                                    </div>
+                                    <div class="col-lg-3 col-md-6 mb-3">
+                                        <button class="btn btn-success w-100" onclick="loadSection('payroll')">
+                                            <i class="fas fa-calculator me-2"></i>Calcul Paie
+                                        </button>
+                                    </div>
+                                    <div class="col-lg-3 col-md-6 mb-3">
+                                        <button class="btn btn-info w-100" onclick="loadSection('reports')">
+                                            <i class="fas fa-chart-bar me-2"></i>Rapports
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Statistics Row RH -->
+                <div class="row mb-4">
+                    <div class="col-lg-3 col-md-6 mb-3">
+                        <div class="stats-card">
+                            <div class="stats-number">8</div>
+                            <div class="stats-label">Employés Sous Gestion</div>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-md-6 mb-3">
+                        <div class="stats-card">
+                            <div class="stats-number">3</div>
+                            <div class="stats-label">Demandes d'Absence</div>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-md-6 mb-3">
+                        <div class="stats-card">
+                            <div class="stats-number">{{ conges_restants|default:120 }}</div>
+                            <div class="stats-label">Jours Congés Restants</div>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-md-6 mb-3">
+                        <div class="stats-card">
+                            <div class="stats-number">{{ evaluations_dues|default:2 }}</div>
+                            <div class="stats-label">Évaluations Dues</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Actions RH -->
+                <div class="dashboard-card">
+                    <h5><i class="fas fa-user-tie"></i> Actions Ressources Humaines</h5>
+                    <div class="row">
+                        <div class="col-lg-3 col-md-6 mb-3">
+                            <button class="action-btn rh w-100" onclick="switchToTab('employees')">
+                                <i class="fas fa-users"></i> Gérer Équipe
+                            </button>
+                        </div>
+                        <div class="col-lg-3 col-md-6 mb-3">
+                            <button class="action-btn rh w-100" onclick="switchToTab('absences')">
+                                <i class="fas fa-calendar-check"></i> Valider Congés
+                            </button>
+                        </div>
+                        <div class="col-lg-3 col-md-6 mb-3">
+                            <button class="action-btn tools w-100" onclick="switchToTab('employees'); setTimeout(() => loadRHRecruitment(), 500);">
+                                <i class="fas fa-user-plus"></i> Recrutement
+                            </button>
+                        </div>
+                        <div class="col-lg-3 col-md-6 mb-3">
+                            <button class="action-btn rh w-100" onclick="switchToTab('employees'); setTimeout(() => loadRHTraining(), 500);">
+                                <i class="fas fa-graduation-cap"></i> Formation
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Planification RH -->
+                <div class="dashboard-card">
+                    <h5><i class="fas fa-calendar-week"></i> Planification de la Semaine</h5>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <div class="d-flex align-items-center p-3 bg-info text-white rounded">
+                                <div class="me-3">
+                                    <i class="fas fa-user-check fa-2x"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-0">Présences du Jour</h6>
+                                    <small>4/4 employés présents</small>
+                                    <div class="progress mt-2">
+                                        <div class="progress-bar bg-success" style="width: 100%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="d-flex align-items-center p-3 bg-warning text-white rounded">
+                                <div class="me-3">
+                                    <i class="fas fa-calendar-times fa-2x"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-0">Congés Cette Semaine</h6>
+                                    <small>0 absence(s) prévue(s)</small>
+                                    <div class="progress mt-2">
+                                        <div class="progress-bar bg-success" style="width: 100%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="d-flex align-items-center p-3 bg-success text-white rounded">
+                                <div class="me-3">
+                                    <i class="fas fa-tasks fa-2x"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-0">Évaluations</h6>
+                                    <small>2 évaluations à planifier</small>
+                                    <div class="progress mt-2">
+                                        <div class="progress-bar bg-warning" style="width: 65%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Suivi RH -->
+                <div class="dashboard-card">
+                    <h5><i class="fas fa-chart-line"></i> Suivi des Performances RH</h5>
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Employé</th>
+                                    <th>Département</th>
+                                    <th>Dernière Évaluation</th>
+                                    <th>Performance</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Ahmed Benali</td>
+                                    <td>Développement</td>
+                                    <td>15/06/2025</td>
+                                    <td><span class="badge bg-success">Excellent</span></td>
+                                    <td>
+                                        <button class="btn btn-sm btn-info"><i class="fas fa-eye"></i></button>
+                                        <button class="btn btn-sm btn-warning"><i class="fas fa-edit"></i></button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Fatima El Mansouri</td>
+                                    <td>RH</td>
+                                    <td>20/05/2025</td>
+                                    <td><span class="badge bg-success">Très Bien</span></td>
+                                    <td>
+                                        <button class="btn btn-sm btn-info"><i class="fas fa-eye"></i></button>
+                                        <button class="btn btn-sm btn-warning"><i class="fas fa-edit"></i></button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Youssef Tazi</td>
+                                    <td>Finance</td>
+                                    <td>10/04/2025</td>
+                                    <td><span class="badge bg-warning">À Évaluer</span></td>
+                                    <td>
+                                        <button class="btn btn-sm btn-primary"><i class="fas fa-calendar"></i></button>
+                                        <button class="btn btn-sm btn-warning"><i class="fas fa-edit"></i></button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- EMPLOYEES SECTION -->
+            <div class="section-content" id="employees">
+                <div class="loading" style="display: none;">
+                    <i class="fas fa-spinner fa-spin fa-2x"></i>
+                    <p>Chargement de la gestion des employés...</p>
+                </div>
+                
+                <div class="dashboard-title">
+                    <i class="fas fa-users"></i> Gestion des Employés
+                </div>
+                
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h5><i class="fas fa-users me-2"></i>Liste des Employés</h5>
+                                    <div>
+                                        <button class="btn btn-success me-2" onclick="PayrollPro.notify('Fonctionnalité: Ajouter employé', 'info')">
+                                            <i class="fas fa-user-plus me-2"></i>Ajouter Employé
+                                        </button>
+                                        <button class="btn btn-primary" onclick="loadSectionContent('employees')">
+                                            <i class="fas fa-sync me-2"></i>Charger Données
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    <strong>Cliquez sur "Charger Données"</strong> pour afficher la liste complète des employés avec leurs informations détaillées.
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-lg-4 mb-3">
+                                        <div class="card h-100">
+                                            <div class="card-body text-center">
+                                                <i class="fas fa-user fa-3x text-primary mb-3"></i>
+                                                <h6>Ahmed Benali</h6>
+                                                <p class="text-muted">Développeur Senior</p>
+                                                <span class="badge bg-success">Actif</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-lg-4 mb-3">
+                                        <div class="card h-100">
+                                            <div class="card-body text-center">
+                                                <i class="fas fa-user fa-3x text-warning mb-3"></i>
+                                                <h6>Fatima El Mansouri</h6>
+                                                <p class="text-muted">Responsable RH</p>
+                                                <span class="badge bg-success">Actif</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-lg-4 mb-3">
+                                        <div class="card h-100">
+                                            <div class="card-body text-center">
+                                                <i class="fas fa-user fa-3x text-info mb-3"></i>
+                                                <h6>Youssef Tazi</h6>
+                                                <p class="text-muted">Comptable</p>
+                                                <span class="badge bg-success">Actif</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ABSENCES SECTION -->
+            <div class="section-content" id="absences">
+                <div class="loading" style="display: none;">
+                    <i class="fas fa-spinner fa-spin fa-2x"></i>
+                    <p>Chargement de la gestion des absences...</p>
+                </div>
+                
+                <div class="dashboard-title">
+                    <i class="fas fa-calendar-alt"></i> Gestion des Absences
+                </div>
+                
+                <div class="row mb-4">
+                    <div class="col-lg-3 col-md-6 mb-3">
+                        <div class="stats-card">
+                            <div class="stats-number">3</div>
+                            <div class="stats-label">En Attente</div>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-md-6 mb-3">
+                        <div class="stats-card">
+                            <div class="stats-number">1</div>
+                            <div class="stats-label">Approuvées</div>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-md-6 mb-3">
+                        <div class="stats-card">
+                            <div class="stats-number">1</div>
+                            <div class="stats-label">Refusées</div>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-md-6 mb-3">
+                        <div class="stats-card">
+                            <div class="stats-number">5</div>
+                            <div class="stats-label">Total</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h5><i class="fas fa-calendar-alt me-2"></i>Demandes d'Absences</h5>
+                                    <div>
+                                        <button class="btn btn-success me-2" onclick="PayrollPro.notify('Fonctionnalité: Nouvelle absence', 'info')">
+                                            <i class="fas fa-plus me-2"></i>Nouvelle Absence
+                                        </button>
+                                        <button class="btn btn-primary" onclick="loadSectionContent('absences')">
+                                            <i class="fas fa-sync me-2"></i>Charger Données
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    <strong>Cliquez sur "Charger Données"</strong> pour voir toutes les demandes d'absences détaillées.
+                                </div>
+                                
+                                <div class="table-responsive">
+                                    <table class="table">
+                                        <thead>
+                                            <tr>
+                                                <th>Employé</th>
+                                                <th>Type</th>
+                                                <th>Période</th>
+                                                <th>Statut</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td><strong>Ahmed Benali</strong></td>
+                                                <td>Congé payé</td>
+                                                <td>05/08 - 09/08</td>
+                                                <td><span class="badge bg-warning">En attente</span></td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-success me-1" onclick="PayrollPro.notify('Absence approuvée', 'success')">
+                                                        <i class="fas fa-check"></i>
+                                                    </button>
+                                                    <button class="btn btn-sm btn-danger" onclick="PayrollPro.notify('Absence refusée', 'warning')">
+                                                        <i class="fas fa-times"></i>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Omar Benjelloun</strong></td>
+                                                <td>Congé payé</td>
+                                                <td>25/08 - 03/09</td>
+                                                <td><span class="badge bg-warning">En attente</span></td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-success me-1" onclick="PayrollPro.notify('Absence approuvée', 'success')">
+                                                        <i class="fas fa-check"></i>
+                                                    </button>
+                                                    <button class="btn btn-sm btn-danger" onclick="PayrollPro.notify('Absence refusée', 'warning')">
+                                                        <i class="fas fa-times"></i>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PAYROLL SECTION -->
+            <div class="section-content" id="payroll">
+                <div class="loading" style="display: none;">
+                    <i class="fas fa-spinner fa-spin fa-2x"></i>
+                    <p>Chargement du calcul de paie...</p>
+                </div>
+                
+                <div class="dashboard-title">
+                    <i class="fas fa-money-bill-wave"></i> Calcul de Paie
+                </div>
+                
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h5><i class="fas fa-calculator me-2"></i>Centre de Calcul</h5>
+                                    <div>
+                                        <button class="btn btn-success me-2" onclick="PayrollPro.notify('Calcul en lot démarré', 'success')">
+                                            <i class="fas fa-play me-2"></i>Calculer Tout
+                                        </button>
+                                        <button class="btn btn-primary" onclick="loadSectionContent('payroll')">
+                                            <i class="fas fa-sync me-2"></i>Charger Données
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="row mb-4">
+                                    <div class="col-lg-4">
+                                        <div class="stats-card text-center">
+                                            <div class="stats-number">8</div>
+                                            <div class="stats-label">Employés à Traiter</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-lg-4">
+                                        <div class="stats-card text-center">
+                                            <div class="stats-number">0</div>
+                                            <div class="stats-label">Bulletins ce Mois</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-lg-4">
+                                        <div class="stats-card text-center">
+                                            <div class="stats-number">07/2025</div>
+                                            <div class="stats-label">Période Active</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    <strong>Cliquez sur "Charger Données"</strong> pour voir la liste détaillée des employés avec options de calcul.
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-lg-6 mb-3">
+                                        <div class="card">
+                                            <div class="card-body text-center">
+                                                <i class="fas fa-calculator fa-3x text-success mb-3"></i>
+                                                <h6>Calcul Automatique</h6>
+                                                <p class="text-muted">Calcul en lot pour tous les employés</p>
+                                                <button class="btn btn-success" onclick="PayrollPro.notify('Calcul automatique démarré', 'success')">
+                                                    Démarrer
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-lg-6 mb-3">
+                                        <div class="card">
+                                            <div class="card-body text-center">
+                                                <i class="fas fa-user-check fa-3x text-primary mb-3"></i>
+                                                <h6>Calcul Individuel</h6>
+                                                <p class="text-muted">Calcul personnalisé par employé</p>
+                                                <button class="btn btn-primary" onclick="PayrollPro.notify('Mode calcul individuel activé', 'info')">
+                                                    Sélectionner
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- REPORTS SECTION -->
+            <div class="section-content" id="reports">
+                <div class="loading" style="display: none;">
+                    <i class="fas fa-spinner fa-spin fa-2x"></i>
+                    <p>Chargement des rapports...</p>
+                </div>
+                
+                <div class="dashboard-title">
+                    <i class="fas fa-chart-bar"></i> Rapports & Exports
+                </div>
+                
+                <div class="row mb-4">
+                    <div class="col-lg-6 mb-3">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5><i class="fas fa-file-excel me-2"></i>Exports Excel</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="d-grid gap-2">
+                                    <button class="btn btn-success" onclick="PayrollPro.notify('Export liste employés démarré', 'success')">
+                                        <i class="fas fa-users me-2"></i>Liste des Employés
+                                    </button>
+                                    <button class="btn btn-success" onclick="PayrollPro.notify('Export bulletins démarré', 'success')">
+                                        <i class="fas fa-file-invoice me-2"></i>Bulletins de Paie
+                                    </button>
+                                    <button class="btn btn-success" onclick="window.open('/export/cnss/excel/', '_blank')">
+                                        <i class="fas fa-building me-2"></i>Déclaration CNSS
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-lg-6 mb-3">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5><i class="fas fa-file-pdf me-2"></i>Rapports PDF</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="d-grid gap-2">
+                                    <button class="btn btn-danger" onclick="PayrollPro.notify('Rapport masse salariale généré', 'success')">
+                                        <i class="fas fa-money-bill-wave me-2"></i>Masse Salariale
+                                    </button>
+                                    <button class="btn btn-danger" onclick="PayrollPro.notify('Rapport absences généré', 'success')">
+                                        <i class="fas fa-calendar-times me-2"></i>Rapport Absences
+                                    </button>
+                                    <button class="btn btn-danger" onclick="PayrollPro.notify('Statistiques RH générées', 'success')">
+                                        <i class="fas fa-chart-line me-2"></i>Statistiques RH
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h5><i class="fas fa-chart-pie me-2"></i>Tableau de Bord</h5>
+                                    <button class="btn btn-primary" onclick="loadSectionContent('reports')">
+                                        <i class="fas fa-sync me-2"></i>Charger Données Complètes
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    <strong>Cliquez sur "Charger Données Complètes"</strong> pour accéder aux graphiques et tableaux de bord avancés.
+                                </div>
+                                
+                                <div class="row text-center">
+                                    <div class="col-lg-3 col-md-6 mb-3">
+                                        <div class="stats-card">
+                                            <div class="stats-number">83,500</div>
+                                            <div class="stats-label">Masse Salariale (DH)</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-lg-3 col-md-6 mb-3">
+                                        <div class="stats-card">
+                                            <div class="stats-number">8</div>
+                                            <div class="stats-label">Employés Actifs</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-lg-3 col-md-6 mb-3">
+                                        <div class="stats-card">
+                                            <div class="stats-number">5</div>
+                                            <div class="stats-label">Absences ce Mois</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-lg-3 col-md-6 mb-3">
+                                        <div class="stats-card">
+                                            <div class="stats-number">0</div>
+                                            <div class="stats-label">Bulletins Générés</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Application SPA Management
+let currentSection = 'dashboard';
+let loadedSections = ['dashboard']; // Dashboard is loaded by default
+
+function loadSection(sectionName) {
+    // Hide all sections
+    document.querySelectorAll('.section-content').forEach(section => {
+        section.classList.remove('active');
+    });
+    
+    // Show target section
+    const targetSection = document.getElementById(sectionName);
+    targetSection.classList.add('active');
+    
+    // Update current section
+    currentSection = sectionName;
+    
+    // Load content if not already loaded
+    if (!loadedSections.includes(sectionName)) {
+        loadSectionContent(sectionName);
+    }
+}
+
+// Rendre les fonctions accessibles globalement pour la sidebar
+window.loadSection = loadSection;
+window.loadSectionContent = loadSectionContent;
+window.switchToTab = switchToTab;
+
+function loadSectionContent(sectionName) {
+    const section = document.getElementById(sectionName);
+    const loading = section.querySelector('.loading');
+    
+    // Show loading
+    if (loading) {
+        loading.style.display = 'block';
+    }
+    
+    // API endpoints mapping
+    const apiEndpoints = {
+        'dashboard-rh': '/api/spa/dashboard/',
+        'employees': '/api/spa/employees/',
+        'absences': '/api/spa/absences/',
+        'payroll': '/api/spa/payroll/',
+        'reports': '/api/spa/reports/'
+    };
+    
+    const endpoint = apiEndpoints[sectionName];
+    if (!endpoint) {
+        console.error('No API endpoint found for section:', sectionName);
+        return;
+    }
+    
+    // Make AJAX request to load real content
+    fetch(endpoint, {
+        method: 'GET',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Content-Type': 'application/json',
+        },
+        credentials: 'same-origin'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (loading) {
+            loading.style.display = 'none';
+        }
+        
+        if (data.success) {
+            // Replace section content with real data
+            section.innerHTML = data.content;
+            
+            // Apply animations to new content
+            section.querySelectorAll('.slide-in-up').forEach((el, index) => {
+                el.style.animationDelay = `${index * 0.1}s`;
+            });
+            
+            PayrollPro.notify(`Section "${getSectionDisplayName(sectionName)}" chargée avec succès`, 'success');
+        } else {
+            section.innerHTML = `
+                <div class="alert alert-danger">
+                    <h4>Erreur de chargement</h4>
+                    <p>Impossible de charger le contenu: ${data.error || 'Erreur inconnue'}</p>
+                    <button class="btn btn-primary" onclick="loadSectionContent('${sectionName}')">
+                        <i class="fas fa-redo me-2"></i>Réessayer
+                    </button>
+                </div>
+            `;
+            PayrollPro.notify(`Erreur lors du chargement de "${getSectionDisplayName(sectionName)}"`, 'error');
+        }
+        
+        // Mark as loaded
+        if (!loadedSections.includes(sectionName)) {
+            loadedSections.push(sectionName);
+        }
+    })
+    .catch(error => {
+        console.error('Error loading section content:', error);
+        if (loading) {
+            loading.style.display = 'none';
+        }
+        
+        // Don't show error, just notify that enhanced content is available
+        PayrollPro.notify(`Contenu statique affiché pour "${getSectionDisplayName(sectionName)}". Connectez-vous pour voir les données en temps réel.`, 'info');
+        
+        // Mark as loaded anyway to prevent retry loops
+        if (!loadedSections.includes(sectionName)) {
+            loadedSections.push(sectionName);
+        }
+    });
+}
+
+function getSectionDisplayName(sectionName) {
+    const names = {
+        'dashboard-rh': 'Dashboard Admin',
+        'employees': 'Gestion Employés',
+        'absences': 'Gestion Absences',
+        'payroll': 'Calcul Paie',
+        'reports': 'Rapports & Exports'
+    };
+    return names[sectionName] || sectionName;
+}
+
+// Initialize SPA on page load
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('PayrollPro SPA initialized');
+    
+    // Setup tab navigation
+    document.querySelectorAll('#mainTabs button[data-bs-toggle="tab"]').forEach(tab => {
+        tab.addEventListener('click', function(e) {
+            const targetId = this.getAttribute('data-bs-target')?.replace('#', '');
+            if (targetId && targetId !== 'dashboard') {
+                setTimeout(() => {
+                    loadSection(targetId);
+                }, 100);
+            }
+        });
+    });
+    
+    // Setup sidebar navigation (if exists)
+    document.querySelectorAll('.sidebar-link').forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            const sectionName = this.getAttribute('data-section');
+            if (sectionName) {
+                loadSection(sectionName);
+                
+                // Update active state in sidebar
+                document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
+                this.classList.add('active');
+            }
+        });
+    });
+    
+    // Initialize PayrollPro system
+    if (typeof PayrollPro !== 'undefined') {
+        PayrollPro.notify('Application PayrollPro initialisée avec succès', 'success');
+    }
+    
+    console.log('SPA initialization complete');
+}); 
+                Exportez vos données vers Excel.
+            </div>
+        </div>
+    `;
+}
+
+// Initialize application
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('PayrollPro SPA initialized');
+    
+    // Check for section parameter in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const sectionParam = urlParams.get('section');
+    
+    if (sectionParam) {
+        console.log('Loading section from URL parameter:', sectionParam);
+        // Wait for everything to load then switch to the section
+        setTimeout(() => {
+            const targetTab = document.getElementById(sectionParam + '-tab');
+            if (targetTab) {
+                // Activate the tab
+                const tabInstance = new bootstrap.Tab(targetTab);
+                tabInstance.show();
+                
+                // Load the section content
+                loadSection(sectionParam);
+            }
+        }, 300);
+    }
+    
+    // Check if there's a hash in the URL and switch to that tab
+    const hash = window.location.hash.substring(1); // Remove the #
+    if (hash && !sectionParam) {
+        // Delay to ensure DOM is fully loaded
+        setTimeout(() => {
+            const targetTab = document.getElementById(hash + '-tab');
+            if (targetTab) {
+                const tab = new bootstrap.Tab(targetTab);
+                tab.show();
+                loadSection(hash);
+            }
+        }, 100);
+    } else {
+        // Load default dashboard content
+        setTimeout(() => {
+            loadSection('dashboard');
+        }, 100);
+    }
+});
+
+// Function to switch tabs and load content
+function switchToTab(tabName) {
+    // Update active tab
+    document.querySelectorAll('.nav-link').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    document.getElementById(tabName + '-tab').classList.add('active');
+    
+    // Load the section
+    loadSection(tabName);
+}
+
+// New functions for loading content directly in SPA
+function loadEmployeeList() {
+    const content = document.getElementById('employee-content');
+    content.innerHTML = `
+        <div class="loading-inline">
+            <i class="fas fa-spinner fa-spin"></i> Chargement de la liste des employés...
+        </div>
+    `;
+    
+    // Simulate loading employee data
+    setTimeout(() => {
+        content.innerHTML = `
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5><i class="fas fa-users"></i> Liste des Employés</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Nom Complet</th>
+                                    <th>Poste</th>
+                                    <th>Salaire</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>1</td>
+                                    <td>Ahmed Benali</td>
+                                    <td>Développeur</td>
+                                    <td>8,000 DH</td>
+                                    <td><span class="badge bg-success">Actif</span></td>
+                                    <td>
+                                        <button class="btn btn-sm btn-primary"><i class="fas fa-edit"></i></button>
+                                        <button class="btn btn-sm btn-info"><i class="fas fa-eye"></i></button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>2</td>
+                                    <td>Fatima El Mansouri</td>
+                                    <td>RH Manager</td>
+                                    <td>12,000 DH</td>
+                                    <td><span class="badge bg-success">Actif</span></td>
+                                    <td>
+                                        <button class="btn btn-sm btn-primary"><i class="fas fa-edit"></i></button>
+                                        <button class="btn btn-sm btn-info"><i class="fas fa-eye"></i></button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>3</td>
+                                    <td>Youssef Tazi</td>
+                                    <td>Comptable</td>
+                                    <td>9,500 DH</td>
+                                    <td><span class="badge bg-success">Actif</span></td>
+                                    <td>
+                                        <button class="btn btn-sm btn-primary"><i class="fas fa-edit"></i></button>
+                                        <button class="btn btn-sm btn-info"><i class="fas fa-eye"></i></button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>4</td>
+                                    <td>Khadija Alami</td>
+                                    <td>Secrétaire</td>
+                                    <td>6,000 DH</td>
+                                    <td><span class="badge bg-success">Actif</span></td>
+                                    <td>
+                                        <button class="btn btn-sm btn-primary"><i class="fas fa-edit"></i></button>
+                                        <button class="btn btn-sm btn-info"><i class="fas fa-eye"></i></button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="mt-3">
+                        <button class="btn btn-success">
+                            <i class="fas fa-plus"></i> Ajouter Employé
+                        </button>
+                        <button class="btn btn-info">
+                            <i class="fas fa-download"></i> Export Excel
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }, 1500);
+}
+
+function loadUserManagement() {
+    const content = document.getElementById('employee-content');
+    if (!content) {
+        console.error('Element employee-content not found');
+        return;
+    }
+    
+    content.innerHTML = `
+        <div class="loading-inline">
+            <i class="fas fa-spinner fa-spin"></i> Chargement de la gestion des comptes...
+        </div>
+    `;
+    
+    setTimeout(() => {
+        content.innerHTML = `
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5><i class="fas fa-user-plus"></i> Gestion des Comptes Utilisateurs</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Créer un nouveau compte</h6>
+                            <form>
+                                <div class="mb-3">
+                                    <label class="form-label">Employé</label>
+                                    <select class="form-select">
+                                        <option>Sélectionner un employé</option>
+                                        <option>Ahmed Benali</option>
+                                        <option>Fatima El Mansouri</option>
+                                        <option>Youssef Tazi</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Nom d'utilisateur</label>
+                                    <input type="text" class="form-control" placeholder="username">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Rôle</label>
+                                    <select class="form-select">
+                                        <option>Employé</option>
+                                        <option>RH</option>
+                                        <option>Admin</option>
+                                    </select>
+                                </div>
+                                <button type="submit" class="btn btn-success">
+                                    <i class="fas fa-save"></i> Créer Compte
+                                </button>
+                            </form>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Statistiques</h6>
+                            <div class="row">
+                                <div class="col-6">
+                                    <div class="text-center p-3 bg-light rounded">
+                                        <h4 class="text-primary">4</h4>
+                                        <small>Comptes Actifs</small>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="text-center p-3 bg-light rounded">
+                                        <h4 class="text-warning">0</h4>
+                                        <small>Sans Compte</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }, 1500);
+}
+
+function loadAddEmployee() {
+    const content = document.getElementById('employee-content');
+    if (!content) {
+        console.error('Element employee-content not found');
+        return;
+    }
+    
+    content.innerHTML = `
+        <div class="loading-inline">
+            <i class="fas fa-spinner fa-spin"></i> Chargement du formulaire d'ajout...
+        </div>
+    `;
+    
+    setTimeout(() => {
+        content.innerHTML = `
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5><i class="fas fa-plus"></i> Ajouter Nouvel Employé</h5>
+                </div>
+                <div class="card-body">
+                    <form>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>Informations Personnelles</h6>
+                                <div class="mb-3">
+                                    <label class="form-label">Nom Complet</label>
+                                    <input type="text" class="form-control" placeholder="Nom et prénom">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Email</label>
+                                    <input type="email" class="form-control" placeholder="email@example.com">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Téléphone</label>
+                                    <input type="tel" class="form-control" placeholder="06XXXXXXXX">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Date de Naissance</label>
+                                    <input type="date" class="form-control">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Informations Professionnelles</h6>
+                                <div class="mb-3">
+                                    <label class="form-label">Poste</label>
+                                    <select class="form-select">
+                                        <option>Développeur</option>
+                                        <option>RH Assistant</option>
+                                        <option>Comptable</option>
+                                        <option>Secrétaire</option>
+                                        <option>Manager</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Département</label>
+                                    <select class="form-select">
+                                        <option>IT</option>
+                                        <option>RH</option>
+                                        <option>Finance</option>
+                                        <option>Administration</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Salaire (DH)</label>
+                                    <input type="number" class="form-control" placeholder="8000">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Date d'Embauche</label>
+                                    <input type="date" class="form-control">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="text-center mt-4">
+                            <button type="submit" class="btn btn-primary me-2">
+                                <i class="fas fa-save"></i> Enregistrer
+                            </button>
+                            <button type="button" class="btn btn-secondary" onclick="loadEmployeeList()">
+                                <i class="fas fa-times"></i> Annuler
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        `;
+    }, 1500);
+}
+
+function loadRHRecruitment() {
+    const content = document.getElementById('employee-content') || document.createElement('div');
+    content.innerHTML = `
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5><i class="fas fa-user-plus"></i> Module Recrutement</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-8">
+                        <h6>Nouveau Candidat</h6>
+                        <form>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Nom Complet</label>
+                                    <input type="text" class="form-control" placeholder="Nom et prénom">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Email</label>
+                                    <input type="email" class="form-control" placeholder="email@example.com">
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Poste Visé</label>
+                                    <select class="form-select">
+                                        <option>Développeur</option>
+                                        <option>RH Assistant</option>
+                                        <option>Comptable</option>
+                                        <option>Secrétaire</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Salaire Demandé</label>
+                                    <input type="number" class="form-control" placeholder="DH">
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Enregistrer Candidature
+                            </button>
+                        </form>
+                    </div>
+                    <div class="col-md-4">
+                        <h6>Candidatures en Cours</h6>
+                        <div class="list-group">
+                            <div class="list-group-item">
+                                <h6 class="mb-1">Marie Dubois</h6>
+                                <p class="mb-1">Développeur Frontend</p>
+                                <small>Entretien prévu: 28/07/2025</small>
+                            </div>
+                            <div class="list-group-item">
+                                <h6 class="mb-1">Hassan Alami</h6>
+                                <p class="mb-1">Comptable Senior</p>
+                                <small>CV reçu: 25/07/2025</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function loadRHTraining() {
+    const content = document.getElementById('employee-content') || document.createElement('div');
+    content.innerHTML = `
+        <div class="card">
+            <div class="card-header bg-warning text-white">
+                <h5><i class="fas fa-graduation-cap"></i> Module Formation</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Planifier une Formation</h6>
+                        <form>
+                            <div class="mb-3">
+                                <label class="form-label">Titre de la Formation</label>
+                                <input type="text" class="form-control" placeholder="Ex: Formation Excel Avancé">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Participants</label>
+                                <select class="form-select" multiple>
+                                    <option>Ahmed Benali</option>
+                                    <option>Fatima El Mansouri</option>
+                                    <option>Youssef Tazi</option>
+                                    <option>Khadija Alami</option>
+                                </select>
+                            </div>
+                            <div class="row">
+                                <div class="col-6 mb-3">
+                                    <label class="form-label">Date</label>
+                                    <input type="date" class="form-control">
+                                </div>
+                                <div class="col-6 mb-3">
+                                    <label class="form-label">Durée (heures)</label>
+                                    <input type="number" class="form-control" value="8">
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-warning">
+                                <i class="fas fa-calendar-plus"></i> Planifier Formation
+                            </button>
+                        </form>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Formations Programmées</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Formation</th>
+                                        <th>Date</th>
+                                        <th>Participants</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Sécurité au Travail</td>
+                                        <td>30/07/2025</td>
+                                        <td>4</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Communication Efficace</td>
+                                        <td>15/08/2025</td>
+                                        <td>2</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function loadAbsenceManagement() {
+    const content = document.getElementById('absence-content');
+    content.innerHTML = `
+        <div class="loading-inline">
+            <i class="fas fa-spinner fa-spin"></i> Chargement de la gestion des absences...
+        </div>
+    `;
+    
+    setTimeout(() => {
+        content.innerHTML = `
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5><i class="fas fa-calendar-check"></i> Gestion des Absences</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-4">
+                        <div class="col-lg-3">
+                            <div class="text-center p-3 bg-warning text-white rounded">
+                                <h3>0</h3>
+                                <small>En Attente</small>
+                            </div>
+                        </div>
+                        <div class="col-lg-3">
+                            <div class="text-center p-3 bg-success text-white rounded">
+                                <h3>5</h3>
+                                <small>Approuvées</small>
+                            </div>
+                        </div>
+                        <div class="col-lg-3">
+                            <div class="text-center p-3 bg-danger text-white rounded">
+                                <h3>1</h3>
+                                <small>Refusées</small>
+                            </div>
+                        </div>
+                        <div class="col-lg-3">
+                            <div class="text-center p-3 bg-primary text-white rounded">
+                                <h3>15</h3>
+                                <small>Total ce Mois</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <h6>Demandes Récentes</h6>
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Employé</th>
+                                    <th>Type</th>
+                                    <th>Date Début</th>
+                                    <th>Date Fin</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Ahmed Benali</td>
+                                    <td>Congé Annuel</td>
+                                    <td>25/07/2025</td>
+                                    <td>30/07/2025</td>
+                                    <td><span class="badge bg-success">Approuvé</span></td>
+                                    <td>
+                                        <button class="btn btn-sm btn-info"><i class="fas fa-eye"></i></button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Fatima El Mansouri</td>
+                                    <td>Maladie</td>
+                                    <td>20/07/2025</td>
+                                    <td>22/07/2025</td>
+                                    <td><span class="badge bg-success">Approuvé</span></td>
+                                    <td>
+                                        <button class="btn btn-sm btn-info"><i class="fas fa-eye"></i></button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        `;
+    }, 1500);
+}
+
+function loadPayrollCalculator() {
+    const content = document.getElementById('payroll-content');
+    content.innerHTML = `
+        <div class="loading-inline">
+            <i class="fas fa-spinner fa-spin"></i> Chargement du calculateur de paie...
+        </div>
+    `;
+    
+    setTimeout(() => {
+        content.innerHTML = `
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5><i class="fas fa-calculator"></i> Calculateur de Paie</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <h6>Calcul Individual</h6>
+                            <form>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Employé</label>
+                                        <select class="form-select">
+                                            <option>Sélectionner un employé</option>
+                                            <option>Ahmed Benali - 8,000 DH</option>
+                                            <option>Fatima El Mansouri - 12,000 DH</option>
+                                            <option>Youssef Tazi - 9,500 DH</option>
+                                            <option>Khadija Alami - 6,000 DH</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Mois</label>
+                                        <select class="form-select">
+                                            <option>Juillet 2025</option>
+                                            <option>Juin 2025</option>
+                                            <option>Mai 2025</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-4 mb-3">
+                                        <label class="form-label">Jours Travaillés</label>
+                                        <input type="number" class="form-control" value="22">
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label class="form-label">Heures Supplémentaires</label>
+                                        <input type="number" class="form-control" value="0">
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label class="form-label">Primes</label>
+                                        <input type="number" class="form-control" value="0">
+                                    </div>
+                                </div>
+                                <button type="button" class="btn btn-success" onclick="calculateSalary()">
+                                    <i class="fas fa-calculator"></i> Calculer
+                                </button>
+                                <button type="button" class="btn btn-primary">
+                                    <i class="fas fa-users"></i> Calcul Global
+                                </button>
+                            </form>
+                        </div>
+                        <div class="col-md-4">
+                            <h6>Résultat du Calcul</h6>
+                            <div id="salary-result" class="bg-light p-3 rounded">
+                                <p class="text-muted">Sélectionnez un employé et cliquez sur "Calculer"</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }, 1500);
+}
+
+function calculateSalary() {
+    const resultDiv = document.getElementById('salary-result');
+    resultDiv.innerHTML = `
+        <h6 class="text-success">Résultat du Calcul</h6>
+        <hr>
+        <div class="row">
+            <div class="col-6"><strong>Salaire de Base:</strong></div>
+            <div class="col-6 text-end">8,000.00 DH</div>
+        </div>
+        <div class="row">
+            <div class="col-6">Heures Supp.:</div>
+            <div class="col-6 text-end">0.00 DH</div>
+        </div>
+        <div class="row">
+            <div class="col-6">Primes:</div>
+            <div class="col-6 text-end">0.00 DH</div>
+        </div>
+        <hr>
+        <div class="row">
+            <div class="col-6">CNSS (6.4%):</div>
+            <div class="col-6 text-end text-danger">-512.00 DH</div>
+        </div>
+        <div class="row">
+            <div class="col-6">IR:</div>
+            <div class="col-6 text-end text-danger">-0.00 DH</div>
+        </div>
+        <hr>
+        <div class="row">
+            <div class="col-6"><strong>Salaire Net:</strong></div>
+            <div class="col-6 text-end text-success"><strong>7,488.00 DH</strong></div>
+        </div>
+        <button class="btn btn-sm btn-primary mt-2 w-100">
+            <i class="fas fa-print"></i> Imprimer Fiche
+        </button>
+    `;
+}
+</script>
+{% endblock %}

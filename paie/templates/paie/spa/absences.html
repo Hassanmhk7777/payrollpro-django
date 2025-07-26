@@ -1,0 +1,361 @@
+<div class="absences-management">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                    <h3><i class="fas fa-calendar-check me-2"></i>Gestion des Absences</h3>
+                    {% if role_utilisateur == 'employe' %}
+                    <button class="btn btn-light" onclick="openCreateAbsenceModal()">
+                        <i class="fas fa-plus me-2"></i>Nouvelle Demande
+                    </button>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    <!-- Statistiques des absences -->
+                    <div class="row mb-4">
+                        {% if role_utilisateur == 'rh' or user.is_superuser %}
+                        <div class="col-md-3">
+                            <div class="card bg-warning text-white">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-clock fa-2x mb-2"></i>
+                                    <h4>{{ absences_en_attente|default:0 }}</h4>
+                                    <small>En Attente</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-info text-white">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-calendar fa-2x mb-2"></i>
+                                    <h4>{{ absences_du_mois|default:0 }}</h4>
+                                    <small>Ce Mois</small>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        {% if employe_actuel %}
+                        <div class="col-md-3">
+                            <div class="card bg-success text-white">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-sun fa-2x mb-2"></i>
+                                    <h4>{{ solde_conges_restant|default:0 }}</h4>
+                                    <small>Congés Restants</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-primary text-white">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-clock fa-2x mb-2"></i>
+                                    <h4>{{ solde_rtt|default:0 }}</h4>
+                                    <small>RTT Disponibles</small>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Onglets pour différentes vues -->
+                    <ul class="nav nav-tabs mb-4" id="absencesTabs" role="tablist">
+                        {% if role_utilisateur == 'rh' or user.is_superuser %}
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="pending-tab" data-bs-toggle="tab" data-bs-target="#pending-absences" type="button">
+                                <i class="fas fa-clock me-2"></i>En Attente ({{ absences_en_attente|default:0 }})
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="all-tab" data-bs-toggle="tab" data-bs-target="#all-absences" type="button">
+                                <i class="fas fa-list me-2"></i>Toutes les Absences
+                            </button>
+                        </li>
+                        {% endif %}
+                        {% if employe_actuel %}
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link {% if role_utilisateur == 'employe' %}active{% endif %}" id="my-tab" data-bs-toggle="tab" data-bs-target="#my-absences" type="button">
+                                <i class="fas fa-user me-2"></i>Mes Absences
+                            </button>
+                        </li>
+                        {% endif %}
+                    </ul>
+                    
+                    <!-- Contenu des onglets -->
+                    <div class="tab-content" id="absencesTabContent">
+                        {% if role_utilisateur == 'rh' or user.is_superuser %}
+                        <!-- Absences en attente -->
+                        <div class="tab-pane fade show active" id="pending-absences" role="tabpanel">
+                            <h5><i class="fas fa-clock me-2"></i>Demandes en Attente d'Approbation</h5>
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th>Employé</th>
+                                            <th>Type</th>
+                                            <th>Période</th>
+                                            <th>Durée</th>
+                                            <th>Motif</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for absence in demandes_attente %}
+                                        <tr>
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    <span class="badge bg-secondary rounded-circle me-2">
+                                                        {{ absence.employe.prenom.0|upper }}{{ absence.employe.nom.0|upper }}
+                                                    </span>
+                                                    {{ absence.employe.nom }} {{ absence.employe.prenom }}
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-info">{{ absence.get_type_absence_display }}</span>
+                                            </td>
+                                            <td>
+                                                {{ absence.date_debut|date:"d/m/Y" }} - {{ absence.date_fin|date:"d/m/Y" }}
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-primary">{{ absence.nombre_jours }} jour{{ absence.nombre_jours|pluralize }}</span>
+                                            </td>
+                                            <td>{{ absence.motif|truncatechars:50|default:"-" }}</td>
+                                            <td>
+                                                <div class="btn-group btn-group-sm">
+                                                    <button class="btn btn-success" onclick="approveAbsence({{ absence.id }})" title="Approuver">
+                                                        <i class="fas fa-check"></i>
+                                                    </button>
+                                                    <button class="btn btn-danger" onclick="rejectAbsence({{ absence.id }})" title="Rejeter">
+                                                        <i class="fas fa-times"></i>
+                                                    </button>
+                                                    <button class="btn btn-info" onclick="viewAbsence({{ absence.id }})" title="Détails">
+                                                        <i class="fas fa-eye"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        {% empty %}
+                                        <tr>
+                                            <td colspan="6" class="text-center text-muted">
+                                                <i class="fas fa-check-circle fa-2x mb-3"></i>
+                                                <p>Aucune demande en attente</p>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        
+                        <!-- Toutes les absences -->
+                        <div class="tab-pane fade" id="all-absences" role="tabpanel">
+                            <h5><i class="fas fa-list me-2"></i>Historique des Absences</h5>
+                            <p class="text-muted">Fonctionnalité en cours de développement...</p>
+                        </div>
+                        {% endif %}
+                        
+                        {% if employe_actuel %}
+                        <!-- Mes absences -->
+                        <div class="tab-pane fade {% if role_utilisateur == 'employe' %}show active{% endif %}" id="my-absences" role="tabpanel">
+                            <h5><i class="fas fa-user me-2"></i>Mes Demandes d'Absence</h5>
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th>Type</th>
+                                            <th>Période</th>
+                                            <th>Durée</th>
+                                            <th>Statut</th>
+                                            <th>Motif</th>
+                                            <th>Date Demande</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for absence in mes_absences %}
+                                        <tr>
+                                            <td>
+                                                <span class="badge bg-info">{{ absence.get_type_absence_display }}</span>
+                                            </td>
+                                            <td>
+                                                {{ absence.date_debut|date:"d/m/Y" }} - {{ absence.date_fin|date:"d/m/Y" }}
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-primary">{{ absence.nombre_jours }} jour{{ absence.nombre_jours|pluralize }}</span>
+                                            </td>
+                                            <td>
+                                                {% if absence.statut == 'EN_ATTENTE' %}
+                                                    <span class="badge bg-warning">En Attente</span>
+                                                {% elif absence.statut == 'APPROUVE' %}
+                                                    <span class="badge bg-success">Approuvé</span>
+                                                {% elif absence.statut == 'REJETE' %}
+                                                    <span class="badge bg-danger">Rejeté</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ absence.motif|truncatechars:50|default:"-" }}</td>
+                                            <td>{{ absence.date_creation|date:"d/m/Y H:i" }}</td>
+                                        </tr>
+                                        {% empty %}
+                                        <tr>
+                                            <td colspan="6" class="text-center text-muted">
+                                                <i class="fas fa-calendar-plus fa-2x mb-3"></i>
+                                                <p>Aucune demande d'absence</p>
+                                                <button class="btn btn-primary" onclick="openCreateAbsenceModal()">
+                                                    <i class="fas fa-plus me-2"></i>Faire une demande
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal pour nouvelle demande d'absence -->
+<div class="modal fade" id="absenceModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Nouvelle Demande d'Absence</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="absenceForm">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="type_absence" class="form-label">Type d'Absence</label>
+                        <select class="form-select" id="type_absence" name="type_absence" required>
+                            <option value="">Sélectionner...</option>
+                            <option value="CONGE">Congés Payés</option>
+                            <option value="RTT">RTT</option>
+                            <option value="MALADIE">Arrêt Maladie</option>
+                            <option value="FORMATION">Formation</option>
+                            <option value="AUTRE">Autre</option>
+                        </select>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="date_debut" class="form-label">Date de Début</label>
+                                <input type="date" class="form-control" id="date_debut" name="date_debut" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="date_fin" class="form-label">Date de Fin</label>
+                                <input type="date" class="form-control" id="date_fin" name="date_fin" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="motif" class="form-label">Motif (optionnel)</label>
+                        <textarea class="form-control" id="motif" name="motif" rows="3" placeholder="Décrivez brièvement le motif de votre absence..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <button type="button" class="btn btn-primary" onclick="submitAbsenceForm()">
+                    <i class="fas fa-paper-plane me-2"></i>Envoyer la Demande
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function openCreateAbsenceModal() {
+    const modal = new bootstrap.Modal(document.getElementById('absenceModal'));
+    modal.show();
+}
+
+function submitAbsenceForm() {
+    const form = document.getElementById('absenceForm');
+    const formData = new FormData(form);
+    
+    fetch('/demander_absence/', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('Demande d\'absence envoyée avec succès', 'success');
+            bootstrap.Modal.getInstance(document.getElementById('absenceModal')).hide();
+            // Recharger les absences
+            loadSPAContent('absences');
+        } else {
+            showToast(data.message || 'Erreur lors de l\'envoi', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Erreur:', error);
+        showToast('Erreur lors de l\'envoi de la demande', 'error');
+    });
+}
+
+function approveAbsence(absenceId) {
+    if (confirm('Êtes-vous sûr de vouloir approuver cette demande ?')) {
+        fetch(`/api/absence/${absenceId}/approve/`, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast('Demande approuvée avec succès', 'success');
+                loadSPAContent('absences');
+            } else {
+                showToast(data.message || 'Erreur lors de l\'approbation', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Erreur:', error);
+            showToast('Erreur lors de l\'approbation', 'error');
+        });
+    }
+}
+
+function rejectAbsence(absenceId) {
+    const motif = prompt('Motif du rejet (optionnel):');
+    if (motif !== null) {
+        fetch(`/api/absence/${absenceId}/reject/`, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ motif: motif })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast('Demande rejetée', 'success');
+                loadSPAContent('absences');
+            } else {
+                showToast(data.message || 'Erreur lors du rejet', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Erreur:', error);
+            showToast('Erreur lors du rejet', 'error');
+        });
+    }
+}
+
+function viewAbsence(absenceId) {
+    // Ouvrir les détails de l'absence dans une nouvelle fenêtre ou modal
+    alert('Fonction de visualisation en cours de développement');
+}
+</script>

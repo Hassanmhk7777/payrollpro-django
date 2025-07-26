@@ -11,101 +11,729 @@
     <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
     
-    <!-- Custom CSS -->
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- PayrollPro CSS Moderne -->
+    {% load static %}
+    <link href="{% static 'paie/css/payrollpro-modern.css' %}" rel="stylesheet">
+    
+    <!-- Custom CSS de base -->
     <style>
         :root {
-            --primary-color: #2c3e50;
-            --secondary-color: #3498db;
-            --success-color: #27ae60;
-            --warning-color: #f39c12;
-            --danger-color: #e74c3c;
-            --light-bg: #f8f9fa;
+            --primary-color: #1e3a8a;
+            --secondary-color: #3b82f6;
+            --accent-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --dark-color: #1f2937;
+            --light-bg: #f8fafc;
+            --white: #ffffff;
+            --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --gradient-success: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --gradient-warning: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            --shadow-light: 0 4px 6px rgba(0, 0, 0, 0.07);
+            --shadow-medium: 0 10px 25px rgba(0, 0, 0, 0.1);
+            --shadow-strong: 0 20px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--light-bg);
+            font-family: 'Inter', 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        /* Navigation Bar */
+        .navbar {
+            background: var(--gradient-primary) !important;
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: var(--shadow-medium);
+            padding: 1rem 0;
         }
 
         .navbar-brand {
-            font-weight: bold;
+            font-weight: 700;
+            font-size: 1.5rem;
             color: white !important;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
         }
 
+        .navbar-nav .nav-link {
+            color: rgba(255, 255, 255, 0.9) !important;
+            font-weight: 500;
+            margin: 0 0.5rem;
+            padding: 0.5rem 1rem !important;
+            border-radius: 25px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .navbar-nav .nav-link:hover {
+            background: rgba(255, 255, 255, 0.2);
+            color: white !important;
+            transform: translateY(-1px);
+        }
+
+        /* Professional Sidebar - Inspired by Azure/Slack/Teams */
         .sidebar {
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-            min-height: calc(100vh - 56px);
+            background: linear-gradient(180deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
             color: white;
-            padding-top: 20px;
+            padding: 0;
+            box-shadow: 4px 0 20px rgba(0, 0, 0, 0.15);
+            position: fixed;
+            left: 0;
+            top: 0;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            width: 280px;
+            border-right: 1px solid rgba(255, 255, 255, 0.08);
+            z-index: 1000;
+        }
+
+        .sidebar::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 1px;
+            height: 100%;
+            background: linear-gradient(180deg, 
+                rgba(255, 255, 255, 0.1) 0%, 
+                rgba(255, 255, 255, 0.05) 50%, 
+                rgba(255, 255, 255, 0.1) 100%);
+        }
+
+        /* Main Content Layout */
+        .app-layout {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .main-content {
+            flex: 1;
+            margin-left: 280px;
+            background: #f8fafc;
+            min-height: 100vh;
+            padding: 0;
+            width: calc(100% - 280px);
+        }
+
+        /* Professional Header Section */
+        .sidebar-header {
+            padding: 24px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%);
+            backdrop-filter: blur(20px);
+        }
+
+        .brand-section {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .brand-icon {
+            width: 44px;
+            height: 44px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 12px;
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.25);
+        }
+
+        .brand-name {
+            font-size: 20px;
+            font-weight: 700;
+            color: white;
+            margin: 0;
+            letter-spacing: -0.5px;
+        }
+
+        .brand-subtitle {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.6);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 500;
+        }
+
+        /* User Profile Section */
+        .user-profile-section {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.03) 100%);
+            border-radius: 16px;
+            padding: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .user-avatar {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            margin-bottom: 12px;
+            border: 2px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 6px 20px rgba(255, 215, 0, 0.2);
+        }
+
+        .user-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: white;
+            margin: 0 0 6px 0;
+            line-height: 1.3;
+        }
+
+        .user-role {
+            display: inline-flex;
+            align-items: center;
+            background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+            color: #1a1a1a;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+            box-shadow: 0 3px 10px rgba(255, 215, 0, 0.2);
+        }
+
+        .user-status {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.6);
+            display: flex;
+            align-items: center;
+        }
+
+        .status-indicator {
+            width: 6px;
+            height: 6px;
+            background: #00e676;
+            border-radius: 50%;
+            margin-right: 6px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        /* Navigation Section */
+        .sidebar-nav {
+            flex: 1;
+            padding: 24px 16px;
+            overflow-y: auto;
+        }
+
+        .nav-section {
+            margin-bottom: 32px;
+        }
+
+        .nav-section-title {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.5);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            padding: 0 12px;
+            display: flex;
+            align-items: center;
+        }
+
+        .nav-section-title::before {
+            content: '';
+            width: 20px;
+            height: 1px;
+            background: rgba(255, 255, 255, 0.2);
+            margin-right: 8px;
         }
 
         .sidebar .nav-link {
             color: rgba(255, 255, 255, 0.8);
-            padding: 12px 20px;
-            margin: 5px 10px;
-            border-radius: 8px;
-            transition: all 0.3s ease;
+            padding: 12px 16px;
+            margin: 2px 0;
+            border-radius: 12px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             text-decoration: none;
+            font-weight: 500;
+            font-size: 14px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            border: 1px solid transparent;
+        }
+
+        .sidebar .nav-link::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 3px;
+            height: 0;
+            background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+            border-radius: 0 3px 3px 0;
+            transition: height 0.3s ease;
         }
 
         .sidebar .nav-link:hover {
-            background-color: rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.08);
             color: white;
-            transform: translateX(5px);
+            transform: translateX(4px);
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .sidebar .nav-link:hover::before {
+            height: 20px;
         }
 
         .sidebar .nav-link.active {
-            background-color: rgba(255, 255, 255, 0.2);
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.15) 100%);
             color: white;
+            border-color: rgba(102, 126, 234, 0.3);
         }
 
-        .main-content {
-            padding: 30px;
+        .sidebar .nav-link.active::before {
+            height: 24px;
+            background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+            box-shadow: 0 0 10px rgba(102, 126, 234, 0.5);
         }
 
-        .stats-card {
-            background: white;
-            border-radius: 15px;
-            padding: 25px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            border: none;
+        .sidebar .nav-link i {
+            margin-right: 12px;
+            font-size: 16px;
+            width: 20px;
+            text-align: center;
+            transition: all 0.3s ease;
+            min-width: 20px;
+            flex-shrink: 0;
         }
 
-        .stats-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-        }
-
-        .stats-number {
-            font-size: 2.5rem;
-            font-weight: bold;
-            margin-bottom: 5px;
-        }
-
-        .stats-label {
-            color: #666;
-            font-size: 0.9rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .alert-custom {
-            border: none;
-            border-radius: 10px;
-            padding: 15px 20px;
-        }
-
-        .btn-action {
-            border-radius: 8px;
-            padding: 10px 20px;
+        .sidebar .nav-link span {
+            font-size: 14px;
             font-weight: 500;
+            white-space: nowrap;
+            opacity: 1 !important;
+            visibility: visible !important;
+            display: inline !important;
+        }
+
+        .sidebar .nav-link:hover i {
+            transform: scale(1.1);
+        }
+
+        .nav-link-badge {
+            margin-left: auto;
+            background: rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.8);
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+
+        /* Footer Section */
+        .sidebar-footer {
+            padding: 20px 16px;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.1) 0%, rgba(0, 0, 0, 0.05) 100%);
+        }
+
+        .help-link {
+            display: flex;
+            align-items: center;
+            color: rgba(255, 255, 255, 0.6);
+            text-decoration: none;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            margin-bottom: 12px;
             transition: all 0.3s ease;
         }
 
-        .btn-action:hover {
+        .help-link:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .logout-btn {
+            width: 100%;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: rgba(255, 255, 255, 0.9);
+            padding: 12px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .logout-btn:hover {
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(220, 38, 38, 0.15) 100%);
+            border-color: rgba(239, 68, 68, 0.3);
+            color: #fca5a5;
+            transform: translateY(-1px);
+        }
+
+        .logout-btn i {
+            margin-right: 8px;
+        }
+
+        /* Admin Section Styling */
+        .admin-section {
+            background: linear-gradient(135deg, rgba(255, 215, 0, 0.08) 0%, rgba(255, 237, 78, 0.05) 100%);
+            border-radius: 12px;
+            padding: 16px;
+            margin-top: 8px;
+            border: 1px solid rgba(255, 215, 0, 0.1);
+        }
+
+        .admin-section .nav-link {
+            background: rgba(255, 215, 0, 0.05);
+            border: 1px solid rgba(255, 215, 0, 0.1);
+        }
+
+        .admin-section .nav-link:hover {
+            background: rgba(255, 215, 0, 0.1);
+            border-color: rgba(255, 215, 0, 0.2);
+        }
+
+        /* Scrollbar Styling */
+        .sidebar-nav::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .sidebar-nav::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 2px;
+        }
+
+        .sidebar-nav::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 2px;
+        }
+
+        .sidebar-nav::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 100%;
+                position: fixed;
+                z-index: 1000;
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+            }
+            
+            .sidebar.show {
+                transform: translateX(0);
+            }
+            
+            .main-content {
+                margin-left: 0;
+                width: 100%;
+            }
+            
+            .brand-name {
+                font-size: 16px;
+            }
+            
+            .sidebar-nav {
+                padding: 16px 12px;
+            }
+        }
+
+        /* Remove conflicting Bootstrap styles */
+        .container-fluid {
+            padding: 0 !important;
+        }
+
+        .row {
+            margin: 0 !important;
+        }
+            background: transparent;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--white);
+            border: none;
+            border-radius: 20px;
+            box-shadow: var(--shadow-light);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--gradient-primary);
+        }
+
+        .card:hover {
+            transform: translateY(-8px);
+            box-shadow: var(--shadow-strong);
+        }
+
+        .card-header {
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            border-radius: 20px 20px 0 0 !important;
+            padding: 1.5rem;
+            font-weight: 600;
+        }
+
+        /* Stats Cards */
+        .stats-card {
+            background: var(--white);
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: var(--shadow-light);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            border: none;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stats-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            background: var(--gradient-success);
+        }
+
+        .stats-card:hover {
+            transform: translateY(-10px) scale(1.02);
+            box-shadow: var(--shadow-strong);
+        }
+
+        .stats-number {
+            font-size: 3rem;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .stats-label {
+            color: #64748b;
+            font-size: 0.95rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+        }
+
+        /* Buttons */
+        .btn {
+            border-radius: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border: none;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .btn:hover::before {
+            left: 100%;
+        }
+
+        .btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn-primary {
+            background: var(--gradient-primary);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-primary:hover {
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-success {
+            background: var(--gradient-success);
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+        }
+
+        .btn-warning {
+            background: var(--gradient-warning);
+            box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);
+        }
+
+        /* Tables */
+        .table {
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: var(--shadow-light);
+        }
+
+        .table thead th {
+            background: var(--gradient-primary);
+            color: white;
+            border: none;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 1.2rem;
+        }
+
+        .table tbody tr {
+            transition: all 0.3s ease;
+        }
+
+        .table tbody tr:hover {
+            background: rgba(102, 126, 234, 0.05);
+            transform: scale(1.01);
+        }
+
+        /* Forms */
+        .form-control, .form-select {
+            border-radius: 12px;
+            border: 2px solid #e2e8f0;
+            padding: 0.75rem 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus, .form-select:focus {
+            border-color: var(--secondary-color);
+            box-shadow: 0 0 0 0.25rem rgba(59, 130, 246, 0.1);
+            transform: translateY(-1px);
+        }
+
+        /* Alerts */
+        .alert {
+            border-radius: 15px;
+            border: none;
+            padding: 1.25rem 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: var(--shadow-light);
+        }
+
+        /* Dropdown */
+        .dropdown-menu {
+            border-radius: 15px;
+            border: none;
+            box-shadow: var(--shadow-medium);
+            padding: 1rem 0;
+        }
+
+        .dropdown-item {
+            padding: 0.75rem 1.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .dropdown-item:hover {
+            background: rgba(102, 126, 234, 0.1);
+            color: var(--primary-color);
+            padding-left: 2rem;
+        }
+
+        /* Mobile Responsiveness */
+        @media (max-width: 768px) {
+            .sidebar {
+                border-radius: 0;
+                margin-top: 1rem;
+            }
+            
+            .main-content {
+                padding: 1rem;
+            }
+            
+            .stats-number {
+                font-size: 2rem;
+            }
+        }
+
+        /* Animation classes */
+        .fade-in {
+            animation: fadeIn 0.6s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Loading states */
+        .loading {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .loading::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+            animation: loading 1.5s infinite;
+        }
+
+        @keyframes loading {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+
+        .alert-custom {
+            border-radius: 10px;
+            padding: 15px 20px;
+            margin-bottom: 20px;
+            border: none;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
         }
 
         .page-title {
@@ -122,78 +750,82 @@
             margin-bottom: 20px;
         }
 
-        .table-responsive {
-            border-radius: 10px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-        }
-
-        .table {
-            margin-bottom: 0;
-        }
-
-        .table thead th {
-            background-color: var(--primary-color);
-            color: white;
+        /* Styles pour les boutons de notification */
+        .notification-btn {
+            position: relative;
+            background: rgba(255,255,255,0.1);
             border: none;
-            font-weight: 500;
-            letter-spacing: 0.5px;
-        }
-
-        .table tbody tr {
-            transition: background-color 0.3s ease;
-        }
-
-        .table tbody tr:hover {
-            background-color: rgba(52, 152, 219, 0.1);
-        }
-
-        .badge-status {
-            padding: 8px 12px;
-            border-radius: 20px;
-            font-size: 0.75rem;
-            font-weight: 500;
-        }
-
-        .navbar {
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)) !important;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-        }
-
-        .footer {
-            background-color: var(--primary-color);
+            width: 50px;
+            height: 50px;
+            border-radius: 15px;
             color: white;
-            text-align: center;
-            padding: 20px;
-            margin-top: 50px;
+            font-size: 18px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
         }
 
-        /* Navigation améliorée */
-        .nav-section-title {
-            padding: 10px 20px;
-            margin-top: 20px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        .notification-btn:hover {
+            background: rgba(255,255,255,0.2);
+            transform: translateY(-2px);
         }
 
-        .role-badge {
-            background: rgba(255, 255, 255, 0.2);
+        .notification-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #ff4757;
+            color: white;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            animation: bounce 1s infinite;
+        }
+
+        /* Styles pour les profils utilisateur */
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: rgba(255,255,255,0.1);
             padding: 8px 15px;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            margin: 10px;
-            text-align: center;
-            font-weight: 600;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
         }
 
-        .quick-access {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            z-index: 1000;
+        .user-profile:hover {
+            background: rgba(255,255,255,0.2);
+            transform: translateY(-2px);
         }
 
-        .quick-access .btn {
-            margin-bottom: 10px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            background: var(--warning-color);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        .user-info h3 {
+            color: white;
+            font-size: 14px;
+            margin-bottom: 2px;
+        }
+
+        .user-info p {
+            color: rgba(255,255,255,0.7);
+            font-size: 12px;
+        }
+
+        /* Animations */
+        @keyframes bounce {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
         }
 
         /* Breadcrumb personnalisé */
@@ -210,365 +842,335 @@
             background-color: rgba(255, 255, 255, 0.3) !important;
             color: white !important;
         }
+
+        /* Styles responsifs */
+        @media (max-width: 768px) {
+            .sidebar {
+                display: none;
+            }
+            
+            .main-content {
+                padding: 15px;
+            }
+            
+            .stats-card {
+                margin-bottom: 20px;
+            }
+        }
     </style>
+    
+    <!-- CSS spécifique aux pages -->
+    {% block extra_css %}{% endblock %}
 </head>
 <body>
-    <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-dark">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="{% url 'paie:accueil' %}">
-                <i class="bi bi-calculator"></i> PayrollPro
-            </a>
-
-            <!-- Navigation horizontale pour les actions rapides -->
-            {% if user.is_authenticated %}
-            <div class="navbar-nav d-none d-lg-flex flex-row mx-auto">
-                {% if user.is_superuser or user.groups.all.0.name == 'RH' %}
-                <a class="nav-link mx-2" href="{% url 'paie:liste_employes' %}">
-                    <i class="bi bi-people"></i> Employés
-                </a>
-                <a class="nav-link mx-2" href="{% url 'paie:calcul_paie' %}">
-                    <i class="bi bi-calculator"></i> Paie
-                </a>
-                <a class="nav-link mx-2" href="{% url 'paie:gestion_absences' %}">
-                    <i class="bi bi-calendar-x"></i> Absences
-                </a>
-                {% if user.is_superuser %}
-                <a class="nav-link mx-2" href="{% url 'paie:gestion_utilisateurs' %}">
-                    <i class="bi bi-person-gear"></i> Utilisateurs
-                </a>
-                {% endif %}
-                {% endif %}
-            </div>
-            {% endif %}
-            
-            <div class="navbar-nav ms-auto">
-                {% if user.is_authenticated %}
-                    <div class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" 
-                           data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="bi bi-person-circle"></i> {{ user.username }}
-                            {% if user.is_superuser %}
-                                <span class="badge bg-warning ms-1">Admin</span>
-                            {% elif user.groups.all.0.name == 'RH' %}
-                                <span class="badge bg-info ms-1">RH</span>
-                            {% else %}
-                                <span class="badge bg-secondary ms-1">Employé</span>
-                            {% endif %}
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-end">
-                            <!-- Liens directs vers les dashboards -->
-                            {% if user.is_superuser %}
-                            <li><a class="dropdown-item" href="{% url 'paie:dashboard_admin' %}">
-                                <i class="bi bi-speedometer2"></i> Dashboard Admin
-                            </a></li>
-                            {% endif %}
-                            {% if user.is_superuser or user.groups.all.0.name == 'RH' %}
-                            <li><a class="dropdown-item" href="{% url 'paie:dashboard_rh' %}">
-                                <i class="bi bi-people-fill"></i> Dashboard RH
-                            </a></li>
-                            {% endif %}
-                            <li><a class="dropdown-item" href="{% url 'paie:dashboard_employe' %}">
-                                <i class="bi bi-person"></i> Mon Espace
-                            </a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="#" onclick="alert('Fonctionnalité en développement')">
-                                <i class="bi bi-person"></i> Mon profil
-                            </a></li>
-                            <li><a class="dropdown-item" href="#" onclick="alert('Fonctionnalité en développement')">
-                                <i class="bi bi-gear"></i> Paramètres
-                            </a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li>
-                                <form method="post" action="{% url 'paie:deconnexion' %}" style="margin: 0;">
-                                    {% csrf_token %}
-                                    <button type="submit" class="dropdown-item">
-                                        <i class="bi bi-box-arrow-right"></i> Déconnexion
-                                    </button>
-                                </form>
-                            </li>
-                        </ul>
+    <!-- Layout moderne avec sidebar -->
+    {% if user.is_authenticated %}
+    <div class="app-layout">
+        <!-- Professional Sidebar -->
+        <div class="sidebar">
+            <!-- Header Section -->
+            <div class="sidebar-header">
+                <div class="brand-section">
+                    <div class="brand-icon">
+                        <i class="fas fa-calculator text-white"></i>
                     </div>
-                {% else %}
-                    <a class="nav-link" href="/admin/login/">
-                        <i class="bi bi-box-arrow-in-right"></i> Connexion
-                    </a>
-                {% endif %}
-            </div>
-        </div>
-    </nav>
-
-    <div class="container-fluid">
-        <div class="row">
-            {% if user.is_authenticated %}
-                <!-- Sidebar -->
-                <div class="col-md-3 col-lg-2 sidebar">
-                    <!-- Badge de rôle -->
+                    <div>
+                        <h4 class="brand-name">PayrollPro</h4>
+                        <div class="brand-subtitle">Enterprise</div>
+                    </div>
+                </div>
+                
+                <div class="user-profile-section">
+                    <div class="user-avatar">
+                        <i class="fas fa-crown text-dark"></i>
+                    </div>
+                    <div class="user-name">Administrateur Principal</div>
                     {% if user.is_superuser %}
-                        <div class="role-badge">
-                            <i class="bi bi-shield-check"></i> Administrateur
+                        <div class="user-role">
+                            <i class="fas fa-shield-alt me-1"></i>Super Admin
                         </div>
                     {% elif user.groups.all.0.name == 'RH' %}
-                        <div class="role-badge">
-                            <i class="bi bi-people-fill"></i> Ressources Humaines
+                        <div class="user-role" style="background: linear-gradient(135deg, #3498db, #74b9ff);">
+                            <i class="fas fa-user-tie me-1"></i>RH Manager
                         </div>
                     {% else %}
-                        <div class="role-badge">
-                            <i class="bi bi-person"></i> Employé
+                        <div class="user-role" style="background: linear-gradient(135deg, #95a5a6, #bdc3c7);">
+                            <i class="fas fa-user me-1"></i>Employé
                         </div>
                     {% endif %}
-                    
-                    <nav class="nav flex-column">
-                        <!-- DASHBOARDS -->
-                        <div class="nav-section-title">
-                            <small class="text-light opacity-75">TABLEAUX DE BORD</small>
-                        </div>
-                        
-                        {% if user.is_superuser %}
-                        <a class="nav-link {% if 'dashboard/admin' in request.path %}current-page{% endif %}" 
-                           href="{% url 'paie:dashboard_admin' %}">
-                            <i class="bi bi-speedometer2"></i> Admin
-                        </a>
-                        {% endif %}
-                        
-                        {% if user.is_superuser or user.groups.all.0.name == 'RH' %}
-                        <a class="nav-link {% if 'dashboard/rh' in request.path %}current-page{% endif %}" 
-                           href="{% url 'paie:dashboard_rh' %}">
-                            <i class="bi bi-people-fill"></i> RH
-                        </a>
-                        {% endif %}
-                        
-                        <a class="nav-link {% if 'dashboard/employe' in request.path %}current-page{% endif %}" 
-                           href="{% url 'paie:dashboard_employe' %}">
-                            <i class="bi bi-person"></i> Mon Espace
-                        </a>
-
-                        <!-- GESTION (Admin/RH) -->
-                        {% if user.is_superuser or user.groups.all.0.name == 'RH' %}
-                        <div class="nav-section-title">
-                            <small class="text-light opacity-75">GESTION</small>
-                        </div>
-                        
-                        <a class="nav-link {% if 'employes' in request.path %}current-page{% endif %}" 
-                           href="{% url 'paie:liste_employes' %}">
-                            <i class="bi bi-people"></i> Employés
-                        </a>
-                        
-                        {% if user.is_superuser %}
-                        <a class="nav-link {% if 'gestion-utilisateurs' in request.path %}current-page{% endif %}" 
-                           href="{% url 'paie:gestion_utilisateurs' %}">
-                            <i class="bi bi-person-gear"></i> Utilisateurs
-                        </a>
-                        {% endif %}
-                        
-                        <a class="nav-link {% if 'calcul-paie' in request.path %}current-page{% endif %}" 
-                           href="{% url 'paie:calcul_paie' %}">
-                            <i class="bi bi-calculator"></i> Calcul Paie
-                        </a>
-                        
-                        <a class="nav-link {% if 'absences' in request.path %}current-page{% endif %}" 
-                           href="{% url 'paie:gestion_absences' %}">
-                            <i class="bi bi-calendar-x"></i> Absences
-                        </a>
-                        {% endif %}
-
-                        <!-- MON ESPACE (Employés) -->
-                        {% if not user.is_superuser and user.groups.all.0.name != 'RH' %}
-                        <div class="nav-section-title">
-                            <small class="text-light opacity-75">MON ESPACE</small>
-                        </div>
-                        
-                        <a class="nav-link" href="{% url 'paie:gestion_absences' %}">
-                            <i class="bi bi-calendar-event"></i> Mes Absences
-                        </a>
-                        
-                        <a class="nav-link" href="#" onclick="alert('Bientôt disponible')">
-                            <i class="bi bi-file-earmark-text"></i> Mes Bulletins
-                        </a>
-                        {% endif %}
-
-                        <!-- ADMINISTRATION (Admin) -->
-                        {% if user.is_superuser %}
-                        <div class="nav-section-title">
-                            <small class="text-light opacity-75">ADMINISTRATION</small>
-                        </div>
-                        
-                        <a class="nav-link" href="/admin/">
-                            <i class="bi bi-gear"></i> Django Admin
-                        </a>
-                        
-                        <a class="nav-link" href="{% url 'paie:test_calcul_absences' %}">
-                            <i class="bi bi-flask"></i> Tests Système
-                        </a>
-                        {% endif %}
-                         <!-- Ajoutez ce lien dans la sidebar pour les admins -->
-                        {% if user.is_superuser %}
-                         <a class="nav-link" href="{% url 'paie:creer_comptes' %}">
-                            <i class="bi bi-person-plus"></i> Créer Comptes
-                         </a>
-                        {% endif %}
-                        <!-- AIDE -->
-                        <div class="nav-section-title">
-                            <small class="text-light opacity-75">AIDE</small>
-                        </div>
-                        
-                        <a class="nav-link" href="#" onclick="showHelpModal()">
-                            <i class="bi bi-question-circle"></i> Guide
-                        </a>
-                        
-                        <a class="nav-link" href="#" onclick="showShortcutsModal()">
-                            <i class="bi bi-keyboard"></i> Raccourcis
-                        </a>
-                    </nav>
-                </div>
-
-                <!-- Main Content -->
-                <div class="col-md-9 col-lg-10 main-content">
-                    <!-- Breadcrumb -->
-                    <nav class="custom-breadcrumb">
-                        <ol class="breadcrumb mb-0">
-                            <li class="breadcrumb-item">
-                                <a href="{% url 'paie:accueil' %}">
-                                    <i class="bi bi-house"></i> Accueil
-                                </a>
-                            </li>
-                            {% block breadcrumb %}
-                            {% endblock %}
-                        </ol>
-                    </nav>
-            {% else %}
-                <div class="col-12 main-content">
-            {% endif %}
-                    {% block content %}
-                    {% endblock %}
-                </div>
-        </div>
-    </div>
-
-    <!-- Accès rapide flottant -->
-    {% if user.is_authenticated %}
-    <div class="quick-access d-none d-lg-block">
-        {% if user.is_superuser or user.groups.all.0.name == 'RH' %}
-        <div class="d-grid gap-2">
-            <a href="{% url 'paie:calcul_paie' %}" class="btn btn-success btn-sm" title="Calcul rapide">
-                <i class="bi bi-calculator"></i>
-            </a>
-            <a href="{% url 'paie:gestion_absences' %}" class="btn btn-warning btn-sm" title="Absences">
-                <i class="bi bi-calendar-x"></i>
-            </a>
-            {% if user.is_superuser %}
-            <a href="{% url 'paie:gestion_utilisateurs' %}" class="btn btn-info btn-sm" title="Utilisateurs">
-                <i class="bi bi-person-gear"></i>
-            </a>
-            {% endif %}
-        </div>
-        {% endif %}
-    </div>
-    {% endif %}
-
-    <!-- Footer -->
-    <footer class="footer">
-        <div class="container">
-            <div class="row">
-                <div class="col-md-6">
-                    <p>&copy; 2025 PayrollPro - Système de Gestion de Paie Marocain</p>
-                </div>
-                <div class="col-md-6 text-end">
-                    {% if user.is_authenticated %}
-                        <small>
-                            Connecté : {{ user.username }}
-                            {% if user.is_superuser %}(Admin)
-                            {% elif user.groups.all.0.name == 'RH' %}(RH)
-                            {% else %}(Employé){% endif %}
-                        </small>
-                    {% endif %}
+                    <div class="user-status">
+                        <div class="status-indicator"></div>
+                        Session: {{ user.last_login|date:"H:i" }}
+                    </div>
                 </div>
             </div>
+
+            <!-- Navigation Section -->
+            <div class="sidebar-nav">
+                <!-- Core Navigation -->
+                <div class="nav-section">
+                    <div class="nav-section-title">
+                        <i class="fas fa-home me-2"></i>Tableau de Bord
+                    </div>
+                    <a class="nav-link {% if request.resolver_match.url_name == 'accueil' %}active{% endif %}" 
+                       href="javascript:void(0)" onclick="navigateToSPA('dashboard')">
+                        <i class="fas fa-tachometer-alt"></i>
+                        <span>Accueil</span>
+                    </a>
+                    
+                    {% if user.is_superuser or user.groups.all.0.name == 'RH' %}
+                    <a class="nav-link" 
+                       href="javascript:void(0)" onclick="navigateToSPA('dashboard-rh')">
+                        <i class="fas fa-user-tie"></i>
+                        <span>Dashboard RH</span>
+                    </a>
+                    {% endif %}
+                </div>
+                
+                {% if user.is_superuser or user.groups.all.0.name == 'RH' %}
+                <!-- Management Section -->
+                <div class="nav-section">
+                    <div class="nav-section-title">
+                        <i class="fas fa-cogs me-2"></i>Gestion
+                    </div>
+                    <a class="nav-link {% if 'employes' in request.resolver_match.url_name %}active{% endif %}" 
+                       href="javascript:void(0)" onclick="navigateToSPA('employees')">
+                        <i class="fas fa-users"></i>
+                        <span>Gestion Employés</span>
+                        <span class="nav-link-badge">{{ total_employes|default:4 }}</span>
+                    </a>
+                    
+                    <a class="nav-link {% if 'absences' in request.resolver_match.url_name %}active{% endif %}" 
+                       href="javascript:void(0)" onclick="navigateToSPA('absences')">
+                        <i class="fas fa-calendar-check"></i>
+                        <span>Gestion Absences</span>
+                        {% if absences_attente|default:0 > 0 %}
+                            <span class="nav-link-badge" style="background: #ef4444; color: white;">{{ absences_attente }}</span>
+                        {% endif %}
+                    </a>
+                    
+                    <a class="nav-link {% if 'calcul_paie' in request.resolver_match.url_name %}active{% endif %}" 
+                       href="javascript:void(0)" onclick="navigateToSPA('payroll')">
+                        <i class="fas fa-calculator"></i>
+                        <span>Calcul Paie</span>
+                    </a>
+                </div>
+                
+                <!-- Analytics Section -->
+                <div class="nav-section">
+                    <div class="nav-section-title">
+                        <i class="fas fa-chart-line me-2"></i>Analytics
+                    </div>
+                    <a class="nav-link" href="javascript:void(0)" onclick="navigateToSPA('reports')">
+                        <i class="fas fa-chart-bar"></i>
+                        <span>Rapports & Exports</span>
+                    </a>
+                </div>
+                
+                {% if user.is_superuser %}
+                <!-- Administration Section -->
+                <div class="nav-section">
+                    <div class="admin-section">
+                        <div class="nav-section-title" style="color: rgba(255, 215, 0, 0.8);">
+                            <i class="fas fa-shield-alt me-2"></i>Administration
+                        </div>
+                        <a class="nav-link" href="/admin/" target="_blank">
+                            <i class="fas fa-tools"></i>
+                            <span>Admin Django</span>
+                            <i class="fas fa-external-link-alt ms-auto" style="font-size: 10px; opacity: 0.6;"></i>
+                        </a>
+                    </div>
+                </div>
+                {% endif %}
+                {% endif %}
+            </div>
+            
+            <!-- Footer Section -->
+            <div class="sidebar-footer">
+                <a href="{% url 'paie:aide' %}" class="help-link">
+                    <i class="fas fa-question-circle me-2"></i>
+                    <span>Centre d'Aide</span>
+                </a>
+                
+                <a href="{% url 'paie:deconnexion' %}" class="logout-btn">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Déconnexion</span>
+                </a>
+            </div>
         </div>
-    </footer>
+
+        <!-- Contenu principal -->
+        <div class="main-content">
+            <!-- Contenu principal de la page -->
+            {% block content %}
+            <div class="text-center" style="padding: 2rem;">
+                <h1>Bienvenue dans PayrollPro</h1>
+                <p class="lead">Système moderne de gestion de paie</p>
+                
+                <!-- Quick Actions pour utilisateurs connectés -->
+                {% if user.is_superuser or user.groups.all.0.name == 'RH' %}
+                <div class="row mt-4">
+                    <div class="col-md-3 mb-3">
+                        <a href="{% url 'paie:dashboard_admin_moderne' %}" class="btn btn-primary btn-lg w-100">
+                            <i class="fas fa-tachometer-alt"></i><br>Dashboard Admin
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <a href="{% url 'paie:dashboard_rh_moderne' %}" class="btn btn-info btn-lg w-100">
+                            <i class="fas fa-users"></i><br>Dashboard RH
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <a href="{% url 'paie:gestion_absences_moderne' %}" class="btn btn-warning btn-lg w-100">
+                            <i class="fas fa-calendar-times"></i><br>Absences
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <a href="{% url 'paie:liste_employes' %}" class="btn btn-success btn-lg w-100">
+                            <i class="fas fa-users"></i><br>Employés
+                        </a>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            {% endblock %}
+        </div>
+    </div>
+    {% else %}
+    <!-- Layout sans sidebar pour les non-connectés -->
+    <div class="container mt-5">
+        <div class="text-center">
+            <h1>PayrollPro</h1>
+            <p class="lead">Veuillez vous connecter pour accéder au système</p>
+            <a href="{% url 'admin:login' %}" class="btn btn-primary">
+                <i class="bi bi-box-arrow-in-right"></i> Connexion
+            </a>
+        </div>
+    </div>
+    {% endif %}
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     
-    <!-- Scripts personnalisés -->
+    <!-- JavaScript global -->
     <script>
-        // Modal d'aide
-        function showHelpModal() {
-            const helpContent = `
-                <div class="modal fade" id="helpModal" tabindex="-1">
-                    <div class="modal-dialog modal-lg">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title">Guide d'utilisation PayrollPro</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                            </div>
-                            <div class="modal-body">
-                                <h6>🚀 Démarrage rapide :</h6>
-                                <ul>
-                                    <li><strong>Admin :</strong> Créez des employés via Django Admin, puis créez leurs comptes dans "Gestion Utilisateurs"</li>
-                                    <li><strong>RH :</strong> Gérez les employés, calculez la paie, validez les absences</li>
-                                    <li><strong>Employé :</strong> Consultez vos bulletins, demandez des congés</li>
-                                </ul>
-                                
-                                <h6>📱 Navigation :</h6>
-                                <ul>
-                                    <li>Utilisez la barre de navigation horizontale pour un accès rapide</li>
-                                    <li>Le menu latéral donne accès à toutes les fonctionnalités</li>
-                                    <li>Les boutons flottants à droite pour les actions courantes</li>
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
+        // Fonction de navigation SPA
+        function navigateToSPA(sectionName) {
+            console.log('navigateToSPA appelée avec:', sectionName);
+            console.log('URL actuelle:', window.location.pathname);
             
-            document.body.insertAdjacentHTML('beforeend', helpContent);
-            new bootstrap.Modal(document.getElementById('helpModal')).show();
-        }
-
-        // Modal raccourcis
-        function showShortcutsModal() {
-            const shortcutsContent = `
-                <div class="modal fade" id="shortcutsModal" tabindex="-1">
-                    <div class="modal-dialog">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title">Raccourcis clavier</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                            </div>
-                            <div class="modal-body">
-                                <table class="table table-sm">
-                                    <tr><td><kbd>Alt + H</kbd></td><td>Accueil</td></tr>
-                                    <tr><td><kbd>Alt + E</kbd></td><td>Employés</td></tr>
-                                    <tr><td><kbd>Alt + P</kbd></td><td>Calcul Paie</td></tr>
-                                    <tr><td><kbd>Alt + A</kbd></td><td>Absences</td></tr>
-                                    <tr><td><kbd>Alt + U</kbd></td><td>Utilisateurs (Admin)</td></tr>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-            
-            document.body.insertAdjacentHTML('beforeend', shortcutsContent);
-            new bootstrap.Modal(document.getElementById('shortcutsModal')).show();
-        }
-
-        // Raccourcis clavier
-        document.addEventListener('keydown', function(e) {
-            if (e.altKey) {
-                switch(e.key) {
-                    case 'h': window.location.href = '/'; break;
-                    case 'e': window.location.href = '/employes/'; break;
-                    case 'p': window.location.href = '/calcul-paie/'; break;
-                    case 'a': window.location.href = '/absences/'; break;
-                    case 'u': window.location.href = '/gestion-utilisateurs/'; break;
+            // Si nous sommes déjà sur la page SPA, utiliser la navigation interne
+            if (window.location.pathname.includes('accueil')) {
+                console.log('Sur la page accueil - navigation interne');
+                
+                // Vérifier si la fonction switchToTab existe (plus appropriée que loadSection seul)
+                if (typeof switchToTab === 'function') {
+                    console.log('switchToTab trouvée - activation onglet et chargement contenu');
+                    switchToTab(sectionName);
+                } else if (typeof loadSection === 'function') {
+                    console.log('loadSection trouvée - activation onglet et chargement contenu');
+                    
+                    // Activer le bon tab d'abord
+                    const targetTab = document.getElementById(sectionName + '-tab');
+                    if (targetTab) {
+                        console.log('Onglet trouvé:', sectionName + '-tab');
+                        
+                        // Désactiver tous les tabs
+                        document.querySelectorAll('#mainTabs .nav-link').forEach(tab => {
+                            tab.classList.remove('active');
+                        });
+                        
+                        // Activer le tab cible
+                        targetTab.classList.add('active');
+                        
+                        // Utiliser Bootstrap pour activer le tab
+                        const tab = new bootstrap.Tab(targetTab);
+                        tab.show();
+                        
+                        // Charger le contenu avec un délai comme les onglets principaux
+                        setTimeout(() => {
+                            console.log('Chargement du contenu pour:', sectionName);
+                            loadSection(sectionName);
+                        }, 100);
+                    } else {
+                        console.log('Onglet non trouvé, chargement direct du contenu');
+                        // Si l'onglet n'existe pas, charger quand même le contenu
+                        loadSection(sectionName);
+                    }
+                } else {
+                    console.log('Ni switchToTab ni loadSection trouvées - utilisation Bootstrap seulement');
+                    // Alternative: utiliser Bootstrap tabs directement
+                    const targetTab = document.getElementById(sectionName + '-tab');
+                    if (targetTab) {
+                        const tab = new bootstrap.Tab(targetTab);
+                        tab.show();
+                        
+                        // Essayer de charger le contenu après un délai
+                        setTimeout(() => {
+                            if (typeof loadSection === 'function') {
+                                console.log('loadSection trouvée après délai');
+                                loadSection(sectionName);
+                            }
+                        }, 200);
+                    }
                 }
+            } else {
+                console.log('Redirection vers accueil avec section:', sectionName);
+                // Rediriger vers accueil avec la section spécifiée
+                window.location.href = `/paie/accueil/?section=${sectionName}`;
             }
+        }
+        
+        // Fonction utilitaire pour les notifications
+        function showToast(message, type = 'info') {
+            const toastContainer = document.getElementById('toast-container');
+            if (!toastContainer) {
+                const container = document.createElement('div');
+                container.id = 'toast-container';
+                container.className = 'toast-container position-fixed top-0 end-0 p-3';
+                container.style.zIndex = '11000';
+                document.body.appendChild(container);
+            }
+            
+            const toastHtml = `
+                <div class="toast align-items-center text-white bg-${type === 'error' ? 'danger' : type} border-0" role="alert">
+                    <div class="d-flex">
+                        <div class="toast-body">
+                            <i class="fas fa-${type === 'success' ? 'check' : type === 'error' ? 'exclamation' : 'info'}-circle me-2"></i>
+                            ${message}
+                        </div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                    </div>
+                </div>
+            `;
+            
+            const toastElement = document.createElement('div');
+            toastElement.innerHTML = toastHtml;
+            document.getElementById('toast-container').appendChild(toastElement.firstElementChild);
+            
+            const toast = new bootstrap.Toast(toastElement.firstElementChild);
+            toast.show();
+        }
+        
+        // Auto-hide alerts après 5 secondes
+        document.addEventListener('DOMContentLoaded', function() {
+            const alerts = document.querySelectorAll('.alert-custom');
+            alerts.forEach(alert => {
+                setTimeout(() => {
+                    if (alert.classList.contains('show')) {
+                        const bsAlert = new bootstrap.Alert(alert);
+                        bsAlert.close();
+                    }
+                }, 5000);
+            });
         });
     </script>
     
-    {% block extra_js %}
-    {% endblock %}
+    <!-- PayrollPro JavaScript Principal -->
+    {% load static %}
+    <script src="{% static 'paie/js/payrollpro-main.js' %}"></script>
+    
+    <!-- Bloc JavaScript pour les pages spécifiques -->
+    {% block extra_js %}{% endblock %}
 </body>
 </html>
