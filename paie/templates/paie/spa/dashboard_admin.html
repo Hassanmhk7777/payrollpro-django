@@ -1,0 +1,148 @@
+<div class="row mb-4">
+    <div class="col-12">
+        <h2 class="text-gradient mb-4">
+            <i class="fas fa-tachometer-alt me-3"></i>Dashboard Administrateur
+        </h2>
+    </div>
+</div>
+
+<!-- Statistiques principales -->
+<div class="row mb-4">
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card stats-card hover-lift">
+            <div class="card-body">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="stats-number">{{ total_employes }}</div>
+                        <div class="stats-label">Employés Actifs</div>
+                    </div>
+                    <div class="icon-wrapper bg-primary">
+                        <i class="fas fa-users text-white"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card stats-card hover-lift">
+            <div class="card-body">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="stats-number">{{ total_bulletins }}</div>
+                        <div class="stats-label">Bulletins Générés</div>
+                    </div>
+                    <div class="icon-wrapper bg-success">
+                        <i class="fas fa-file-invoice text-white"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card stats-card hover-lift">
+            <div class="card-body">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="stats-number">{{ absences_en_attente }}</div>
+                        <div class="stats-label">Absences à Valider</div>
+                    </div>
+                    <div class="icon-wrapper bg-warning">
+                        <i class="fas fa-calendar-times text-white"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card stats-card hover-lift">
+            <div class="card-body">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="stats-number">{{ masse_salariale|floatformat:0 }} DH</div>
+                        <div class="stats-label">Masse Salariale</div>
+                    </div>
+                    <div class="icon-wrapper bg-info">
+                        <i class="fas fa-money-bill-wave text-white"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Actions rapides -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-bolt me-2"></i>Actions Rapides</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <a href="#" data-spa-section="employees" class="btn btn-outline-primary w-100">
+                            <i class="fas fa-users me-2"></i>Gestion Employés
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <a href="#" data-spa-section="absences" class="btn btn-outline-warning w-100">
+                            <i class="fas fa-calendar-times me-2"></i>Gestion Absences
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <a href="#" data-spa-section="payroll" class="btn btn-outline-success w-100">
+                            <i class="fas fa-calculator me-2"></i>Calcul Paie
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <a href="#" data-spa-section="reports" class="btn btn-outline-info w-100">
+                            <i class="fas fa-chart-bar me-2"></i>Rapports & Exports
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Graphiques et informations récentes -->
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-chart-line me-2"></i>Évolution des Employés</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">Graphique d'évolution des employés par mois</p>
+                <div class="text-center">
+                    <i class="fas fa-chart-line fa-3x text-muted"></i>
+                    <p class="mt-3">Graphique en cours d'intégration</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-bell me-2"></i>Notifications</h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <strong>{{ nouveaux_employes }}</strong> nouveaux employés ce mois
+                </div>
+                {% if absences_en_attente > 0 %}
+                <div class="alert alert-warning">
+                    <strong>{{ absences_en_attente }}</strong> demandes d'absence en attente
+                </div>
+                {% endif %}
+                <div class="alert alert-success">
+                    <strong>{{ total_sites }}</strong> sites configurés
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

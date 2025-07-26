@@ -438,6 +438,56 @@
             background: rgba(255, 255, 255, 0.3);
         }
 
+        /* Loading Animation */
+        .fade-in {
+            animation: fadeIn 0.3s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        #spa-content {
+            transition: opacity 0.2s ease;
+        }
+
+        /* Hover effects pour les boutons sidebar */
+        .sidebar .nav-link {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .sidebar .nav-link:hover {
+            transform: translateX(8px);
+            background: rgba(255, 255, 255, 0.1);
+            border-left: 4px solid var(--accent-color);
+        }
+
+        .sidebar .nav-link.active {
+            background: rgba(255, 255, 255, 0.15);
+            border-left: 4px solid var(--accent-color);
+            transform: translateX(8px);
+        }
+
+        /* CSS pour les stats dans le dashboard */
+        .stats-item {
+            padding: 1rem;
+            border-radius: 0.5rem;
+            background: var(--gradient-primary);
+            color: white;
+            margin-bottom: 1rem;
+        }
+
+        .stats-number {
+            font-size: 2rem;
+            font-weight: 700;
+        }
+
+        .stats-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
         /* Responsive adjustments */
         @media (max-width: 768px) {
             .sidebar {
@@ -913,14 +963,14 @@
                         <i class="fas fa-home me-2"></i>Tableau de Bord
                     </div>
                     <a class="nav-link {% if request.resolver_match.url_name == 'accueil' %}active{% endif %}" 
-                       href="javascript:void(0)" onclick="navigateToSPA('dashboard')">
+                       href="#" data-spa-section="dashboard">
                         <i class="fas fa-tachometer-alt"></i>
                         <span>Accueil</span>
                     </a>
                     
                     {% if user.is_superuser or user.groups.all.0.name == 'RH' %}
                     <a class="nav-link" 
-                       href="javascript:void(0)" onclick="navigateToSPA('dashboard-rh')">
+                       href="#" data-spa-section="dashboard-rh">
                         <i class="fas fa-user-tie"></i>
                         <span>Dashboard RH</span>
                     </a>
@@ -934,14 +984,14 @@
                         <i class="fas fa-cogs me-2"></i>Gestion
                     </div>
                     <a class="nav-link {% if 'employes' in request.resolver_match.url_name %}active{% endif %}" 
-                       href="javascript:void(0)" onclick="navigateToSPA('employees')">
+                       href="#" data-spa-section="employees">
                         <i class="fas fa-users"></i>
                         <span>Gestion Employés</span>
                         <span class="nav-link-badge">{{ total_employes|default:4 }}</span>
                     </a>
                     
                     <a class="nav-link {% if 'absences' in request.resolver_match.url_name %}active{% endif %}" 
-                       href="javascript:void(0)" onclick="navigateToSPA('absences')">
+                       href="#" data-spa-section="absences">
                         <i class="fas fa-calendar-check"></i>
                         <span>Gestion Absences</span>
                         {% if absences_attente|default:0 > 0 %}
@@ -950,7 +1000,7 @@
                     </a>
                     
                     <a class="nav-link {% if 'calcul_paie' in request.resolver_match.url_name %}active{% endif %}" 
-                       href="javascript:void(0)" onclick="navigateToSPA('payroll')">
+                       href="#" data-spa-section="payroll">
                         <i class="fas fa-calculator"></i>
                         <span>Calcul Paie</span>
                     </a>
@@ -961,7 +1011,7 @@
                     <div class="nav-section-title">
                         <i class="fas fa-chart-line me-2"></i>Analytics
                     </div>
-                    <a class="nav-link" href="javascript:void(0)" onclick="navigateToSPA('reports')">
+                    <a class="nav-link" href="#" data-spa-section="reports">
                         <i class="fas fa-chart-bar"></i>
                         <span>Rapports & Exports</span>
                     </a>
@@ -1001,39 +1051,18 @@
 
         <!-- Contenu principal -->
         <div class="main-content">
-            <!-- Contenu principal de la page -->
-            {% block content %}
-            <div class="text-center" style="padding: 2rem;">
-                <h1>Bienvenue dans PayrollPro</h1>
-                <p class="lead">Système moderne de gestion de paie</p>
-                
-                <!-- Quick Actions pour utilisateurs connectés -->
-                {% if user.is_superuser or user.groups.all.0.name == 'RH' %}
-                <div class="row mt-4">
-                    <div class="col-md-3 mb-3">
-                        <a href="{% url 'paie:dashboard_admin_moderne' %}" class="btn btn-primary btn-lg w-100">
-                            <i class="fas fa-tachometer-alt"></i><br>Dashboard Admin
-                        </a>
+            <!-- Conteneur SPA dynamique -->
+            <div id="spa-content">
+                {% block content %}
+                <!-- Contenu par défaut si aucun bloc n'est défini -->
+                <div class="text-center p-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Chargement...</span>
                     </div>
-                    <div class="col-md-3 mb-3">
-                        <a href="{% url 'paie:dashboard_rh_moderne' %}" class="btn btn-info btn-lg w-100">
-                            <i class="fas fa-users"></i><br>Dashboard RH
-                        </a>
-                    </div>
-                    <div class="col-md-3 mb-3">
-                        <a href="{% url 'paie:gestion_absences_moderne' %}" class="btn btn-warning btn-lg w-100">
-                            <i class="fas fa-calendar-times"></i><br>Absences
-                        </a>
-                    </div>
-                    <div class="col-md-3 mb-3">
-                        <a href="{% url 'paie:liste_employes' %}" class="btn btn-success btn-lg w-100">
-                            <i class="fas fa-users"></i><br>Employés
-                        </a>
-                    </div>
+                    <h4 class="mt-3">Chargement du tableau de bord...</h4>
                 </div>
-                {% endif %}
+                {% endblock %}
             </div>
-            {% endblock %}
         </div>
     </div>
     {% else %}
@@ -1052,74 +1081,280 @@
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     
-    <!-- JavaScript global -->
+    <!-- PayrollPro SPA System -->
     <script>
-        // Fonction de navigation SPA
-        function navigateToSPA(sectionName) {
-            console.log('navigateToSPA appelée avec:', sectionName);
-            console.log('URL actuelle:', window.location.pathname);
+        console.log('🚀 Initialisation PayrollPro SPA System');
+        
+        // Configuration SPA
+        const SPA_CONFIG = {
+            routes: {
+                'dashboard': '/api/spa/dashboard/',
+                'dashboard-admin': '/api/spa/dashboard/',
+                'dashboard-rh': '/api/spa/dashboard-rh/',
+                'employees': '/api/spa/employees/',
+                'absences': '/api/spa/absences/',
+                'payroll': '/api/spa/payroll/',
+                'reports': '/api/spa/reports/'
+            },
+            currentSection: null,
+            loading: false
+        };
+        
+        /**
+         * Charge le contenu SPA pour une section donnée
+         */
+        function loadSPAContent(section) {
+            console.log(`🎯 Chargement de la section: ${section}`);
             
-            // Si nous sommes déjà sur la page SPA, utiliser la navigation interne
-            if (window.location.pathname.includes('accueil')) {
-                console.log('Sur la page accueil - navigation interne');
+            // Éviter les chargements multiples
+            if (SPA_CONFIG.loading) {
+                console.log('⏳ Chargement déjà en cours');
+                return;
+            }
+            
+            // Vérifier que le conteneur existe
+            const contentDiv = document.getElementById('spa-content');
+            if (!contentDiv) {
+                console.error('❌ Conteneur #spa-content non trouvé');
+                return;
+            }
+            
+            SPA_CONFIG.loading = true;
+            SPA_CONFIG.currentSection = section;
+            
+            // Afficher l'indicateur de chargement
+            showLoadingIndicator(contentDiv, section);
+            
+            // Obtenir l'URL
+            const url = SPA_CONFIG.routes[section];
+            if (!url) {
+                console.error('❌ Section SPA inconnue:', section);
+                showErrorMessage(contentDiv, 'Section inconnue', `La section "${section}" n'existe pas.`);
+                SPA_CONFIG.loading = false;
+                return;
+            }
+            
+            console.log(`🌐 Requête AJAX vers: ${url}`);
+            
+            // Effectuer la requête AJAX
+            fetch(url, {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'same-origin'
+            })
+            .then(response => {
+                console.log(`📡 Réponse HTTP ${response.status} pour ${section}`);
                 
-                // Vérifier si la fonction switchToTab existe (plus appropriée que loadSection seul)
-                if (typeof switchToTab === 'function') {
-                    console.log('switchToTab trouvée - activation onglet et chargement contenu');
-                    switchToTab(sectionName);
-                } else if (typeof loadSection === 'function') {
-                    console.log('loadSection trouvée - activation onglet et chargement contenu');
-                    
-                    // Activer le bon tab d'abord
-                    const targetTab = document.getElementById(sectionName + '-tab');
-                    if (targetTab) {
-                        console.log('Onglet trouvé:', sectionName + '-tab');
-                        
-                        // Désactiver tous les tabs
-                        document.querySelectorAll('#mainTabs .nav-link').forEach(tab => {
-                            tab.classList.remove('active');
-                        });
-                        
-                        // Activer le tab cible
-                        targetTab.classList.add('active');
-                        
-                        // Utiliser Bootstrap pour activer le tab
-                        const tab = new bootstrap.Tab(targetTab);
-                        tab.show();
-                        
-                        // Charger le contenu avec un délai comme les onglets principaux
-                        setTimeout(() => {
-                            console.log('Chargement du contenu pour:', sectionName);
-                            loadSection(sectionName);
-                        }, 100);
-                    } else {
-                        console.log('Onglet non trouvé, chargement direct du contenu');
-                        // Si l'onglet n'existe pas, charger quand même le contenu
-                        loadSection(sectionName);
-                    }
-                } else {
-                    console.log('Ni switchToTab ni loadSection trouvées - utilisation Bootstrap seulement');
-                    // Alternative: utiliser Bootstrap tabs directement
-                    const targetTab = document.getElementById(sectionName + '-tab');
-                    if (targetTab) {
-                        const tab = new bootstrap.Tab(targetTab);
-                        tab.show();
-                        
-                        // Essayer de charger le contenu après un délai
-                        setTimeout(() => {
-                            if (typeof loadSection === 'function') {
-                                console.log('loadSection trouvée après délai');
-                                loadSection(sectionName);
-                            }
-                        }, 200);
-                    }
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status} - ${response.statusText}`);
                 }
-            } else {
-                console.log('Redirection vers accueil avec section:', sectionName);
-                // Rediriger vers accueil avec la section spécifiée
-                window.location.href = `/paie/accueil/?section=${sectionName}`;
+                
+                return response.json();
+            })
+            .then(data => {
+                console.log(`✅ Données JSON reçues:`, data);
+                
+                if (data.success && data.content) {
+                    // Injecter le contenu HTML
+                    injectContent(contentDiv, data.content, section);
+                } else {
+                    throw new Error(data.error || 'Contenu invalide reçu du serveur');
+                }
+                
+                SPA_CONFIG.loading = false;
+                console.log(`🎉 Section ${section} chargée avec succès`);
+            })
+            .catch(error => {
+                SPA_CONFIG.loading = false;
+                console.error(`❌ Erreur AJAX pour ${section}:`, error);
+                showErrorMessage(contentDiv, 'Erreur de chargement', error.message, section);
+            });
+        }
+        
+        /**
+         * Affiche l'indicateur de chargement
+         */
+        function showLoadingIndicator(container, section) {
+            const sectionName = getSectionDisplayName(section);
+            container.innerHTML = `
+                <div class="text-center p-5 fade-in">
+                    <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                        <span class="visually-hidden">Chargement...</span>
+                    </div>
+                    <h4 class="text-muted">Chargement de ${sectionName}...</h4>
+                </div>
+            `;
+        }
+        
+        /**
+         * Injecte le contenu HTML dans le conteneur
+         */
+        function injectContent(container, htmlContent, section) {
+            // Animation de transition
+            container.style.opacity = '0.5';
+            
+            setTimeout(() => {
+                // Nettoyer et injecter le contenu HTML
+                container.innerHTML = htmlContent;
+                
+                // Réinitialiser les composants Bootstrap
+                initializeBootstrapComponents(container);
+                
+                // Réactiver les gestionnaires d'événements SPA pour les nouveaux éléments
+                reattachSPAEventListeners(container);
+                
+                // Animation fade in
+                container.style.opacity = '1';
+                container.classList.add('fade-in');
+                
+                // Mettre à jour la navigation
+                updateNavigationState(section);
+                
+            }, 150);
+        }
+        
+        /**
+         * Réattache les gestionnaires d'événements SPA aux nouveaux éléments
+         */
+        function reattachSPAEventListeners(container) {
+            const spaLinks = container.querySelectorAll('[data-spa-section]');
+            spaLinks.forEach(link => {
+                link.addEventListener('click', function(event) {
+                    event.preventDefault();
+                    const section = this.getAttribute('data-spa-section');
+                    console.log(`🖱️ Clic interne détecté sur: ${section}`);
+                    loadSPAContent(section);
+                });
+            });
+        }
+        
+        /**
+         * Affiche un message d'erreur
+         */
+        function showErrorMessage(container, title, message, section = null) {
+            const retryButton = section ? `
+                <button type="button" class="btn btn-outline-primary mt-3" onclick="loadSPAContent('${section}')">
+                    <i class="fas fa-arrow-clockwise"></i> Réessayer
+                </button>
+            ` : '';
+            
+            container.innerHTML = `
+                <div class="alert alert-danger text-center fade-in">
+                    <h4><i class="fas fa-exclamation-triangle"></i> ${title}</h4>
+                    <p class="mb-0">${message}</p>
+                    ${retryButton}
+                </div>
+            `;
+        }
+        
+        /**
+         * Initialise les composants Bootstrap
+         */
+        function initializeBootstrapComponents(container) {
+            try {
+                // Tooltips
+                const tooltips = container.querySelectorAll('[data-bs-toggle="tooltip"]');
+                tooltips.forEach(el => new bootstrap.Tooltip(el));
+                
+                // Popovers
+                const popovers = container.querySelectorAll('[data-bs-toggle="popover"]');
+                popovers.forEach(el => new bootstrap.Popover(el));
+                
+                console.log('🔧 Composants Bootstrap réinitialisés');
+            } catch (error) {
+                console.warn('⚠️ Erreur lors de l\'initialisation Bootstrap:', error);
             }
         }
+        
+        /**
+         * Met à jour l'état actif de la navigation
+         */
+        function updateNavigationState(section) {
+            // Retirer l'état actif
+            document.querySelectorAll('.sidebar .nav-link').forEach(link => {
+                link.classList.remove('active');
+            });
+            
+            // Ajouter l'état actif
+            const activeLink = document.querySelector(`.sidebar .nav-link[data-spa-section="${section}"]`);
+            if (activeLink) {
+                activeLink.classList.add('active');
+            }
+        }
+        
+        /**
+         * Retourne le nom d'affichage d'une section
+         */
+        function getSectionDisplayName(section) {
+            const names = {
+                'dashboard': 'Tableau de bord',
+                'dashboard-admin': 'Tableau de bord Admin',
+                'dashboard-rh': 'Tableau de bord RH',
+                'employees': 'Gestion des employés',
+                'absences': 'Gestion des absences', 
+                'payroll': 'Calcul de paie',
+                'reports': 'Rapports et exports'
+            };
+            return names[section] || section;
+        }
+        
+        // Initialisation au chargement du DOM
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🎯 DOM prêt - Configuration des gestionnaires SPA');
+            
+            // Gestionnaire d'événements unifié
+            document.addEventListener('click', function(event) {
+                const element = event.target.closest('[data-spa-section]');
+                if (!element) return;
+                
+                event.preventDefault();
+                const section = element.getAttribute('data-spa-section');
+                
+                console.log(`🖱️ Clic détecté sur: ${section}`);
+                loadSPAContent(section);
+            });
+            
+            // Charger le contenu par défaut
+            const contentDiv = document.getElementById('spa-content');
+            if (contentDiv) {
+                console.log('📱 Chargement du contenu par défaut');
+                
+                // Déterminer la section par défaut
+                let defaultSection = 'dashboard';
+                {% if user.is_superuser %}
+                defaultSection = 'dashboard';
+                {% elif user.groups.all.0.name == 'RH' %}
+                defaultSection = 'dashboard-rh';
+                {% endif %}
+                
+                // Charger avec un délai
+                setTimeout(() => {
+                    loadSPAContent(defaultSection);
+                }, 500);
+            }
+            
+            console.log('✅ PayrollPro SPA System prêt');
+        });
+        
+        // Fonction de compatibilité pour l'ancien système
+        function navigateToSPA(section) {
+            loadSPAContent(section);
+        }
+        
+        // API globale
+        window.PayrollProSPA = {
+            load: loadSPAContent,
+            navigate: navigateToSPA,
+            current: () => SPA_CONFIG.currentSection,
+            routes: SPA_CONFIG.routes,
+            isLoading: () => SPA_CONFIG.loading
+        };
+        
+        console.log('📚 API PayrollPro SPA exposée globalement');
+    </script>
         
         // Fonction utilitaire pour les notifications
         function showToast(message, type = 'info') {

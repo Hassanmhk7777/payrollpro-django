@@ -76,7 +76,8 @@ urlpatterns = [
     path('accueil_moderne/', views.accueil_moderne, name='accueil_moderne'),
     
     # API SPA pour chargement dynamique de contenu
-    path('api/spa/dashboard/', views_spa.spa_dashboard_admin, name='spa_dashboard_admin'),
+    path('api/spa/dashboard/', views_spa.spa_dashboard, name='spa_dashboard'),
+    path('api/spa/dashboard-admin/', views_spa.spa_dashboard_admin, name='spa_dashboard_admin'),
     path('api/spa/dashboard-rh/', views_spa.spa_dashboard_rh, name='spa_dashboard_rh'),
     path('api/spa/employees/', views_spa.spa_employees, name='spa_employees'),
     path('api/spa/absences/', views_spa.spa_absences, name='spa_absences'),
