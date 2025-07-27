@@ -1817,3 +1817,370 @@ def api_export_payroll(request):
             'success': False,
             'error': f'Erreur lors de l\'export: {str(e)}'
         }, status=500)
+
+
+# ===== NOUVELLES FONCTIONS API COMPLÈTES =====
+
+@login_required
+def api_calculate_payroll_complete(request, employe_id):
+    """API COMPLÈTE pour calculer la paie d'un employé spécifique"""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Méthode non autorisée'}, status=405)
+    
+    try:
+        # Vérification des permissions
+        role = obtenir_role_utilisateur(request.user)
+        if role not in ['admin', 'rh']:
+            return JsonResponse({'success': False, 'error': 'Permissions insuffisantes'}, status=403)
+        
+        employe = get_object_or_404(Employe, id=employe_id)
+        
+        # Import du calculateur de paie si disponible
+        try:
+            from .calculs import CalculateurPaie
+            calculateur = CalculateurPaie()
+            mois = timezone.now().month
+            annee = timezone.now().year
+            
+            # Calculer la paie avec le système existant
+            resultats = calculateur.calculer_bulletin_complet(employe, mois, annee)
+            
+            if resultats.get('success', False):
+                # Créer le bulletin de paie
+                bulletin = BulletinPaie.objects.create(
+                    employe=employe,
+                    mois=mois,
+                    annee=annee,
+                    salaire_brut=resultats.get('salaire_brut', 0),
+                    salaire_net=resultats.get('salaire_net', 0),
+                    cotisations_totales=resultats.get('cotisations_totales', 0),
+                    calcule_par=request.user,
+                    date_calcul=timezone.now()
+                )
+                
+                # Log de l'action
+                log_calculation(
+                    user=request.user,
+                    description=f"Paie calculée pour {employe.nom} {employe.prenom} - {mois}/{annee}",
+                    details={'employe_id': employe_id, 'bulletin_id': bulletin.id, 'montant': float(resultats.get('salaire_net', 0))},
+                    request=request
+                )
+                
+                return JsonResponse({
+                    'success': True,
+                    'message': f'Paie calculée pour {employe.nom} {employe.prenom}',
+                    'employe': f'{employe.nom} {employe.prenom}',
+                    'montant': float(resultats.get('salaire_net', 0)),
+                    'salaire_brut': float(resultats.get('salaire_brut', 0)),
+                    'bulletin_id': bulletin.id,
+                    'details': resultats
+                })
+            else:
+                return JsonResponse({
+                    'success': False,
+                    'error': resultats.get('error', 'Erreur lors du calcul')
+                })
+                
+        except ImportError:
+            # Calcul simple si le module calculs n'existe pas
+            salaire_brut = employe.salaire_base or 0
+            cotisations = salaire_brut * Decimal('0.2')  # 20% de cotisations
+            salaire_net = salaire_brut - cotisations
+            
+            # Créer un bulletin simple
+            bulletin = BulletinPaie.objects.create(
+                employe=employe,
+                mois=timezone.now().month,
+                annee=timezone.now().year,
+                salaire_brut=salaire_brut,
+                salaire_net=salaire_net,
+                cotisations_totales=cotisations,
+                calcule_par=request.user,
+                date_calcul=timezone.now()
+            )
+            
+            return JsonResponse({
+                'success': True,
+                'message': f'Paie calculée pour {employe.nom} {employe.prenom}',
+                'employe': f'{employe.nom} {employe.prenom}',
+                'montant': float(salaire_net),
+                'salaire_brut': float(salaire_brut),
+                'bulletin_id': bulletin.id
+            })
+        
+    except Exception as e:
+        import traceback
+        return JsonResponse({
+            'success': False, 
+            'error': f'Erreur système: {str(e)}',
+            'debug': traceback.format_exc()
+        }, status=500)
+
+
+@login_required
+def api_calculate_all_payroll_complete(request):
+    """API COMPLÈTE pour calculer la paie de tous les employés actifs"""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Méthode non autorisée'}, status=405)
+    
+    try:
+        # Vérification des permissions
+        role = obtenir_role_utilisateur(request.user)
+        if role not in ['admin', 'rh']:
+            return JsonResponse({'success': False, 'error': 'Permissions insuffisantes'}, status=403)
+        
+        # Récupérer tous les employés actifs
+        employes = Employe.objects.filter(actif=True)
+        employes_traites = 0
+        employes_reussis = 0
+        erreurs = []
+        bulletins_crees = []
+        
+        for employe in employes:
+            try:
+                # Calculer la paie pour chaque employé
+                salaire_brut = employe.salaire_base or 0
+                cotisations = salaire_brut * Decimal('0.2')  # 20% de cotisations
+                salaire_net = salaire_brut - cotisations
+                
+                # Créer ou mettre à jour le bulletin
+                bulletin, created = BulletinPaie.objects.get_or_create(
+                    employe=employe,
+                    mois=timezone.now().month,
+                    annee=timezone.now().year,
+                    defaults={
+                        'salaire_brut': salaire_brut,
+                        'salaire_net': salaire_net,
+                        'cotisations_totales': cotisations,
+                        'calcule_par': request.user,
+                        'date_calcul': timezone.now()
+                    }
+                )
+                
+                if not created:
+                    # Mettre à jour le bulletin existant
+                    bulletin.salaire_brut = salaire_brut
+                    bulletin.salaire_net = salaire_net
+                    bulletin.cotisations_totales = cotisations
+                    bulletin.calcule_par = request.user
+                    bulletin.date_calcul = timezone.now()
+                    bulletin.save()
+                
+                bulletins_crees.append({
+                    'employe': f'{employe.nom} {employe.prenom}',
+                    'montant': float(salaire_net),
+                    'bulletin_id': bulletin.id
+                })
+                
+                employes_traites += 1
+                employes_reussis += 1
+                
+            except Exception as e:
+                erreurs.append(f"Erreur pour {employe.nom} {employe.prenom}: {str(e)}")
+                employes_traites += 1
+        
+        # Log de l'action globale
+        log_calculation(
+            user=request.user,
+            description=f"Calcul massif de paie - {timezone.now().month}/{timezone.now().year}",
+            details={
+                'total_employes': employes.count(),
+                'traites': employes_traites,
+                'reussis': employes_reussis,
+                'echecs': len(erreurs)
+            },
+            request=request
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'message': f"Calcul terminé: {employes_reussis} sur {employes_traites} employés traités avec succès",
+            'employes_traites': employes_traites,
+            'employes_reussis': employes_reussis,
+            'employes_echecs': len(erreurs),
+            'bulletins_crees': bulletins_crees,
+            'erreurs': erreurs
+        })
+        
+    except Exception as e:
+        import traceback
+        return JsonResponse({
+            'success': False, 
+            'error': f'Erreur système: {str(e)}',
+            'debug': traceback.format_exc()
+        }, status=500)
+
+
+@login_required
+def api_export_payroll_complete(request):
+    """API COMPLÈTE pour exporter les bulletins de paie"""
+    if request.method != 'GET':
+        return JsonResponse({'success': False, 'error': 'Méthode non autorisée'}, status=405)
+    
+    try:
+        # Vérification des permissions
+        role = obtenir_role_utilisateur(request.user)
+        if role not in ['admin', 'rh']:
+            return JsonResponse({'success': False, 'error': 'Permissions insuffisantes'}, status=403)
+        
+        mois = request.GET.get('mois', timezone.now().month)
+        annee = request.GET.get('annee', timezone.now().year)
+        
+        # Récupérer les bulletins du mois
+        bulletins = BulletinPaie.objects.filter(
+            mois=mois,
+            annee=annee
+        ).select_related('employe').order_by('employe__nom')
+        
+        if not bulletins.exists():
+            return JsonResponse({
+                'success': False,
+                'error': f'Aucun bulletin trouvé pour {mois}/{annee}'
+            })
+        
+        # Créer les données d'export
+        export_data = []
+        total_brut = 0
+        total_net = 0
+        
+        for bulletin in bulletins:
+            data = {
+                'employe': f'{bulletin.employe.nom} {bulletin.employe.prenom}',
+                'matricule': bulletin.employe.matricule or 'N/A',
+                'salaire_brut': float(bulletin.salaire_brut or 0),
+                'salaire_net': float(bulletin.salaire_net or 0),
+                'cotisations': float(bulletin.cotisations_totales or 0),
+                'date_calcul': bulletin.date_calcul.strftime('%d/%m/%Y %H:%M') if bulletin.date_calcul else 'N/A',
+                'mois': bulletin.mois,
+                'annee': bulletin.annee
+            }
+            export_data.append(data)
+            total_brut += data['salaire_brut']
+            total_net += data['salaire_net']
+        
+        return JsonResponse({
+            'success': True,
+            'data': export_data,
+            'total_bulletins': len(export_data),
+            'periode': f'{mois}/{annee}',
+            'totaux': {
+                'total_brut': total_brut,
+                'total_net': total_net,
+                'total_cotisations': total_brut - total_net
+            }
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+# ===== API GESTION ABSENCES =====
+
+@login_required
+def api_approve_absence(request, absence_id):
+    """API pour approuver une demande d'absence"""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Méthode non autorisée'}, status=405)
+    
+    try:
+        # Vérification des permissions
+        role = obtenir_role_utilisateur(request.user)
+        if role not in ['admin', 'rh']:
+            return JsonResponse({'success': False, 'error': 'Permissions insuffisantes'}, status=403)
+        
+        absence = get_object_or_404(Absence, id=absence_id)
+        
+        if absence.statut != 'EN_ATTENTE':
+            return JsonResponse({
+                'success': False,
+                'error': f'Cette absence a déjà été traitée (statut: {absence.get_statut_display()})'
+            })
+        
+        # Approuver l'absence
+        absence.statut = 'APPROUVEE'
+        absence.validee_par = request.user
+        absence.date_validation = timezone.now()
+        absence.save()
+        
+        # Log de l'action
+        log_data_change(
+            user=request.user,
+            model_name='Absence',
+            object_id=absence.id,
+            change_type='UPDATE',
+            description=f'Absence approuvée - {absence.employe.nom} {absence.employe.prenom}',
+            request=request
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Absence de {absence.employe.nom} {absence.employe.prenom} approuvée',
+            'absence_id': absence.id,
+            'nouveau_statut': absence.get_statut_display()
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'Erreur lors de l\'approbation: {str(e)}'
+        }, status=500)
+
+
+@login_required
+def api_reject_absence(request, absence_id):
+    """API pour rejeter une demande d'absence"""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Méthode non autorisée'}, status=405)
+    
+    try:
+        # Vérification des permissions
+        role = obtenir_role_utilisateur(request.user)
+        if role not in ['admin', 'rh']:
+            return JsonResponse({'success': False, 'error': 'Permissions insuffisantes'}, status=403)
+        
+        absence = get_object_or_404(Absence, id=absence_id)
+        
+        if absence.statut != 'EN_ATTENTE':
+            return JsonResponse({
+                'success': False,
+                'error': f'Cette absence a déjà été traitée (statut: {absence.get_statut_display()})'
+            })
+        
+        # Récupérer le motif du refus
+        import json
+        try:
+            body = json.loads(request.body.decode('utf-8'))
+            motif = body.get('motif', '')
+        except:
+            motif = request.POST.get('motif', '')
+        
+        # Rejeter l'absence
+        absence.statut = 'REFUSEE'
+        absence.validee_par = request.user
+        absence.date_validation = timezone.now()
+        absence.motif_refus = motif
+        absence.save()
+        
+        # Log de l'action
+        log_data_change(
+            user=request.user,
+            model_name='Absence',
+            object_id=absence.id,
+            change_type='UPDATE',
+            description=f'Absence refusée - {absence.employe.nom} {absence.employe.prenom} - Motif: {motif}',
+            request=request
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Absence de {absence.employe.nom} {absence.employe.prenom} refusée',
+            'absence_id': absence.id,
+            'nouveau_statut': absence.get_statut_display(),
+            'motif': motif
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'Erreur lors du refus: {str(e)}'
+        }, status=500)

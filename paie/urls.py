@@ -69,10 +69,14 @@ urlpatterns = [
     # API Routes pour les absences
     path('api/absence/<int:absence_id>/approve/', views.api_approve_absence, name='api_approve_absence'),
     path('api/absence/<int:absence_id>/reject/', views.api_reject_absence, name='api_reject_absence'),
-    # API Routes pour le calcul de paie
-    path('api/payroll/calculate/<int:employe_id>/', views.api_calculate_payroll, name='api_calculate_payroll'),
-    path('api/payroll/calculate-all/', views.api_calculate_all_payroll, name='api_calculate_all_payroll'),
-    path('api/payroll/export/', views.api_export_payroll, name='api_export_payroll'),
+    # API Routes pour le calcul de paie - NOUVELLES VERSIONS COMPLÈTES
+    path('api/payroll/calculate/<int:employe_id>/', views.api_calculate_payroll_complete, name='api_calculate_payroll_complete'),
+    path('api/payroll/calculate-all/', views.api_calculate_all_payroll_complete, name='api_calculate_all_payroll_complete'),
+    path('api/payroll/export/', views.api_export_payroll_complete, name='api_export_payroll_complete'),
+    # Anciennes API Routes (compatibilité)
+    path('api/calculate-payroll/', views.api_calculate_payroll, name='api_calculate_payroll_old'),
+    path('api/calculate-all-payroll/', views.api_calculate_all_payroll, name='api_calculate_all_payroll_old'),
+    path('api/export-payroll/', views.api_export_payroll, name='api_export_payroll_old'),
     # Compatibilité pour anciens liens
     path('employes/', lambda request: redirect('paie:liste_employes', permanent=True)),
     path('absences/', lambda request: redirect('paie:gestion_absences_moderne', permanent=True)),
