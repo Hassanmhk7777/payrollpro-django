@@ -5,7 +5,6 @@ from django.shortcuts import redirect, render
 from . import views
 from . import views_excel  # Import des vues Excel
 from . import views_spa  # Import des vues SPA
-from . import views_spa_fixed  # Import des vues SPA corrigées
 from . import views_rubriques_complete  # Import des nouvelles vues rubriques
 from . import views_users  # Import des vues utilisateurs
 
@@ -26,18 +25,6 @@ urlpatterns = [
     # Page de test des fonctionnalités
     path('test/', test_fonctionnalites, name='test_fonctionnalites'),
     
-    # Test spécifique des employés
-    path('test/employees/', lambda request: render(request, 'paie/test_employees.html'), name='test_employees'),
-    
-    # Test spécifique de l'interface SPA employés
-    path('test/spa-employees/', lambda request: render(request, 'paie/test_spa_employees.html'), name='test_spa_employees'),
-    
-    # Test simple des filtres employés
-    path('test/simple-filtres/', lambda request: render(request, 'paie/test_simple_filtres.html'), name='test_simple_filtres'),
-    
-    # Démonstration intégration SPA
-    path('demo/integration-spa/', lambda request: render(request, 'paie/demo_integration_spa.html'), name='demo_integration_spa'),
-    
     # Test diagnostic final
     path('test/diagnostic-final/', lambda request: render(request, 'paie/test_diagnostic_final.html'), name='test_diagnostic_final'),
     
@@ -48,13 +35,12 @@ urlpatterns = [
     path('accueil_moderne/', views.accueil_moderne, name='accueil_moderne'),
     
     # API SPA pour chargement dynamique de contenu - Versions corrigées
-    path('api/spa/dashboard/', views_spa_fixed.spa_dashboard_fixed, name='spa_dashboard'),
-    path('api/spa/dashboard-admin/', views_spa_fixed.spa_dashboard_admin_fixed, name='spa_dashboard_admin'),
-    path('api/spa/dashboard-rh/', views_spa_fixed.spa_dashboard_rh_fixed, name='spa_dashboard_rh'),
-    path('api/spa/employees/', views.spa_employees_improved, name='spa_employees'),
-    path('spa-employees-simple/', views.spa_employees_simple, name='spa_employees_simple'),
+    path('api/spa/dashboard/', views_spa.spa_dashboard_admin, name='spa_dashboard'),
+    path('api/spa/dashboard-admin/', views_spa.spa_dashboard_admin, name='spa_dashboard_admin'),
+    path('api/spa/dashboard-rh/', views_spa.spa_dashboard_rh, name='spa_dashboard_rh'),
+    path('api/spa/employees/', views_spa.spa_employees_new, name='spa_employees'),
     path('api/spa/absences/', views_spa.spa_absences, name='spa_absences'),
-    path('api/spa/payroll/', views_spa_fixed.spa_payroll_fixed, name='spa_payroll'),
+    path('api/spa/payroll/', views_spa.spa_payroll, name='spa_payroll'),
     path('api/spa/reports/', views_spa.spa_reports, name='spa_reports'),
     path('api/spa/rubriques/', views_rubriques_complete.rubriques_spa_view, name='spa_rubriques'),
     
@@ -76,8 +62,7 @@ urlpatterns = [
     path('gestion-absences/', views.gestion_absences, name='gestion_absences_moderne'),
     path('liste-employes/', views.liste_employes, name='liste_employes'),
     path('gestion-utilisateurs/', views.creer_compte_employe, name='gestion_utilisateurs'),
-    path('gestion-employes/', views.spa_employees_improved, name='gestion_employes'),
-    path('gestion-employes-simple/', views.spa_employees_simple, name='gestion_employes_simple'),
+    path('gestion-employes/', views_users.gestion_employes, name='gestion_employes'),
     path('calcul-paie/', views.calcul_paie, name='calcul_paie'),
     path('aide/', views.aide, name='aide'),
     path('deconnexion/', views.deconnexion_vue, name='deconnexion'),
@@ -98,10 +83,6 @@ urlpatterns = [
     path('api/employees/search/', views.api_search_employees, name='api_search_employees'),
     path('api/employes/export/', views_users.api_export_employees, name='api_export_employees_alt'),
     path('api/employes/<int:employe_id>/toggle-status/', views_users.api_toggle_employee_status, name='api_toggle_employee_status'),
-    
-    # API pour sites et départements
-    path('api/sites/', views.api_sites, name='api_sites'),
-    path('api/departements/', views.api_departements, name='api_departements'),
     
     # API Routes pour le calcul de paie - NOUVELLES VERSIONS COMPLÈTES
     path('api/payroll/calculate/<int:employe_id>/', views.api_calculate_payroll_complete, name='api_calculate_payroll_complete'),
