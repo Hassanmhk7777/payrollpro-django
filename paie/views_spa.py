@@ -416,7 +416,7 @@ def spa_dashboard_rh(request):
         }
         return JsonResponse(data)
     except Exception as e:
-        return JsonResponse({'success': False, 'error': str(e)})
+        return JsonResponse({{'success': False, 'error': str(e)}})
 
 @login_required
 def spa_employees(request):
@@ -686,55 +686,46 @@ def spa_payroll(request):
         # Statistiques pour le calcul de paie
         employes_count = Employe.objects.filter(actif=True).count()
         bulletins_mois = BulletinPaie.objects.filter(
-            date_calcul__month=datetime.now().month,
-            date_calcul__year=datetime.now().year
+            date_creation__month=datetime.now().month,
+            date_creation__year=datetime.now().year
         ).count()
         
         # Récupérer quelques employés pour la démo
         employes = Employe.objects.filter(actif=True)[:10]
         
-        # Ajouter des informations aux employés
-        employes_avec_info = []
+        employes_html = ""
         for employe in employes:
-            bulletin_existant = BulletinPaie.objects.filter(
-                employe=employe,
-                mois=datetime.now().month,
-                annee=datetime.now().year
-            ).exists()
-            employe.bulletin_existant = bulletin_existant
-            employes_avec_info.append(employe)
-        
-        # Contexte pour le template
-        context = {
-            'employes_count': employes_count,
-            'bulletins_mois': bulletins_mois,
-            'mois_annee': datetime.now().strftime('%m/%Y'),
-            'en_attente': employes_count - bulletins_mois,
-            'employes': employes_avec_info,
-        }
-        
-        # Render du template
-        html_content = render(request, 'paie/spa/payroll.html', context).content.decode('utf-8')
-        
-        return JsonResponse({
-            'success': True,
-            'content': html_content
-        })
-        
-    except Exception as e:
-        return JsonResponse({
-            'success': False,
-            'error': f'Erreur lors du chargement du module calcul de paie: {str(e)}'
-        })
-
-@login_required
-def spa_reports(request):
-    """Contenu des rapports pour SPA"""
-    try:
-        # Statistiques pour les rapports
-        total_employes = Employe.objects.filter(actif=True).count()
-        total_bulletins = BulletinPaie.objects.count()
-        masse_salariale = sum(emp.salaire_base for emp in Employe.objects.filter(actif=True))
+            employes_html += f'''
+            <div class="col-lg-6 col-xl-4 mb-3">
+                <div class="card h-100 hover-lift">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="icon-wrapper small me-3">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-0">{employe.nom} {employe.prenom}</h6>
+                                <small class="text-muted">{employe.fonction or 'Fonction non définie'}</small>
+                            </div>
+                        </div>
+                        <div class="row text-center">
+                            <div class="col-6">
+                                <div class="stats-number" style="font-size: 1.2rem;">{employe.salaire_base:,.0f}</div>
+                                <div class="stats-label" style="font-size: 0.8rem;">Salaire Base</div>
+                            </div>
+                            <div class="col-6">
+                                <span class="badge badge-success">Actif</span>
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <button class="btn btn-sm btn-primary w-100" onclick="PayrollPro.notify('Calcul paie pour {employe.nom}', 'info')">
+                                <i class="fas fa-calculator me-1"></i>Calculer
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            '''
         
         data = {
             'success': True,
@@ -742,93 +733,64 @@ def spa_reports(request):
             <div class="row mb-4">
                 <div class="col-12">
                     <h2 class="text-gradient mb-4">
-                        <i class="fas fa-chart-bar me-3"></i>Rapports et Analyses
+                        <i class="fas fa-money-bill-wave me-3"></i>Calcul de Paie
                     </h2>
                 </div>
             </div>
             
-            <!-- Statistiques rapides -->
+            <!-- Actions principales -->
             <div class="row mb-4">
-                <div class="col-lg-4 col-md-6 mb-3">
-                    <div class="stats-card slide-in-up hover-lift">
-                        <div class="d-flex align-items-center justify-content-between">
-                            <div>
-                                <div class="stats-number">{total_employes}</div>
-                                <div class="stats-label">Employés Actifs</div>
-                            </div>
-                            <div class="icon-wrapper">
-                                <i class="fas fa-users"></i>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="col-lg-4 col-md-6 mb-3">
-                    <div class="stats-card slide-in-up hover-lift" style="animation-delay: 0.1s;">
-                        <div class="d-flex align-items-center justify-content-between">
-                            <div>
-                                <div class="stats-number">{total_bulletins}</div>
-                                <div class="stats-label">Bulletins Générés</div>
-                            </div>
-                            <div class="icon-wrapper" style="background: var(--success-gradient);">
-                                <i class="fas fa-file-invoice"></i>
+                <div class="col-12">
+                    <div class="card slide-in-up">
+                        <div class="card-header">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h4><i class="fas fa-calculator me-2"></i>Centre de Calcul</h4>
+                                <div>
+                                    <button class="btn btn-success me-2" onclick="PayrollPro.notify('Calcul en lot démarré', 'success')">
+                                        <i class="fas fa-play me-2"></i>Calculer Tout
+                                    </button>
+                                    <button class="btn btn-primary" onclick="PayrollPro.notify('Aperçu du calcul généré', 'info')">
+                                        <i class="fas fa-eye me-2"></i>Aperçu Calcul
+                                    </button>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                </div>
-                
-                <div class="col-lg-4 col-md-6 mb-3">
-                    <div class="stats-card slide-in-up hover-lift" style="animation-delay: 0.2s;">
-                        <div class="d-flex align-items-center justify-content-between">
-                            <div>
-                                <div class="stats-number">{masse_salariale:,.0f} DH</div>
-                                <div class="stats-label">Masse Salariale</div>
-                            </div>
-                            <div class="icon-wrapper" style="background: var(--primary-gradient);">
-                                <i class="fas fa-money-bill-wave"></i>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-lg-4">
+                                    <div class="stats-card text-center">
+                                        <div class="stats-number">{employes_count}</div>
+                                        <div class="stats-label">Employés à Traiter</div>
+                                    </div>
+                                </div>
+                                <div class="col-lg-4">
+                                    <div class="stats-card text-center">
+                                        <div class="stats-number">{bulletins_mois}</div>
+                                        <div class="stats-label">Bulletins ce Mois</div>
+                                    </div>
+                                </div>
+                                <div class="col-lg-4">
+                                    <div class="stats-card text-center">
+                                        <div class="stats-number">{datetime.now().strftime('%m/%Y')}</div>
+                                        <div class="stats-label">Période Active</div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
             
-            <!-- Actions de rapport -->
-            <div class="row">
-                <div class="col-lg-6 mb-4">
+            <!-- Liste des employés -->
+            <div class="row mb-4">
+                <div class="col-12">
                     <div class="card slide-in-up">
                         <div class="card-header">
-                            <h5><i class="fas fa-file-export me-2"></i>Rapports Automatisés</h5>
+                            <h5><i class="fas fa-users me-2"></i>Employés Disponibles pour Calcul</h5>
                         </div>
                         <div class="card-body">
-                            <div class="d-grid gap-2">
-                                <button class="btn btn-danger" onclick="PayrollPro.notify('Rapport masse salariale généré', 'success')">
-                                    <i class="fas fa-money-bill-wave me-2"></i>Masse Salariale
-                                </button>
-                                <button class="btn btn-warning" onclick="PayrollPro.notify('Rapport absences généré', 'success')">
-                                    <i class="fas fa-calendar-times me-2"></i>Rapport Absences
-                                </button>
-                                <button class="btn btn-info" onclick="PayrollPro.notify('Statistiques RH générées', 'success')">
-                                    <i class="fas fa-chart-line me-2"></i>Statistiques RH
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="col-lg-6 mb-4">
-                    <div class="card slide-in-up" style="animation-delay: 0.2s;">
-                        <div class="card-header">
-                            <h5><i class="fas fa-chart-pie me-2"></i>Aperçu des Données</h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="alert alert-info">
-                                <i class="fas fa-info-circle me-2"></i>
-                                <strong>Module en développement :</strong> Les graphiques et tableaux de bord avancés seront disponibles dans la prochaine version.
-                            </div>
-                            <div class="text-center">
-                                <button class="btn btn-modern" onclick="PayrollPro.notify('Fonctionnalité bientôt disponible !', 'info')">
-                                    <i class="fas fa-chart-area me-2"></i>Voir Graphiques Avancés
-                                </button>
+                            <div class="row">
+                                {employes_html}
                             </div>
                         </div>
                     </div>
@@ -842,5 +804,90 @@ def spa_reports(request):
     except Exception as e:
         return JsonResponse({
             'success': False,
-            'error': f'Erreur lors du chargement des rapports: {str(e)}'
+            'error': f'Erreur lors du chargement du calcul de paie: {str(e)}'
         })
+
+@login_required
+def spa_reports(request):
+    """Contenu des rapports et exports pour SPA"""
+    data = {
+        'success': True,
+        'content': '''
+        <div class="row mb-4">
+            <div class="col-12">
+                <h2 class="text-gradient mb-4">
+                    <i class="fas fa-chart-bar me-3"></i>Rapports & Exports
+                </h2>
+            </div>
+        </div>
+        
+        <!-- Options d'export -->
+        <div class="row mb-4">
+            <div class="col-lg-6 mb-3">
+                <div class="card slide-in-up hover-lift">
+                    <div class="card-header">
+                        <h5><i class="fas fa-file-excel me-2"></i>Exports Excel</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-success" onclick="PayrollPro.notify('Export liste employés démarré', 'success')">
+                                <i class="fas fa-users me-2"></i>Liste des Employés
+                            </button>
+                            <button class="btn btn-success" onclick="PayrollPro.notify('Export bulletins démarré', 'success')">
+                                <i class="fas fa-file-invoice me-2"></i>Bulletins de Paie
+                            </button>
+                            <button class="btn btn-success" onclick="PayrollPro.notify('Export CNSS démarré', 'success')">
+                                <i class="fas fa-building me-2"></i>Déclaration CNSS
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-6 mb-3">
+                <div class="card slide-in-up hover-lift" style="animation-delay: 0.1s;">
+                    <div class="card-header">
+                        <h5><i class="fas fa-file-pdf me-2"></i>Rapports PDF</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-danger" onclick="PayrollPro.notify('Rapport masse salariale généré', 'success')">
+                                <i class="fas fa-money-bill-wave me-2"></i>Masse Salariale
+                            </button>
+                            <button class="btn btn-danger" onclick="PayrollPro.notify('Rapport absences généré', 'success')">
+                                <i class="fas fa-calendar-times me-2"></i>Rapport Absences
+                            </button>
+                            <button class="btn btn-danger" onclick="PayrollPro.notify('Statistiques RH générées', 'success')">
+                                <i class="fas fa-chart-line me-2"></i>Statistiques RH
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Graphiques et statistiques -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card slide-in-up" style="animation-delay: 0.2s;">
+                    <div class="card-header">
+                        <h5><i class="fas fa-chart-pie me-2"></i>Aperçu des Données</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Module en développement :</strong> Les graphiques et tableaux de bord avancés seront disponibles dans la prochaine version.
+                        </div>
+                        <div class="text-center">
+                            <button class="btn btn-modern" onclick="PayrollPro.notify('Fonctionnalité bientôt disponible !', 'info')">
+                                <i class="fas fa-chart-area me-2"></i>Voir Graphiques Avancés
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        '''
+    }
+    
+    return JsonResponse(data)

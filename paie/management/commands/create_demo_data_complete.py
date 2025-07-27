@@ -161,8 +161,10 @@ class Command(BaseCommand):
             employe, created = Employe.objects.get_or_create(
                 user=user,
                 defaults={
+                    'matricule': username.upper(),  # Utiliser le username comme matricule
                     'nom': nom,
                     'prenom': prenom,
+                    'cin': f'CIN{random.randint(100000, 999999)}',  # CIN fictif
                     'email': email,
                     'fonction': fonction,
                     'salaire_base': Decimal(str(salaire)),
@@ -170,8 +172,6 @@ class Command(BaseCommand):
                     'departement': self.departments.get(dept_code),
                     'date_embauche': datetime.now().date() - timedelta(days=random.randint(30, 1800)),
                     'actif': True,
-                    'numero_cnss': f'CNSS{random.randint(100000, 999999)}',
-                    'numero_cimr': f'CIMR{random.randint(100000, 999999)}',
                 }
             )
             self.employees[username] = employe
@@ -188,26 +188,32 @@ class Command(BaseCommand):
             ('HEURES_SUP', 'Heures Supplémentaires', 'GAIN', '(salaire_base / 173.33) * 1.25', 'Heures supplémentaires majorées à 25%', True, 30),
             ('PRIME_ANCIEN', 'Prime d\'Ancienneté', 'GAIN', 'salaire_base * (anciennete_mois / 120) * 0.05', 'Prime basée sur l\'ancienneté', True, 25),
             
-            # Déductions
-            ('RET_RETARD', 'Retenue Retards', 'DEDUCTION', '(salaire_base / 26) * 0.5', 'Retenue pour retards répétés', True, 80),
-            ('RET_ABSENCE', 'Retenue Absences', 'DEDUCTION', '(salaire_base / 26)', 'Retenue pour absences injustifiées', True, 85),
-            ('AVANCE_SAL', 'Avance sur Salaire', 'DEDUCTION', '1000', 'Remboursement avance sur salaire', True, 90),
-            ('RET_MATER', 'Retenue Matériel', 'DEDUCTION', '200', 'Retenue pour dégradation matériel', False, 95),
+            # Retenues
+            ('RET_RETARD', 'Retenue Retards', 'RETENUE', '(salaire_base / 26) * 0.5', 'Retenue pour retards répétés', True, 80),
+            ('RET_ABSENCE', 'Retenue Absences', 'RETENUE', '(salaire_base / 26)', 'Retenue pour absences injustifiées', True, 85),
+            ('AVANCE_SAL', 'Avance sur Salaire', 'RETENUE', '1000', 'Remboursement avance sur salaire', True, 90),
+            ('RET_MATER', 'Retenue Matériel', 'RETENUE', '200', 'Retenue pour dégradation matériel', False, 95),
         ]
         
         self.rubriques = {}
+        admin_user = None
+        if 'admin' in self.employees:
+            admin_user = self.employees['admin'].user
+        
         for code, nom, type_rub, formule, description, actif, ordre in rubriques_data:
             rubrique, created = RubriquePersonnalisee.objects.get_or_create(
                 code=code,
                 defaults={
                     'nom': nom,
                     'type_rubrique': type_rub,
-                    'formule_calcul': formule,
+                    'mode_calcul': 'FORMULE',
+                    'formule_personnalisee': formule,
                     'description': description,
-                    'active': actif,
-                    'ordre': ordre,
-                    'soumise_cotisations': type_rub == 'GAIN',
-                    'cree_par': self.employees.get('admin').user if 'admin' in self.employees else None
+                    'actif': actif,
+                    'ordre_affichage': ordre,
+                    'date_debut': datetime.now().date(),
+                    'soumis_cnss': type_rub == 'GAIN',
+                    'cree_par': admin_user
                 }
             )
             self.rubriques[code] = rubrique
@@ -222,7 +228,7 @@ class Command(BaseCommand):
             EmployeRubrique.objects.get_or_create(
                 employe=emp,
                 rubrique=self.rubriques['PRIME_TRANS'],
-                defaults={'valeur': Decimal('400'), 'actif': True}
+                defaults={'montant_personnalise': Decimal('400'), 'date_debut': datetime.now().date(), 'actif': True}
             )
         
         # Prime de performance pour certains employés
@@ -232,7 +238,7 @@ class Command(BaseCommand):
                 EmployeRubrique.objects.get_or_create(
                     employe=self.employees[emp_key],
                     rubrique=self.rubriques['PRIME_PERF'],
-                    defaults={'valeur': None, 'actif': True}  # Calculé par formule
+                    defaults={'date_debut': datetime.now().date(), 'actif': True}  # Calculé par formule
                 )
         
         # Prime de responsabilité pour les managers
@@ -242,7 +248,7 @@ class Command(BaseCommand):
                 EmployeRubrique.objects.get_or_create(
                     employe=self.employees[emp_key],
                     rubrique=self.rubriques['PRIME_RESP'],
-                    defaults={'valeur': None, 'actif': True}
+                    defaults={'date_debut': datetime.now().date(), 'actif': True}
                 )
         
         # Prime d'ancienneté pour les anciens employés
@@ -252,7 +258,7 @@ class Command(BaseCommand):
                 EmployeRubrique.objects.get_or_create(
                     employe=self.employees[emp_key],
                     rubrique=self.rubriques['PRIME_ANCIEN'],
-                    defaults={'valeur': None, 'actif': True}
+                    defaults={'date_debut': datetime.now().date(), 'actif': True}
                 )
         
         # Quelques retenues pour des cas spécifiques
@@ -262,7 +268,7 @@ class Command(BaseCommand):
                 EmployeRubrique.objects.get_or_create(
                     employe=self.employees[emp_key],
                     rubrique=self.rubriques[ret_code],
-                    defaults={'valeur': None, 'actif': True}
+                    defaults={'date_debut': datetime.now().date(), 'actif': True}
                 )
         
         self.stdout.write(f'🔗 Rubriques assignées aux employés')

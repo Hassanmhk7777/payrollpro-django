@@ -1630,3 +1630,44 @@ def api_reject_absence(request, absence_id):
         
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
+@login_required
+def accueil_moderne_fixed(request):
+    """Page d'accueil SPA moderne - Version corrigée"""
+    
+    try:
+        # Statistiques pour le dashboard
+        total_employes = Employe.objects.filter(actif=True).count()
+        
+        # Absences en attente
+        absences_attente = 0
+        try:
+            from .models import Absence
+            absences_attente = Absence.objects.filter(statut='EN_ATTENTE').count()
+        except:
+            pass
+        
+        # Calcul de la masse salariale
+        employes_actifs = Employe.objects.filter(actif=True)
+        masse_salariale = sum(employe.salaire_base for employe in employes_actifs)
+        
+        # Nouveaux employés du mois
+        from datetime import datetime
+        debut_mois = datetime.now().replace(day=1)
+        nouveaux_employes = Employe.objects.filter(
+            date_embauche__gte=debut_mois,
+            actif=True
+        ).count()
+        
+        context = {
+            'total_employes': total_employes,
+            'absences_attente': absences_attente,
+            'masse_salariale': masse_salariale,
+            'nouveaux_employes': nouveaux_employes,
+        }
+        
+        return render(request, 'paie/accueil_moderne_fixed.html', context)
+        
+    except Exception as e:
+        # En cas d'erreur, rediriger vers une page simple
+        messages.error(request, f'Erreur lors du chargement du dashboard: {str(e)}')
+        return redirect('admin:index')

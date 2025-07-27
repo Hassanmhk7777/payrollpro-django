@@ -33,7 +33,7 @@
                             <div class="card bg-warning text-white">
                                 <div class="card-body text-center">
                                     <i class="fas fa-plus-circle fa-2x mb-2"></i>
-                                    <h4>0</h4>
+                                    <h4>{{ rubriques_gains|length|default:0 }}</h4>
                                     <small>Gains</small>
                                 </div>
                             </div>
@@ -42,7 +42,7 @@
                             <div class="card bg-danger text-white">
                                 <div class="card-body text-center">
                                     <i class="fas fa-minus-circle fa-2x mb-2"></i>
-                                    <h4>0</h4>
+                                    <h4>{{ rubriques_deductions|length|default:0 }}</h4>
                                     <small>Déductions</small>
                                 </div>
                             </div>
@@ -58,12 +58,12 @@
                         </li>
                         <li class="nav-item" role="presentation">
                             <button class="nav-link" id="gains-tab" data-bs-toggle="pill" data-bs-target="#gains-rubriques" type="button">
-                                <i class="fas fa-plus-circle me-2"></i>Gains
+                                <i class="fas fa-plus-circle me-2"></i>Gains ({{ rubriques_gains|length|default:0 }})
                             </button>
                         </li>
                         <li class="nav-item" role="presentation">
                             <button class="nav-link" id="deductions-tab" data-bs-toggle="pill" data-bs-target="#deductions-rubriques" type="button">
-                                <i class="fas fa-minus-circle me-2"></i>Déductions
+                                <i class="fas fa-minus-circle me-2"></i>Déductions ({{ rubriques_deductions|length|default:0 }})
                             </button>
                         </li>
                         <li class="nav-item" role="presentation">
@@ -194,21 +194,188 @@
                         <div class="tab-pane fade" id="gains-rubriques" role="tabpanel">
                             <h5><i class="fas fa-plus-circle me-2"></i>Rubriques de Gains</h5>
                             <p class="text-muted">Rubriques qui augmentent le salaire (primes, bonus, etc.)</p>
-                            <!-- Filtrer les rubriques de type GAIN -->
+                            
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead class="table-success">
+                                        <tr>
+                                            <th>Code</th>
+                                            <th>Nom</th>
+                                            <th>Formule</th>
+                                            <th>Employés</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for rubrique in rubriques_gains %}
+                                        <tr>
+                                            <td><span class="badge bg-success">{{ rubrique.code }}</span></td>
+                                            <td>
+                                                <strong>{{ rubrique.nom }}</strong>
+                                                {% if rubrique.description %}
+                                                <br><small class="text-muted">{{ rubrique.description|truncatechars:50 }}</small>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if rubrique.formule_calcul %}
+                                                    <code class="small">{{ rubrique.formule_calcul|truncatechars:30 }}</code>
+                                                {% else %}
+                                                    <span class="text-muted">-</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-info">
+                                                    {{ rubrique.employerubrique_set.count|default:0 }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <div class="btn-group btn-group-sm">
+                                                    <button class="btn btn-outline-primary" onclick="viewRubrique({{ rubrique.id }})" title="Voir détails">
+                                                        <i class="fas fa-eye"></i>
+                                                    </button>
+                                                    <button class="btn btn-outline-warning" onclick="editRubrique({{ rubrique.id }})" title="Modifier">
+                                                        <i class="fas fa-edit"></i>
+                                                    </button>
+                                                    <button class="btn btn-outline-info" onclick="assignEmployees({{ rubrique.id }})" title="Assigner employés">
+                                                        <i class="fas fa-users"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        {% empty %}
+                                        <tr>
+                                            <td colspan="5" class="text-center text-muted">
+                                                <i class="fas fa-plus-circle fa-2x mb-3"></i>
+                                                <p>Aucune rubrique de gain créée</p>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                         
                         <!-- Déductions -->
                         <div class="tab-pane fade" id="deductions-rubriques" role="tabpanel">
                             <h5><i class="fas fa-minus-circle me-2"></i>Rubriques de Déductions</h5>
                             <p class="text-muted">Rubriques qui diminuent le salaire (retenues, sanctions, etc.)</p>
-                            <!-- Filtrer les rubriques de type DEDUCTION -->
+                            
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead class="table-danger">
+                                        <tr>
+                                            <th>Code</th>
+                                            <th>Nom</th>
+                                            <th>Formule</th>
+                                            <th>Employés</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for rubrique in rubriques_deductions %}
+                                        <tr>
+                                            <td><span class="badge bg-danger">{{ rubrique.code }}</span></td>
+                                            <td>
+                                                <strong>{{ rubrique.nom }}</strong>
+                                                {% if rubrique.description %}
+                                                <br><small class="text-muted">{{ rubrique.description|truncatechars:50 }}</small>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if rubrique.formule_calcul %}
+                                                    <code class="small">{{ rubrique.formule_calcul|truncatechars:30 }}</code>
+                                                {% else %}
+                                                    <span class="text-muted">-</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-info">
+                                                    {{ rubrique.employerubrique_set.count|default:0 }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <div class="btn-group btn-group-sm">
+                                                    <button class="btn btn-outline-primary" onclick="viewRubrique({{ rubrique.id }})" title="Voir détails">
+                                                        <i class="fas fa-eye"></i>
+                                                    </button>
+                                                    <button class="btn btn-outline-warning" onclick="editRubrique({{ rubrique.id }})" title="Modifier">
+                                                        <i class="fas fa-edit"></i>
+                                                    </button>
+                                                    <button class="btn btn-outline-info" onclick="assignEmployees({{ rubrique.id }})" title="Assigner employés">
+                                                        <i class="fas fa-users"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        {% empty %}
+                                        <tr>
+                                            <td colspan="5" class="text-center text-muted">
+                                                <i class="fas fa-minus-circle fa-2x mb-3"></i>
+                                                <p>Aucune rubrique de déduction créée</p>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                         
                         <!-- Inactives -->
                         <div class="tab-pane fade" id="inactive-rubriques" role="tabpanel">
                             <h5><i class="fas fa-pause-circle me-2"></i>Rubriques Inactives</h5>
                             <p class="text-muted">Rubriques temporairement désactivées</p>
-                            <!-- Filtrer les rubriques inactives -->
+                            
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead class="table-secondary">
+                                        <tr>
+                                            <th>Code</th>
+                                            <th>Nom</th>
+                                            <th>Type</th>
+                                            <th>Date désactivation</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for rubrique in rubriques_inactives %}
+                                        <tr class="text-muted">
+                                            <td><span class="badge bg-secondary">{{ rubrique.code }}</span></td>
+                                            <td>
+                                                <strong>{{ rubrique.nom }}</strong>
+                                                {% if rubrique.description %}
+                                                <br><small>{{ rubrique.description|truncatechars:50 }}</small>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if rubrique.type_rubrique == 'GAIN' %}
+                                                    <span class="badge bg-success opacity-50">Gain</span>
+                                                {% elif rubrique.type_rubrique == 'DEDUCTION' %}
+                                                    <span class="badge bg-danger opacity-50">Déduction</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ rubrique.date_modification|date:"d/m/Y" }}</td>
+                                            <td>
+                                                <div class="btn-group btn-group-sm">
+                                                    <button class="btn btn-outline-success" onclick="activateRubrique({{ rubrique.id }})" title="Réactiver">
+                                                        <i class="fas fa-play"></i>
+                                                    </button>
+                                                    <button class="btn btn-outline-primary" onclick="viewRubrique({{ rubrique.id }})" title="Voir détails">
+                                                        <i class="fas fa-eye"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        {% empty %}
+                                        <tr>
+                                            <td colspan="5" class="text-center text-muted">
+                                                <i class="fas fa-check-circle fa-2x mb-3"></i>
+                                                <p>Toutes les rubriques sont actives</p>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -572,6 +739,31 @@ function deleteRubrique(rubriqueId) {
         .catch(error => {
             console.error('Erreur:', error);
             showToast('Erreur lors de la suppression', 'error');
+        });
+    }
+}
+
+function activateRubrique(rubriqueId) {
+    if (confirm('Réactiver cette rubrique ?')) {
+        fetch(`/rubriques/${rubriqueId}/activer/`, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast('Rubrique réactivée avec succès', 'success');
+                loadSPAContent('rubriques');
+            } else {
+                showToast(data.message || 'Erreur lors de la réactivation', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Erreur:', error);
+            showToast('Erreur lors de la réactivation', 'error');
         });
     }
 }

@@ -5,7 +5,7 @@
 {% block extra_css %}
 <style>
     /* Application Container */
-    .app-container { opacity: 0; transition: opacity 0.5s ease-in-out;
+    .app-container {
         min-height: calc(100vh - 60px);
         background: transparent;
         padding: 0;
@@ -1880,16 +1880,7 @@ function getSectionDisplayName(sectionName) {
 
 // Initialize SPA on page load
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('🚀 PayrollPro SPA - Démarrage...');
-        
-        // Afficher l'interface progressivement
-        setTimeout(() => {
-            const appContainer = document.querySelector('.app-container');
-            if (appContainer) {
-                appContainer.style.opacity = '1';
-                console.log('✅ Interface affichée');
-            }
-        }, 200);
+    console.log('PayrollPro SPA initialized');
     
     // Setup tab navigation
     document.querySelectorAll('#mainTabs button[data-bs-toggle="tab"]').forEach(tab => {
@@ -1898,7 +1889,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (targetId && targetId !== 'dashboard') {
                 setTimeout(() => {
                     loadSection(targetId);
-                }, 500);
+                }, 100);
             }
         });
     });
@@ -1933,16 +1924,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Initialize application
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('🚀 PayrollPro SPA - Démarrage...');
-        
-        // Afficher l'interface progressivement
-        setTimeout(() => {
-            const appContainer = document.querySelector('.app-container');
-            if (appContainer) {
-                appContainer.style.opacity = '1';
-                console.log('✅ Interface affichée');
-            }
-        }, 200);
+    console.log('PayrollPro SPA initialized');
     
     // Check for section parameter in URL
     const urlParams = new URLSearchParams(window.location.search);
@@ -1961,7 +1943,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Load the section content
                 loadSection(sectionParam);
             }
-        }, 600);
+        }, 300);
     }
     
     // Check if there's a hash in the URL and switch to that tab
@@ -1975,12 +1957,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 tab.show();
                 loadSection(hash);
             }
-        }, 500);
+        }, 100);
     } else {
         // Load default dashboard content
         setTimeout(() => {
             loadSection('dashboard');
-        }, 500);
+        }, 100);
     }
 });
 
