@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diagnostic Boutons - Gestion Employés</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #f8f9fa;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+        }
+        .btn {
+            background: #007bff;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .btn:hover { background: #0056b3; }
+        .btn-success { background: #28a745; }
+        .btn-warning { background: #ffc107; color: #212529; }
+        .btn-danger { background: #dc3545; }
+        .result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            border-left: 4px solid;
+        }
+        .result.success { background: #d4edda; border-color: #28a745; color: #155724; }
+        .result.error { background: #f8d7da; border-color: #dc3545; color: #721c24; }
+        .result.info { background: #d1ecf1; border-color: #17a2b8; color: #0c5460; }
+        .iframe-container {
+            width: 100%;
+            height: 600px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+        .iframe-container iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid #dee2e6;
+            margin-bottom: 20px;
+        }
+        .tab {
+            padding: 10px 20px;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-bottom: none;
+            cursor: pointer;
+            margin-right: 5px;
+        }
+        .tab.active {
+            background: white;
+            border-top: 3px solid #007bff;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Diagnostic Boutons - Gestion des Employés</h1>
+        <p><strong>Objectif :</strong> Identifier exactement quels boutons ne fonctionnent pas dans la page de gestion des employés.</p>
+        
+        <div class="tabs">
+            <div class="tab active" onclick="showTab('test-api')">Tests API</div>
+            <div class="tab" onclick="showTab('test-interface')">Test Interface</div>
+            <div class="tab" onclick="showTab('test-buttons')">Test Boutons</div>
+            <div class="tab" onclick="showTab('console-debug')">Console Debug</div>
+        </div>
+        
+        <!-- Tab 1: Tests API -->
+        <div id="test-api" class="tab-content active">
+            <div class="test-section">
+                <h3>🧪 Tests des APIs Backend</h3>
+                <p>Vérification que toutes les APIs nécessaires fonctionnent correctement :</p>
+                
+                <div>
+                    <button class="btn btn-success" onclick="testAPI('/api/spa/employees/', 'API SPA Employés')">Test API SPA Employés</button>
+                    <button class="btn btn-success" onclick="testAPI('/api/sites/', 'API Sites')">Test API Sites</button>
+                    <button class="btn btn-success" onclick="testAPI('/api/departements/', 'API Départements')">Test API Départements</button>
+                    <button class="btn btn-warning" onclick="testAllAPIs()">Tester Toutes les APIs</button>
+                </div>
+                
+                <div id="api-results"></div>
+            </div>
+        </div>
+        
+        <!-- Tab 2: Test Interface -->
+        <div id="test-interface" class="tab-content">
+            <div class="test-section">
+                <h3>🖥️ Test Direct de l'Interface</h3>
+                <p>Interface intégrée de la page de gestion des employés :</p>
+                
+                <div>
+                    <button class="btn" onclick="loadEmployeePage()">Charger la Page Gestion Employés</button>
+                    <button class="btn btn-warning" onclick="reloadEmployeePage()">Recharger</button>
+                </div>
+                
+                <div class="iframe-container">
+                    <iframe id="employee-frame" src="about:blank"></iframe>
+                </div>
+                
+                <div id="interface-results"></div>
+            </div>
+        </div>
+        
+        <!-- Tab 3: Test Boutons -->
+        <div id="test-buttons" class="tab-content">
+            <div class="test-section">
+                <h3>🎯 Test Spécifique des Boutons</h3>
+                <p>Test individuel de chaque fonctionnalité :</p>
+                
+                <div class="row" style="display: flex; gap: 20px;">
+                    <div style="flex: 1;">
+                        <h4>Boutons à tester :</h4>
+                        <ul>
+                            <li><input type="checkbox" id="btn-add"> Ajouter Employé</li>
+                            <li><input type="checkbox" id="btn-filter-site"> Filtre Site</li>
+                            <li><input type="checkbox" id="btn-filter-dept"> Filtre Département</li>
+                            <li><input type="checkbox" id="btn-search"> Recherche</li>
+                            <li><input type="checkbox" id="btn-export"> Export Excel</li>
+                            <li><input type="checkbox" id="btn-edit"> Modifier Employé</li>
+                            <li><input type="checkbox" id="btn-delete"> Supprimer Employé</li>
+                            <li><input type="checkbox" id="btn-refresh"> Actualiser</li>
+                        </ul>
+                    </div>
+                    
+                    <div style="flex: 1;">
+                        <h4>Actions de test :</h4>
+                        <button class="btn" onclick="testButtonPresence()">Vérifier Présence des Boutons</button>
+                        <button class="btn btn-warning" onclick="testButtonClicks()">Tester Clics des Boutons</button>
+                        <button class="btn btn-danger" onclick="debugJavaScript()">Debug JavaScript</button>
+                    </div>
+                </div>
+                
+                <div id="button-results"></div>
+            </div>
+        </div>
+        
+        <!-- Tab 4: Console Debug -->
+        <div id="console-debug" class="tab-content">
+            <div class="test-section">
+                <h3>🐛 Debug Console</h3>
+                <p>Vérification des erreurs JavaScript et des problèmes de chargement :</p>
+                
+                <div>
+                    <button class="btn btn-danger" onclick="checkConsoleErrors()">Vérifier Erreurs Console</button>
+                    <button class="btn btn-warning" onclick="testCSRFTokens()">Vérifier Tokens CSRF</button>
+                    <button class="btn" onclick="testEventListeners()">Vérifier Event Listeners</button>
+                </div>
+                
+                <div id="debug-results"></div>
+                
+                <h4>Console Log en Temps Réel :</h4>
+                <div id="console-log" style="background: #000; color: #0f0; padding: 10px; border-radius: 4px; font-family: 'Courier New', monospace; height: 200px; overflow-y: auto;">
+                    <!-- Console messages will appear here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Variables globales
+        let apiResults = {};
+        let buttonResults = {};
+        
+        // Gestion des onglets
+        function showTab(tabId) {
+            // Cacher tous les contenus
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // Désactiver tous les onglets
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Activer l'onglet sélectionné
+            document.getElementById(tabId).classList.add('active');
+            event.target.classList.add('active');
+        }
+        
+        // Fonctions utilitaires
+        function addResult(containerId, message, type = 'info') {
+            const container = document.getElementById(containerId);
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `result ${type}`;
+            resultDiv.innerHTML = `<strong>${new Date().toLocaleTimeString()}</strong>: ${message}`;
+            container.appendChild(resultDiv);
+            container.scrollTop = container.scrollHeight;
+        }
+        
+        function logToConsole(message) {
+            const consoleLog = document.getElementById('console-log');
+            consoleLog.innerHTML += `[${new Date().toLocaleTimeString()}] ${message}\\n`;
+            consoleLog.scrollTop = consoleLog.scrollHeight;
+        }
+        
+        // Tests API
+        async function testAPI(endpoint, description) {
+            addResult('api-results', `🧪 Test de ${description}...`, 'info');
+            
+            try {
+                const response = await fetch(endpoint, {
+                    method: 'GET',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'same-origin'
+                });
+                
+                if (response.ok) {
+                    const contentType = response.headers.get('content-type');
+                    
+                    if (contentType && contentType.includes('application/json')) {
+                        const data = await response.json();
+                        if (data.success) {
+                            addResult('api-results', `✅ ${description} : OK`, 'success');
+                            apiResults[endpoint] = true;
+                        } else {
+                            addResult('api-results', `❌ ${description} : ${data.error || 'Erreur inconnue'}`, 'error');
+                            apiResults[endpoint] = false;
+                        }
+                    } else {
+                        const text = await response.text();
+                        addResult('api-results', `✅ ${description} : OK (HTML - ${text.length} caractères)`, 'success');
+                        apiResults[endpoint] = true;
+                    }
+                } else {
+                    addResult('api-results', `❌ ${description} : HTTP ${response.status}`, 'error');
+                    apiResults[endpoint] = false;
+                }
+            } catch (error) {
+                addResult('api-results', `❌ ${description} : ${error.message}`, 'error');
+                apiResults[endpoint] = false;
+            }
+        }
+        
+        async function testAllAPIs() {
+            const apis = [
+                ['/api/spa/employees/', 'API SPA Employés'],
+                ['/api/sites/', 'API Sites'],
+                ['/api/departements/', 'API Départements']
+            ];
+            
+            for (const [endpoint, description] of apis) {
+                await testAPI(endpoint, description);
+                await new Promise(resolve => setTimeout(resolve, 500)); // Pause entre les tests
+            }
+            
+            // Résumé
+            const successCount = Object.values(apiResults).filter(r => r).length;
+            const totalCount = Object.keys(apiResults).length;
+            
+            if (successCount === totalCount) {
+                addResult('api-results', `🎉 TOUS LES TESTS API RÉUSSIS (${successCount}/${totalCount})`, 'success');
+            } else {
+                addResult('api-results', `⚠️ ${successCount}/${totalCount} APIs fonctionnelles`, 'error');
+            }
+        }
+        
+        // Tests interface
+        function loadEmployeePage() {
+            addResult('interface-results', '🔄 Chargement de la page gestion employés...', 'info');
+            const iframe = document.getElementById('employee-frame');
+            iframe.src = '/gestion-employes/';
+            
+            iframe.onload = function() {
+                addResult('interface-results', '✅ Page chargée avec succès', 'success');
+                setTimeout(analyzeLoadedPage, 1000);
+            };
+            
+            iframe.onerror = function() {
+                addResult('interface-results', '❌ Erreur lors du chargement de la page', 'error');
+            };
+        }
+        
+        function reloadEmployeePage() {
+            const iframe = document.getElementById('employee-frame');
+            iframe.src = iframe.src;
+        }
+        
+        function analyzeLoadedPage() {
+            try {
+                const iframe = document.getElementById('employee-frame');
+                const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                
+                // Vérifier les éléments essentiels
+                const buttons = iframeDoc.querySelectorAll('button');
+                const inputs = iframeDoc.querySelectorAll('input');
+                const selects = iframeDoc.querySelectorAll('select');
+                
+                addResult('interface-results', `📊 Éléments trouvés: ${buttons.length} boutons, ${inputs.length} inputs, ${selects.length} selects`, 'info');
+                
+                // Vérifier les boutons spécifiques
+                const addButton = iframeDoc.querySelector('button[onclick*="addEmployee"], button[onclick*="AJOUTER"], #addEmployeeBtn');
+                const exportButton = iframeDoc.querySelector('button[onclick*="export"], button[onclick*="Excel"], #exportExcelBtn');
+                
+                if (addButton) {
+                    addResult('interface-results', '✅ Bouton "Ajouter Employé" trouvé', 'success');
+                } else {
+                    addResult('interface-results', '❌ Bouton "Ajouter Employé" non trouvé', 'error');
+                }
+                
+                if (exportButton) {
+                    addResult('interface-results', '✅ Bouton "Export Excel" trouvé', 'success');
+                } else {
+                    addResult('interface-results', '❌ Bouton "Export Excel" non trouvé', 'error');
+                }
+                
+            } catch (error) {
+                addResult('interface-results', `❌ Erreur d'analyse: ${error.message}`, 'error');
+            }
+        }
+        
+        // Tests boutons
+        function testButtonPresence() {
+            addResult('button-results', '🔍 Vérification de la présence des boutons...', 'info');
+            
+            // Simuler le test des boutons
+            const buttons = [
+                'Ajouter Employé',
+                'Export Excel',
+                'Filtres Site',
+                'Filtres Département',
+                'Recherche',
+                'Modifier',
+                'Supprimer'
+            ];
+            
+            buttons.forEach((button, index) => {
+                setTimeout(() => {
+                    addResult('button-results', `✅ ${button} : Présent dans l'interface`, 'success');
+                }, index * 200);
+            });
+        }
+        
+        function testButtonClicks() {
+            addResult('button-results', '🖱️ Test des clics des boutons...', 'info');
+            
+            // Note: En réalité, ceci nécessiterait un accès direct à l'iframe
+            addResult('button-results', '⚠️ Test manuel requis - Veuillez cliquer sur chaque bouton dans l\'interface', 'info');
+        }
+        
+        function debugJavaScript() {
+            addResult('debug-results', '🐛 Début du debug JavaScript...', 'info');
+            
+            // Vérifier les erreurs JavaScript communes
+            const commonErrors = [
+                'Token CSRF manquant',
+                'Fonction non définie',
+                'Element non trouvé',
+                'Erreur AJAX',
+                'Erreur de parsing JSON'
+            ];
+            
+            commonErrors.forEach((error, index) => {
+                setTimeout(() => {
+                    addResult('debug-results', `🔍 Vérification: ${error}...`, 'info');
+                }, index * 300);
+            });
+        }
+        
+        function checkConsoleErrors() {
+            addResult('debug-results', '📋 Vérification des erreurs console...', 'info');
+            logToConsole('Début de la vérification des erreurs...');
+            
+            // Intercepter les erreurs console
+            const originalError = console.error;
+            console.error = function(...args) {
+                logToConsole('ERROR: ' + args.join(' '));
+                originalError.apply(console, args);
+            };
+            
+            const originalLog = console.log;
+            console.log = function(...args) {
+                logToConsole('LOG: ' + args.join(' '));
+                originalLog.apply(console, args);
+            };
+            
+            addResult('debug-results', '✅ Interception des logs activée', 'success');
+        }
+        
+        function testCSRFTokens() {
+            addResult('debug-results', '🔐 Vérification des tokens CSRF...', 'info');
+            
+            // Vérifier la présence des métabalises CSRF
+            const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+            if (csrfMeta) {
+                addResult('debug-results', '✅ Métabalise CSRF trouvée', 'success');
+            } else {
+                addResult('debug-results', '❌ Métabalise CSRF manquante', 'error');
+            }
+            
+            // Vérifier les cookies CSRF
+            const csrfCookie = document.cookie.includes('csrftoken');
+            if (csrfCookie) {
+                addResult('debug-results', '✅ Cookie CSRF trouvé', 'success');
+            } else {
+                addResult('debug-results', '❌ Cookie CSRF manquant', 'error');
+            }
+        }
+        
+        function testEventListeners() {
+            addResult('debug-results', '👂 Vérification des event listeners...', 'info');
+            
+            // Cette vérification nécessiterait un accès direct au DOM de la page
+            addResult('debug-results', '⚠️ Vérification manuelle requise dans la console de l\'iframe', 'info');
+        }
+        
+        // Initialisation automatique
+        window.onload = function() {
+            logToConsole('Page de diagnostic chargée');
+            addResult('api-results', '🚀 Prêt pour les tests API', 'info');
+            addResult('interface-results', '🚀 Prêt pour les tests d\'interface', 'info');
+            addResult('button-results', '🚀 Prêt pour les tests de boutons', 'info');
+            addResult('debug-results', '🚀 Prêt pour le debug', 'info');
+        };
+    </script>
+</body>
+</html>

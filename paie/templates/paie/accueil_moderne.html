@@ -1773,8 +1773,8 @@ function loadSection(sectionName) {
     // Update current section
     currentSection = sectionName;
     
-    // Load content if not already loaded
-    if (!loadedSections.includes(sectionName)) {
+    // Load content if not already loaded (always reload employees section)
+    if (!loadedSections.includes(sectionName) || sectionName === 'employees') {
         loadSectionContent(sectionName);
     }
 }
@@ -1846,8 +1846,8 @@ function loadSectionContent(sectionName) {
             PayrollPro.notify(`Erreur lors du chargement de "${getSectionDisplayName(sectionName)}"`, 'error');
         }
         
-        // Mark as loaded
-        if (!loadedSections.includes(sectionName)) {
+        // Mark as loaded (except employees - always refresh)
+        if (!loadedSections.includes(sectionName) && sectionName !== 'employees') {
             loadedSections.push(sectionName);
         }
     })
@@ -1860,8 +1860,8 @@ function loadSectionContent(sectionName) {
         // Don't show error, just notify that enhanced content is available
         PayrollPro.notify(`Contenu statique affiché pour "${getSectionDisplayName(sectionName)}". Connectez-vous pour voir les données en temps réel.`, 'info');
         
-        // Mark as loaded anyway to prevent retry loops
-        if (!loadedSections.includes(sectionName)) {
+        // Mark as loaded anyway to prevent retry loops (except employees)
+        if (!loadedSections.includes(sectionName) && sectionName !== 'employees') {
             loadedSections.push(sectionName);
         }
     });

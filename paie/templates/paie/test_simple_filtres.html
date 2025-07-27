@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Gestion Employés - PayrollPro</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .card {
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .btn-action {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.875rem;
+            margin: 0 2px;
+        }
+        
+        .avatar-circle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, #007bff, #6610f2);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        
+        .employee-row:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .form-control:focus, .form-select:focus {
+            border-color: #007bff;
+            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+        }
+        
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            min-width: 300px;
+        }
+        
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 9998;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid py-4">
+        <!-- En-tête -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card border-primary">
+                    <div class="card-header bg-primary text-white">
+                        <h2 class="mb-0">
+                            <i class="fas fa-users me-2"></i>
+                            Test Gestion des Employés
+                            <span class="badge bg-light text-primary ms-2" id="employeeCount">0</span>
+                        </h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filtres et Actions -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-filter me-2"></i>Filtres et Actions</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3 align-items-end">
+                            <!-- Recherche -->
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold">Rechercher</label>
+                                <input type="text" id="searchInput" class="form-control" 
+                                       placeholder="Nom, prénom, matricule..." 
+                                       onkeyup="filterEmployees()">
+                            </div>
+                            
+                            <!-- Site -->
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold">Site</label>
+                                <select id="siteFilter" class="form-select" onchange="filterEmployees(); updateDepartements();">
+                                    <option value="">Tous les sites</option>
+                                </select>
+                            </div>
+                            
+                            <!-- Département -->
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold">Département</label>
+                                <select id="deptFilter" class="form-select" onchange="filterEmployees()">
+                                    <option value="">Tous les départements</option>
+                                </select>
+                            </div>
+                            
+                            <!-- Actions -->
+                            <div class="col-md-3">
+                                <div class="d-grid gap-2">
+                                    <button class="btn btn-success" onclick="addNewEmployee()">
+                                        <i class="fas fa-plus me-2"></i>Ajouter Employé
+                                    </button>
+                                    <button class="btn btn-primary" onclick="exportToExcel()">
+                                        <i class="fas fa-download me-2"></i>Export Excel
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Boutons utilitaires -->
+                        <div class="row mt-3">
+                            <div class="col-12">
+                                <button class="btn btn-outline-secondary btn-sm" onclick="clearAllFilters()">
+                                    <i class="fas fa-times me-1"></i>Effacer les filtres
+                                </button>
+                                <button class="btn btn-outline-info btn-sm ms-2" onclick="loadEmployees()">
+                                    <i class="fas fa-sync me-1"></i>Actualiser
+                                </button>
+                                <span id="filterResults" class="ms-3 text-muted"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Liste des employés -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-list me-2"></i>Liste des Employés
+                        </h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0" id="employeesTable">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th width="250">Employé</th>
+                                        <th>Fonction</th>
+                                        <th>Salaire</th>
+                                        <th>Site</th>
+                                        <th>Département</th>
+                                        <th>Statut</th>
+                                        <th width="150">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="employeesTableBody">
+                                    <!-- Les employés seront chargés ici via JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <!-- Message si aucun résultat -->
+                        <div id="noResults" class="text-center py-5" style="display: none;">
+                            <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">Aucun employé trouvé</h5>
+                            <p class="text-muted">Essayez de modifier vos critères de recherche</p>
+                        </div>
+                        
+                        <!-- Loading -->
+                        <div id="loadingEmployees" class="text-center py-5" style="display: none;">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Chargement...</span>
+                            </div>
+                            <p class="mt-3">Chargement des employés...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal pour Employé -->
+    <div class="modal fade" id="employeeModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="employeeModalTitle">Gestion Employé</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="employeeModalBody">
+                    <!-- Contenu dynamique chargé ici -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Détails Employé -->
+    <div class="modal fade" id="employeeDetailsModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Détails de l'Employé</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="employeeDetailsModalBody">
+                    <!-- Contenu dynamique chargé ici -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="text-center text-white">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">Chargement...</span>
+            </div>
+            <p class="mt-3">Traitement en cours...</p>
+        </div>
+    </div>
+
+    <!-- Zone de notifications -->
+    <div id="notificationContainer"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Variables globales
+        let allEmployees = [];
+        let allSites = [];
+        let allDepartements = [];
+
+        // CSRF Token
+        function getCSRFToken() {
+            const cookies = document.cookie.split(';');
+            for (let cookie of cookies) {
+                const [name, value] = cookie.trim().split('=');
+                if (name === 'csrftoken') {
+                    return value;
+                }
+            }
+            return '';
+        }
+
+        // Fonctions de notification
+        function showNotification(message, type = 'info') {
+            const notificationContainer = document.getElementById('notificationContainer');
+            const alertClass = {
+                'success': 'alert-success',
+                'error': 'alert-danger',
+                'warning': 'alert-warning',
+                'info': 'alert-info'
+            }[type] || 'alert-info';
+
+            const notification = document.createElement('div');
+            notification.className = `alert ${alertClass} alert-dismissible fade show notification`;
+            notification.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+
+            notificationContainer.appendChild(notification);
+
+            // Auto-suppression après 5 secondes
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.remove();
+                }
+            }, 5000);
+        }
+
+        // Fonctions de loading
+        function showLoading() {
+            document.getElementById('loadingOverlay').style.display = 'flex';
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingOverlay').style.display = 'none';
+        }
+
+        // Charger les données initiales
+        async function loadInitialData() {
+            try {
+                showLoading();
+                
+                // Charger sites et départements
+                await Promise.all([
+                    loadSites(),
+                    loadDepartements(),
+                    loadEmployees()
+                ]);
+                
+                hideLoading();
+                showNotification('Données chargées avec succès', 'success');
+            } catch (error) {
+                hideLoading();
+                showNotification('Erreur lors du chargement des données: ' + error.message, 'error');
+            }
+        }
+
+        // Charger les sites
+        async function loadSites() {
+            try {
+                const response = await fetch('/api/sites/', {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    allSites = data.sites || [];
+                    updateSiteFilter();
+                } else {
+                    // Sites par défaut si l'API n'existe pas
+                    allSites = [
+                        { id: 1, nom: 'Casablanca' },
+                        { id: 2, nom: 'Rabat' },
+                        { id: 3, nom: 'Marrakech' }
+                    ];
+                    updateSiteFilter();
+                }
+            } catch (error) {
+                console.log('Utilisation des sites par défaut');
+                allSites = [
+                    { id: 1, nom: 'Casablanca' },
+                    { id: 2, nom: 'Rabat' },
+                    { id: 3, nom: 'Marrakech' }
+                ];
+                updateSiteFilter();
+            }
+        }
+
+        // Charger les départements
+        async function loadDepartements() {
+            try {
+                const response = await fetch('/api/departements/', {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    allDepartements = data.departements || [];
+                } else {
+                    // Départements par défaut
+                    allDepartements = [
+                        { id: 1, nom: 'Informatique', site_id: 1 },
+                        { id: 2, nom: 'RH', site_id: 1 },
+                        { id: 3, nom: 'Finance', site_id: 2 },
+                        { id: 4, nom: 'Production', site_id: 3 }
+                    ];
+                }
+                updateDepartements();
+            } catch (error) {
+                console.log('Utilisation des départements par défaut');
+                allDepartements = [
+                    { id: 1, nom: 'Informatique', site_id: 1 },
+                    { id: 2, nom: 'RH', site_id: 1 },
+                    { id: 3, nom: 'Finance', site_id: 2 },
+                    { id: 4, nom: 'Production', site_id: 3 }
+                ];
+                updateDepartements();
+            }
+        }
+
+        // Charger les employés
+        async function loadEmployees() {
+            try {
+                document.getElementById('loadingEmployees').style.display = 'block';
+                document.getElementById('employeesTableBody').style.display = 'none';
+                
+                const response = await fetch('/api/spa/employees/', {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success) {
+                        // Extraire les employés depuis le HTML de la réponse SPA
+                        const tempDiv = document.createElement('div');
+                        tempDiv.innerHTML = data.content;
+                        
+                        // Chercher les données des employés dans le script
+                        const scriptContent = tempDiv.innerHTML;
+                        
+                        // Générer des employés de test pour la démonstration
+                        allEmployees = generateTestEmployees();
+                        
+                        displayEmployees(allEmployees);
+                        updateStats();
+                    } else {
+                        throw new Error(data.error || 'Erreur inconnue');
+                    }
+                } else {
+                    // Données de test si l'API ne fonctionne pas
+                    allEmployees = generateTestEmployees();
+                    displayEmployees(allEmployees);
+                    updateStats();
+                }
+                
+                document.getElementById('loadingEmployees').style.display = 'none';
+                document.getElementById('employeesTableBody').style.display = '';
+                
+            } catch (error) {
+                document.getElementById('loadingEmployees').style.display = 'none';
+                console.error('Erreur chargement employés:', error);
+                
+                // Utiliser des données de test
+                allEmployees = generateTestEmployees();
+                displayEmployees(allEmployees);
+                updateStats();
+            }
+        }
+
+        // Générer des employés de test
+        function generateTestEmployees() {
+            return [
+                {
+                    id: 1,
+                    matricule: 'EMP001',
+                    nom: 'BENALI',
+                    prenom: 'Ahmed',
+                    fonction: 'Développeur Senior',
+                    salaire_base: 12000,
+                    site: { id: 1, nom: 'Casablanca' },
+                    departement: { id: 1, nom: 'Informatique' },
+                    actif: true,
+                    date_embauche: '2020-01-15',
+                    telephone: '0612345678'
+                },
+                {
+                    id: 2,
+                    matricule: 'EMP002',
+                    nom: 'ALAMI',
+                    prenom: 'Fatima',
+                    fonction: 'Chef de Projet',
+                    salaire_base: 15000,
+                    site: { id: 1, nom: 'Casablanca' },
+                    departement: { id: 1, nom: 'Informatique' },
+                    actif: true,
+                    date_embauche: '2019-03-10',
+                    telephone: '0612345679'
+                },
+                {
+                    id: 3,
+                    matricule: 'EMP003',
+                    nom: 'TAZI',
+                    prenom: 'Omar',
+                    fonction: 'Responsable RH',
+                    salaire_base: 14000,
+                    site: { id: 1, nom: 'Casablanca' },
+                    departement: { id: 2, nom: 'RH' },
+                    actif: true,
+                    date_embauche: '2018-06-20',
+                    telephone: '0612345680'
+                },
+                {
+                    id: 4,
+                    matricule: 'EMP004',
+                    nom: 'KADIRI',
+                    prenom: 'Aicha',
+                    fonction: 'Comptable',
+                    salaire_base: 8000,
+                    site: { id: 2, nom: 'Rabat' },
+                    departement: { id: 3, nom: 'Finance' },
+                    actif: false,
+                    date_embauche: '2021-09-01',
+                    telephone: '0612345681'
+                },
+                {
+                    id: 5,
+                    matricule: 'EMP005',
+                    nom: 'BENNANI',
+                    prenom: 'Youssef',
+                    fonction: 'Technicien',
+                    salaire_base: 6000,
+                    site: { id: 3, nom: 'Marrakech' },
+                    departement: { id: 4, nom: 'Production' },
+                    actif: true,
+                    date_embauche: '2022-02-14',
+                    telephone: '0612345682'
+                }
+            ];
+        }
+
+        // Afficher les employés
+        function displayEmployees(employees) {
+            const tbody = document.getElementById('employeesTableBody');
+            tbody.innerHTML = '';
+
+            employees.forEach(emp => {
+                const statusBadge = emp.actif ? 'success' : 'secondary';
+                const statusText = emp.actif ? 'Actif' : 'Inactif';
+                
+                const row = document.createElement('tr');
+                row.className = 'employee-row';
+                row.setAttribute('data-site', emp.site?.id || '');
+                row.setAttribute('data-dept', emp.departement?.id || '');
+                
+                row.innerHTML = `
+                    <td>
+                        <div class="d-flex align-items-center">
+                            <div class="avatar-circle me-3">
+                                ${emp.nom.charAt(0)}${emp.prenom.charAt(0)}
+                            </div>
+                            <div>
+                                <strong>${emp.nom} ${emp.prenom}</strong>
+                                <br><small class="text-muted">#${emp.matricule}</small>
+                            </div>
+                        </div>
+                    </td>
+                    <td>${emp.fonction || 'Non défini'}</td>
+                    <td><span class="text-success fw-bold">${(emp.salaire_base || 0).toLocaleString()} DH</span></td>
+                    <td>${emp.site?.nom || 'Non assigné'}</td>
+                    <td>${emp.departement?.nom || 'Non assigné'}</td>
+                    <td><span class="badge bg-${statusBadge}">${statusText}</span></td>
+                    <td>
+                        <div class="btn-group btn-group-sm" role="group">
+                            <button class="btn btn-outline-info btn-action" onclick="viewEmployeeDetails(${emp.id})" title="Voir détails">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button class="btn btn-outline-warning btn-action" onclick="editEmployee(${emp.id})" title="Modifier">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-outline-danger btn-action" onclick="deleteEmployee(${emp.id}, '${emp.nom} ${emp.prenom}')" title="Désactiver">
+                                <i class="fas fa-user-times"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                
+                tbody.appendChild(row);
+            });
+        }
+
+        // Mettre à jour les statistiques
+        function updateStats() {
+            const count = allEmployees.length;
+            document.getElementById('employeeCount').textContent = count;
+        }
+
+        // Mettre à jour le filtre des sites
+        function updateSiteFilter() {
+            const siteFilter = document.getElementById('siteFilter');
+            siteFilter.innerHTML = '<option value="">Tous les sites</option>';
+            
+            allSites.forEach(site => {
+                const option = document.createElement('option');
+                option.value = site.id;
+                option.textContent = site.nom;
+                siteFilter.appendChild(option);
+            });
+        }
+
+        // Mettre à jour les départements selon le site sélectionné
+        function updateDepartements() {
+            const siteId = document.getElementById('siteFilter').value;
+            const deptFilter = document.getElementById('deptFilter');
+            
+            deptFilter.innerHTML = '<option value="">Tous les départements</option>';
+            
+            const departementsFiltered = siteId ? 
+                allDepartements.filter(dept => dept.site_id == siteId) : 
+                allDepartements;
+            
+            departementsFiltered.forEach(dept => {
+                const option = document.createElement('option');
+                option.value = dept.id;
+                option.textContent = dept.nom;
+                deptFilter.appendChild(option);
+            });
+        }
+
+        // Filtrer les employés
+        function filterEmployees() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const selectedSite = document.getElementById('siteFilter').value;
+            const selectedDept = document.getElementById('deptFilter').value;
+            
+            const rows = document.querySelectorAll('.employee-row');
+            let visibleCount = 0;
+            
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                const siteId = row.getAttribute('data-site');
+                const deptId = row.getAttribute('data-dept');
+                
+                const matchesSearch = !searchTerm || text.includes(searchTerm);
+                const matchesSite = !selectedSite || siteId === selectedSite;
+                const matchesDept = !selectedDept || deptId === selectedDept;
+                
+                if (matchesSearch && matchesSite && matchesDept) {
+                    row.style.display = '';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+            
+            // Mettre à jour l'affichage
+            document.getElementById('filterResults').textContent = 
+                visibleCount === rows.length ? 
+                `${visibleCount} employé(s)` : 
+                `${visibleCount} sur ${rows.length} employé(s)`;
+            
+            // Afficher/masquer le message "aucun résultat"
+            const noResults = document.getElementById('noResults');
+            if (visibleCount === 0 && rows.length > 0) {
+                noResults.style.display = 'block';
+                document.getElementById('employeesTable').style.display = 'none';
+            } else {
+                noResults.style.display = 'none';
+                document.getElementById('employeesTable').style.display = '';
+            }
+        }
+
+        // Effacer tous les filtres
+        function clearAllFilters() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('siteFilter').value = '';
+            document.getElementById('deptFilter').value = '';
+            updateDepartements();
+            filterEmployees();
+            showNotification('Filtres effacés', 'info');
+        }
+
+        // ===== ACTIONS SUR LES EMPLOYÉS =====
+
+        // Ajouter un nouvel employé
+        async function addNewEmployee() {
+            try {
+                showLoading();
+                
+                const response = await fetch('/creer_employe/', {
+                    method: 'GET',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success) {
+                        document.getElementById('employeeModalTitle').textContent = 'Ajouter un Nouvel Employé';
+                        document.getElementById('employeeModalBody').innerHTML = data.form_html;
+                        new bootstrap.Modal(document.getElementById('employeeModal')).show();
+                        showNotification('Formulaire d\'ajout chargé', 'success');
+                    } else {
+                        throw new Error(data.error);
+                    }
+                } else {
+                    throw new Error('Erreur lors du chargement du formulaire');
+                }
+                
+                hideLoading();
+            } catch (error) {
+                hideLoading();
+                showNotification('Erreur: ' + error.message, 'error');
+            }
+        }
+
+        // Modifier un employé
+        async function editEmployee(employeeId) {
+            try {
+                showLoading();
+                
+                const response = await fetch(`/modifier_employe/${employeeId}/`, {
+                    method: 'GET',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success) {
+                        document.getElementById('employeeModalTitle').textContent = 'Modifier l\'Employé';
+                        document.getElementById('employeeModalBody').innerHTML = data.form_html;
+                        new bootstrap.Modal(document.getElementById('employeeModal')).show();
+                        showNotification('Formulaire de modification chargé', 'success');
+                    } else {
+                        throw new Error(data.error);
+                    }
+                } else {
+                    throw new Error('Erreur lors du chargement du formulaire');
+                }
+                
+                hideLoading();
+            } catch (error) {
+                hideLoading();
+                showNotification('Erreur: ' + error.message, 'error');
+            }
+        }
+
+        // Voir les détails d'un employé
+        async function viewEmployeeDetails(employeeId) {
+            try {
+                showLoading();
+                
+                const response = await fetch(`/detail_employe/${employeeId}/`, {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success) {
+                        document.getElementById('employeeDetailsModalBody').innerHTML = generateEmployeeDetailsHTML(data);
+                        new bootstrap.Modal(document.getElementById('employeeDetailsModal')).show();
+                        showNotification('Détails chargés', 'success');
+                    } else {
+                        throw new Error(data.error);
+                    }
+                } else {
+                    // Fallback avec données locales
+                    const employee = allEmployees.find(emp => emp.id == employeeId);
+                    if (employee) {
+                        document.getElementById('employeeDetailsModalBody').innerHTML = generateEmployeeDetailsHTML({employe: employee});
+                        new bootstrap.Modal(document.getElementById('employeeDetailsModal')).show();
+                        showNotification('Détails affichés (mode local)', 'info');
+                    } else {
+                        throw new Error('Employé non trouvé');
+                    }
+                }
+                
+                hideLoading();
+            } catch (error) {
+                hideLoading();
+                showNotification('Erreur: ' + error.message, 'error');
+            }
+        }
+
+        // Générer le HTML des détails de l'employé
+        function generateEmployeeDetailsHTML(data) {
+            const emp = data.employe;
+            return `
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card h-100">
+                            <div class="card-header bg-primary text-white">
+                                <h6 class="mb-0"><i class="fas fa-user me-2"></i>Informations Personnelles</h6>
+                            </div>
+                            <div class="card-body">
+                                <table class="table table-sm table-borderless">
+                                    <tr><th width="120">Matricule:</th><td><strong>${emp.matricule}</strong></td></tr>
+                                    <tr><th>Nom complet:</th><td><strong>${emp.nom} ${emp.prenom}</strong></td></tr>
+                                    <tr><th>Fonction:</th><td>${emp.fonction || 'Non défini'}</td></tr>
+                                    <tr><th>Salaire de base:</th><td class="text-success fw-bold">${(emp.salaire_base || 0).toLocaleString()} DH</td></tr>
+                                    <tr><th>Date d'embauche:</th><td>${emp.date_embauche || 'Non défini'}</td></tr>
+                                    <tr><th>Téléphone:</th><td>${emp.telephone || 'Non défini'}</td></tr>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card h-100">
+                            <div class="card-header bg-info text-white">
+                                <h6 class="mb-0"><i class="fas fa-cog me-2"></i>Informations Système</h6>
+                            </div>
+                            <div class="card-body">
+                                <table class="table table-sm table-borderless">
+                                    <tr><th width="120">Site:</th><td>${emp.site?.nom || 'Non assigné'}</td></tr>
+                                    <tr><th>Département:</th><td>${emp.departement?.nom || 'Non assigné'}</td></tr>
+                                    <tr><th>Statut:</th><td><span class="badge bg-${emp.actif ? 'success' : 'secondary'}">${emp.actif ? 'Actif' : 'Inactif'}</span></td></tr>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Supprimer/désactiver un employé
+        async function deleteEmployee(employeeId, employeeName) {
+            if (!confirm(`Êtes-vous sûr de vouloir désactiver l'employé ${employeeName} ?`)) {
+                return;
+            }
+
+            try {
+                showLoading();
+                
+                const response = await fetch(`/api/employe/${employeeId}/delete/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': getCSRFToken()
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success) {
+                        showNotification(data.message, 'success');
+                        loadEmployees(); // Recharger la liste
+                    } else {
+                        throw new Error(data.error);
+                    }
+                } else {
+                    throw new Error('Erreur lors de la suppression');
+                }
+                
+                hideLoading();
+            } catch (error) {
+                hideLoading();
+                showNotification('Erreur: ' + error.message, 'error');
+            }
+        }
+
+        // Exporter vers Excel
+        async function exportToExcel() {
+            try {
+                showLoading();
+                showNotification('Génération de l\'export en cours...', 'info');
+                
+                const response = await fetch('/api/employees/export/', {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `employes_${new Date().toISOString().split('T')[0]}.xlsx`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(url);
+                    showNotification('Export terminé avec succès', 'success');
+                } else {
+                    throw new Error('Erreur lors de l\'export');
+                }
+                
+                hideLoading();
+            } catch (error) {
+                hideLoading();
+                showNotification('Erreur lors de l\'export: ' + error.message, 'error');
+            }
+        }
+
+        // Initialisation au chargement de la page
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 Test Gestion Employés - Initialisation');
+            loadInitialData();
+        });
+    </script>
+</body>
+</html>

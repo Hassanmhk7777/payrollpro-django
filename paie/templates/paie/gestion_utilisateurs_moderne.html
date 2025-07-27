@@ -475,74 +475,51 @@
             </div>
         </div>
 
-        <!-- Filtres avancés -->
+        <!-- SECTION FILTRES UNIFIÉE -->
         <div class="filters-section slide-in" style="animation-delay: 0.5s">
             <h5 class="mb-4"><i class="fas fa-filter me-2"></i>Filtres Avancés</h5>
-            <div class="row">
-                <div class="col-lg-3 col-md-6">
-                    <div class="filter-group">
-                        <label class="filter-label">Site</label>
-                        <select class="form-select modern-select" id="siteFilter">
+            <div class="card-body">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">Rechercher</label>
+                        <input type="text" id="searchInput" class="form-control modern-input" 
+                               placeholder="Nom, prénom, matricule..." 
+                               onkeyup="filterEmployees()">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">Site</label>
+                        <select id="siteFilter" class="form-select modern-select" onchange="filterEmployees()">
                             <option value="">Tous les sites</option>
-                            <option value="1">Casablanca - Siège Social</option>
-                            <option value="2">Rabat - Succursale</option>
-                            <option value="3">Marrakech - Agence</option>
+                            {% for site in sites_disponibles %}
+                            <option value="{{ site.id }}">{{ site.nom }}</option>
+                            {% endfor %}
                         </select>
                     </div>
-                </div>
-                <div class="col-lg-3 col-md-6">
-                    <div class="filter-group">
-                        <label class="filter-label">Département</label>
-                        <select class="form-select modern-select" id="departmentFilter">
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">Département</label>
+                        <select id="departmentFilter" class="form-select modern-select" onchange="filterEmployees()">
                             <option value="">Tous les départements</option>
-                            <option value="1">Ressources Humaines</option>
-                            <option value="2">Informatique</option>
-                            <option value="3">Comptabilité</option>
-                            <option value="4">Commercial</option>
+                            {% for dept in departements_disponibles %}
+                            <option value="{{ dept.id }}">{{ dept.nom }}</option>
+                            {% endfor %}
                         </select>
                     </div>
-                </div>
-                <div class="col-lg-3 col-md-6">
-                    <div class="filter-group">
-                        <label class="filter-label">Fonction</label>
-                        <select class="form-select modern-select" id="functionFilter">
-                            <option value="">Toutes les fonctions</option>
-                            <option value="technicien">Technicien</option>
-                            <option value="comptable">Comptable</option>
-                            <option value="commercial">Commercial</option>
-                            <option value="manager">Manager</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="col-lg-3 col-md-6">
-                    <div class="filter-group">
-                        <label class="filter-label">Statut</label>
-                        <select class="form-select modern-select" id="statusFilter">
-                            <option value="">Tous les statuts</option>
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">Statut</label>
+                        <select id="statusFilter" class="form-select modern-select" onchange="filterEmployees()">
+                            <option value="">Tous</option>
                             <option value="actif">Actif</option>
                             <option value="inactif">Inactif</option>
                         </select>
                     </div>
                 </div>
-            </div>
-            <div class="row mt-3">
-                <div class="col-lg-6 col-md-8">
-                    <div class="filter-group">
-                        <label class="filter-label">Recherche</label>
-                        <div class="position-relative">
-                            <input type="text" class="form-control modern-input ps-5" id="searchInput" 
-                                   placeholder="Rechercher par nom, prénom, matricule ou fonction...">
-                            <i class="fas fa-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted"></i>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-lg-6 col-md-4 d-flex align-items-end">
-                    <div class="filter-group d-flex gap-2 w-100">
-                        <button class="btn btn-modern btn-primary-modern flex-fill" onclick="applyFilters()">
-                            <i class="fas fa-search me-2"></i>Filtrer
+                <div class="row mt-3">
+                    <div class="col-12 text-end">
+                        <button class="btn btn-outline-secondary me-2" onclick="resetFilters()">
+                            <i class="fas fa-undo"></i> Réinitialiser
                         </button>
-                        <button class="btn btn-modern btn-secondary-modern" onclick="resetFilters()">
-                            <i class="fas fa-undo me-2"></i>Réinitialiser
+                        <button class="btn btn-primary" onclick="exportToExcel()">
+                            <i class="fas fa-download"></i> Exporter Excel
                         </button>
                     </div>
                 </div>
@@ -569,200 +546,96 @@
             </div>
         </div>
 
-        <!-- Table des employés -->
+        <!-- TABLEAU UNIFIÉ -->
         <div class="modern-table slide-in" style="animation-delay: 0.6s">
             <div class="table-header">
                 <div class="d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">Liste des Employés</h5>
                     <div class="d-flex align-items-center gap-3">
-                        <span class="badge bg-light text-dark">4 résultats</span>
-                        <div class="d-flex align-items-center gap-2">
-                            <label class="text-white me-2">Afficher:</label>
-                            <select class="form-select form-select-sm" style="width: auto;">
-                                <option>10</option>
-                                <option>25</option>
-                                <option>50</option>
-                                <option>100</option>
-                            </select>
-                        </div>
+                        <span class="badge bg-light text-dark" id="resultCount">{{ employes|length }} résultats</span>
                     </div>
                 </div>
             </div>
             <div class="table-responsive">
-                <table class="table mb-0">
-                    <thead>
+                <table class="table table-hover">
+                    <thead class="table-dark">
                         <tr>
-                            <th><input type="checkbox" class="form-check-input"></th>
+                            <th><input type="checkbox" id="selectAll"></th>
                             <th>Matricule</th>
-                            <th>Nom & Prénom</th>
+                            <th>Nom Complet</th>
                             <th>Site</th>
                             <th>Département</th>
                             <th>Fonction</th>
                             <th>Salaire</th>
-                            <th>Date Embauche</th>
                             <th>Statut</th>
-                            <th>Actions</th>
+                            <th class="text-center">Actions</th>
                         </tr>
                     </thead>
-                    <tbody id="employeeTable">
-                        <tr>
-                            <td><input type="checkbox" class="form-check-input"></td>
-                            <td><strong>S001</strong></td>
+                    <tbody id="employeeTableBody">
+                        {% for employe in employes %}
+                        <tr class="employee-row" 
+                            data-site="{{ employe.site.id|default:'' }}" 
+                            data-dept="{{ employe.departement.id|default:'' }}"
+                            data-status="{% if employe.actif %}actif{% else %}inactif{% endif %}">
+                            <td><input type="checkbox" class="employee-checkbox" value="{{ employe.id }}"></td>
+                            <td><strong>{{ employe.matricule }}</strong></td>
                             <td>
                                 <div class="d-flex align-items-center">
-                                    <div class="avatar-circle me-3">BA</div>
+                                    <div class="avatar-circle me-3">{{ employe.nom|first }}{{ employe.prenom|first }}</div>
                                     <div>
-                                        <div class="fw-bold">BENALI Ahmed</div>
-                                        <small class="text-muted">s001_benali</small>
+                                        <div class="fw-bold">{{ employe.nom }} {{ employe.prenom }}</div>
+                                        <small class="text-muted">{{ employe.user.username|default:employe.matricule }}</small>
                                     </div>
                                 </div>
                             </td>
+                            <td><span class="badge bg-info">{{ employe.site.nom|default:"N/A" }}</span></td>
+                            <td>{{ employe.departement.nom|default:"N/A" }}</td>
+                            <td>{{ employe.fonction }}</td>
+                            <td class="text-end"><strong>{{ employe.salaire_base|floatformat:2 }} DH</strong></td>
                             <td>
-                                <span class="badge bg-primary">CAS - Casablanca</span>
+                                {% if employe.actif %}
+                                <span class="badge bg-success">Actif</span>
+                                {% else %}
+                                <span class="badge bg-danger">Inactif</span>
+                                {% endif %}
                             </td>
-                            <td>
-                                <span class="badge bg-info">IT - Informatique</span>
-                            </td>
-                            <td>Technicien</td>
-                            <td><strong>4,500 DH</strong></td>
-                            <td>04/01/2011</td>
-                            <td><span class="modern-badge badge-active">Actif</span></td>
-                            <td>
-                                <button class="action-btn btn-view" title="Voir">
+                            <td class="text-center">
+                                <button class="btn btn-outline-info btn-sm me-1" 
+                                        onclick="viewEmployeeDetails({{ employe.id }})" 
+                                        title="Voir détails">
                                     <i class="fas fa-eye"></i>
                                 </button>
-                                <button class="action-btn btn-edit" title="Modifier">
+                                <button class="btn btn-outline-warning btn-sm me-1" 
+                                        onclick="editEmployee({{ employe.id }})" 
+                                        title="Modifier">
                                     <i class="fas fa-edit"></i>
                                 </button>
-                                <button class="action-btn btn-delete" title="Supprimer">
-                                    <i class="fas fa-trash"></i>
+                                <button class="btn btn-outline-danger btn-sm" 
+                                        onclick="toggleEmployeeStatus({{ employe.id }}, '{{ employe.nom }} {{ employe.prenom }}', {{ employe.actif|yesno:'true,false' }})" 
+                                        title="{% if employe.actif %}Désactiver{% else %}Activer{% endif %}">
+                                    <i class="fas fa-user-{% if employe.actif %}times{% else %}check{% endif %}"></i>
                                 </button>
                             </td>
                         </tr>
-                        <tr>
-                            <td><input type="checkbox" class="form-check-input"></td>
-                            <td><strong>S002</strong></td>
-                            <td>
-                                <div class="d-flex align-items-center">
-                                    <div class="avatar-circle me-3">AS</div>
-                                    <div>
-                                        <div class="fw-bold">ALAMI Sara</div>
-                                        <small class="text-muted">s002_alami</small>
-                                    </div>
+                        {% empty %}
+                        <tr id="noEmployeesRow">
+                            <td colspan="9" class="text-center py-4">
+                                <div class="empty-state">
+                                    <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                                    <h5 class="text-muted">Aucun employé trouvé</h5>
                                 </div>
                             </td>
-                            <td>
-                                <span class="badge bg-primary">CAS - Casablanca</span>
-                            </td>
-                            <td>
-                                <span class="badge bg-warning">FIN - Finance</span>
-                            </td>
-                            <td>Comptable</td>
-                            <td><strong>5,875 DH</strong></td>
-                            <td>06/01/2009</td>
-                            <td><span class="modern-badge badge-active">Actif</span></td>
-                            <td>
-                                <button class="action-btn btn-view" title="Voir">
-                                    <i class="fas fa-eye"></i>
-                                </button>
-                                <button class="action-btn btn-edit" title="Modifier">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                                <button class="action-btn btn-delete" title="Supprimer">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </td>
                         </tr>
-                        <tr>
-                            <td><input type="checkbox" class="form-check-input"></td>
-                            <td><strong>S003</strong></td>
-                            <td>
-                                <div class="d-flex align-items-center">
-                                    <div class="avatar-circle me-3">HO</div>
-                                    <div>
-                                        <div class="fw-bold">HAFIDI Omar</div>
-                                        <small class="text-muted">s003_hafidi</small>
-                                    </div>
-                                </div>
-                            </td>
-                            <td>
-                                <span class="badge bg-success">RAB - Rabat</span>
-                            </td>
-                            <td>
-                                <span class="badge bg-danger">COM - Commercial</span>
-                            </td>
-                            <td>Commercial</td>
-                            <td><strong>3,850 DH</strong></td>
-                            <td>05/01/2012</td>
-                            <td><span class="modern-badge badge-active">Actif</span></td>
-                            <td>
-                                <button class="action-btn btn-view" title="Voir">
-                                    <i class="fas fa-eye"></i>
-                                </button>
-                                <button class="action-btn btn-edit" title="Modifier">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                                <button class="action-btn btn-delete" title="Supprimer">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td><input type="checkbox" class="form-check-input"></td>
-                            <td><strong>hassan</strong></td>
-                            <td>
-                                <div class="d-flex align-items-center">
-                                    <div class="avatar-circle me-3">PO</div>
-                                    <div>
-                                        <div class="fw-bold">POKO Omar</div>
-                                        <small class="text-muted">hassan_poko</small>
-                                    </div>
-                                </div>
-                            </td>
-                            <td>
-                                <span class="badge bg-success">RAB - Rabat</span>
-                            </td>
-                            <td>
-                                <span class="badge bg-danger">COM - Commercial</span>
-                            </td>
-                            <td>Commercial</td>
-                            <td><strong>4,000 DH</strong></td>
-                            <td>05/01/2012</td>
-                            <td><span class="modern-badge badge-active">Actif</span></td>
-                            <td>
-                                <button class="action-btn btn-view" title="Voir">
-                                    <i class="fas fa-eye"></i>
-                                </button>
-                                <button class="action-btn btn-edit" title="Modifier">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                                <button class="action-btn btn-delete" title="Supprimer">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </td>
-                        </tr>
+                        {% endfor %}
                     </tbody>
                 </table>
             </div>
             
             <!-- Pagination moderne -->
             <div class="d-flex justify-content-between align-items-center p-3 border-top">
-                <div class="text-muted">
-                    Affichage de 1 à 4 sur 4 entrées
+                <div class="text-muted" id="paginationInfo">
+                    Affichage de {{ employes|length }} entrées
                 </div>
-                <nav>
-                    <ul class="pagination pagination-sm mb-0">
-                        <li class="page-item disabled">
-                            <a class="page-link" href="#"><i class="fas fa-chevron-left"></i></a>
-                        </li>
-                        <li class="page-item active">
-                            <a class="page-link" href="#">1</a>
-                        </li>
-                        <li class="page-item disabled">
-                            <a class="page-link" href="#"><i class="fas fa-chevron-right"></i></a>
-                        </li>
-                    </ul>
-                </nav>
             </div>
         </div>
     </div>
@@ -783,6 +656,8 @@
     </style>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    {% load static %}
+    <script src="{% static 'paie/js/employees-management.js' %}"></script>
     <script>
         // Variables globales
         let currentFilters = {

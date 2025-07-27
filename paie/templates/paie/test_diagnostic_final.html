@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧪 Test Final - Filtres et Boutons Employés</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; }
+        .test-container { background: white; border-radius: 15px; box-shadow: 0 15px 35px rgba(0,0,0,0.1); padding: 30px; margin: 20px 0; }
+        .test-header { background: linear-gradient(45deg, #28a745, #20c997); color: white; padding: 20px; border-radius: 10px; margin-bottom: 25px; }
+        .test-section { border: 2px solid #e9ecef; border-radius: 10px; padding: 20px; margin: 15px 0; }
+        .test-ok { border-color: #28a745; background: #f8fff9; }
+        .test-error { border-color: #dc3545; background: #fff5f5; }
+        .test-warning { border-color: #ffc107; background: #fffdf0; }
+        .status-badge { font-size: 0.9em; padding: 8px 15px; border-radius: 20px; }
+        .test-details { font-family: 'Courier New', monospace; background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="test-container">
+            <div class="test-header text-center">
+                <h1><i class="fas fa-vial me-3"></i>Test Final: Diagnostic Filtres et Boutons</h1>
+                <p class="mb-0">Validation complète de la solution implémentée</p>
+            </div>
+
+            <!-- Test 1: Éléments DOM -->
+            <div class="test-section" id="test-dom">
+                <h3><i class="fas fa-code me-2"></i>Test 1: Éléments DOM</h3>
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>🔍 Filtres:</strong></p>
+                        <ul id="dom-filters" class="list-unstyled"></ul>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>📋 Tableaux:</strong></p>
+                        <ul id="dom-tables" class="list-unstyled"></ul>
+                    </div>
+                </div>
+                <div class="test-details" id="dom-details"></div>
+            </div>
+
+            <!-- Test 2: Fonctions JavaScript -->
+            <div class="test-section" id="test-js">
+                <h3><i class="fas fa-cogs me-2"></i>Test 2: Fonctions JavaScript</h3>
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>🔧 Fonctions Principales:</strong></p>
+                        <ul id="js-functions" class="list-unstyled"></ul>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>⚡ Actions:</strong></p>
+                        <ul id="js-actions" class="list-unstyled"></ul>
+                    </div>
+                </div>
+                <div class="test-details" id="js-details"></div>
+            </div>
+
+            <!-- Test 3: Connectivité API -->
+            <div class="test-section" id="test-api">
+                <h3><i class="fas fa-network-wired me-2"></i>Test 3: Connectivité API</h3>
+                <div class="row">
+                    <div class="col-md-12">
+                        <p><strong>🌐 URLs API:</strong></p>
+                        <ul id="api-urls" class="list-unstyled"></ul>
+                    </div>
+                </div>
+                <div class="test-details" id="api-details"></div>
+            </div>
+
+            <!-- Test 4: Test Interactif -->
+            <div class="test-section" id="test-interactive">
+                <h3><i class="fas fa-play me-2"></i>Test 4: Test Interactif des Filtres</h3>
+                <div class="row mb-3">
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">Recherche Test</label>
+                        <input type="text" id="testSearchInput" class="form-control" placeholder="Test..." onkeyup="testFilterFunction()">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">Site Test</label>
+                        <select id="testSiteFilter" class="form-select" onchange="testFilterFunction()">
+                            <option value="">Tous</option>
+                            <option value="1">Test Site 1</option>
+                            <option value="2">Test Site 2</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">Département Test</label>
+                        <select id="testDepartmentFilter" class="form-select" onchange="testFilterFunction()">
+                            <option value="">Tous</option>
+                            <option value="1">Test Dept 1</option>
+                            <option value="2">Test Dept 2</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">Statut Test</label>
+                        <select id="testStatusFilter" class="form-select" onchange="testFilterFunction()">
+                            <option value="">Tous</option>
+                            <option value="actif">Actif</option>
+                            <option value="inactif">Inactif</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="table-responsive">
+                    <table class="table table-sm table-striped">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>ID</th>
+                                <th>Nom</th>
+                                <th>Site</th>
+                                <th>Département</th>
+                                <th>Statut</th>
+                            </tr>
+                        </thead>
+                        <tbody id="testTableBody">
+                            <tr class="test-employee-row" data-site="1" data-dept="1" data-status="actif">
+                                <td>1</td><td>Test Employé 1</td><td>Site 1</td><td>Dept 1</td><td>Actif</td>
+                            </tr>
+                            <tr class="test-employee-row" data-site="2" data-dept="2" data-status="actif">
+                                <td>2</td><td>Test Employé 2</td><td>Site 2</td><td>Dept 2</td><td>Actif</td>
+                            </tr>
+                            <tr class="test-employee-row" data-site="1" data-dept="1" data-status="inactif">
+                                <td>3</td><td>Test Employé 3</td><td>Site 1</td><td>Dept 1</td><td>Inactif</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="mt-3">
+                    <button class="btn btn-warning" onclick="testResetFilters()">
+                        <i class="fas fa-undo me-2"></i>Tester Reset
+                    </button>
+                    <button class="btn btn-info" onclick="testExportFunction()">
+                        <i class="fas fa-download me-2"></i>Tester Export
+                    </button>
+                    <span id="testResult" class="ms-3"></span>
+                </div>
+            </div>
+
+            <!-- Résumé Final -->
+            <div class="test-section">
+                <h3><i class="fas fa-chart-bar me-2"></i>Résumé Final</h3>
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <h5 class="text-success" id="tests-passed">0</h5>
+                                <p class="text-muted">Tests Réussis</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <h5 class="text-warning" id="tests-warning">0</h5>
+                                <p class="text-muted">Avertissements</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <h5 class="text-danger" id="tests-failed">0</h5>
+                                <p class="text-muted">Tests Échoués</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div id="final-recommendation" class="mt-4 alert"></div>
+            </div>
+
+            <!-- Boutons d'action -->
+            <div class="text-center mt-4">
+                <button class="btn btn-primary btn-lg me-3" onclick="runAllTests()">
+                    <i class="fas fa-play me-2"></i>Exécuter Tous les Tests
+                </button>
+                <button class="btn btn-success btn-lg" onclick="goToEmployeePage()">
+                    <i class="fas fa-external-link-alt me-2"></i>Aller à la Page Employés
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let testResults = { passed: 0, warning: 0, failed: 0 };
+
+        // Test 1: Vérifier les éléments DOM
+        function testDOMElements() {
+            console.log('🔍 Test des éléments DOM');
+            
+            const elementsToCheck = {
+                'searchInput': 'Champ de recherche',
+                'siteFilter': 'Filtre par site',
+                'departmentFilter': 'Filtre par département', 
+                'statusFilter': 'Filtre par statut',
+                'employeeTableBody': 'Corps du tableau employés',
+                'selectAll': 'Case tout sélectionner'
+            };
+
+            const filtersList = document.getElementById('dom-filters');
+            const tablesList = document.getElementById('dom-tables');
+            const details = document.getElementById('dom-details');
+            
+            let domDetails = 'Éléments trouvés:\\n';
+            let domPassed = 0, domFailed = 0;
+
+            Object.entries(elementsToCheck).forEach(([id, name]) => {
+                const element = document.getElementById(id);
+                const exists = !!element;
+                const li = document.createElement('li');
+                
+                if (exists) {
+                    li.innerHTML = `<span class="status-badge bg-success">✓</span> ${name}`;
+                    domPassed++;
+                    domDetails += `✓ ${id}: Trouvé\\n`;
+                } else {
+                    li.innerHTML = `<span class="status-badge bg-danger">✗</span> ${name}`;
+                    domFailed++;
+                    domDetails += `✗ ${id}: Manquant\\n`;
+                }
+                
+                if (id.includes('Filter') || id.includes('search')) {
+                    filtersList.appendChild(li);
+                } else {
+                    tablesList.appendChild(li);
+                }
+            });
+
+            details.textContent = domDetails;
+
+            // Mettre à jour le statut de la section
+            const section = document.getElementById('test-dom');
+            if (domFailed === 0) {
+                section.classList.add('test-ok');
+                testResults.passed++;
+            } else if (domPassed > domFailed) {
+                section.classList.add('test-warning');
+                testResults.warning++;
+            } else {
+                section.classList.add('test-error');
+                testResults.failed++;
+            }
+
+            return { passed: domPassed, failed: domFailed };
+        }
+
+        // Test 2: Vérifier les fonctions JavaScript
+        function testJSFunctions() {
+            console.log('🔧 Test des fonctions JavaScript');
+            
+            const functionsToCheck = [
+                'filterEmployees',
+                'resetFilters', 
+                'exportToExcel',
+                'viewEmployeeDetails',
+                'editEmployee',
+                'toggleEmployeeStatus'
+            ];
+
+            const functionsList = document.getElementById('js-functions');
+            const actionsList = document.getElementById('js-actions');
+            const details = document.getElementById('js-details');
+            
+            let jsDetails = 'Fonctions JavaScript:\\n';
+            let jsPassed = 0, jsFailed = 0;
+
+            functionsToCheck.forEach(funcName => {
+                const exists = typeof window[funcName] === 'function';
+                const li = document.createElement('li');
+                
+                if (exists) {
+                    li.innerHTML = `<span class="status-badge bg-success">✓</span> ${funcName}()`;
+                    jsPassed++;
+                    jsDetails += `✓ ${funcName}: Définie\\n`;
+                } else {
+                    li.innerHTML = `<span class="status-badge bg-danger">✗</span> ${funcName}()`;
+                    jsFailed++;
+                    jsDetails += `✗ ${funcName}: Manquante\\n`;
+                }
+                
+                if (funcName.includes('Employee') || funcName.includes('toggle')) {
+                    actionsList.appendChild(li);
+                } else {
+                    functionsList.appendChild(li);
+                }
+            });
+
+            details.textContent = jsDetails;
+
+            // Mettre à jour le statut de la section
+            const section = document.getElementById('test-js');
+            if (jsFailed === 0) {
+                section.classList.add('test-ok');
+                testResults.passed++;
+            } else if (jsPassed > jsFailed) {
+                section.classList.add('test-warning');
+                testResults.warning++;
+            } else {
+                section.classList.add('test-error');
+                testResults.failed++;
+            }
+
+            return { passed: jsPassed, failed: jsFailed };
+        }
+
+        // Test 3: Tester la connectivité API
+        async function testAPIConnectivity() {
+            console.log('🌐 Test de la connectivité API');
+            
+            const apisToTest = [
+                { url: '/gestion-employes/', name: 'Page principale employés' },
+                { url: '/api/employes/export/', name: 'Export Excel' },
+                { url: '/creer_employe/', name: 'Création employé' }
+            ];
+
+            const urlsList = document.getElementById('api-urls');
+            const details = document.getElementById('api-details');
+            
+            let apiDetails = 'Tests API:\\n';
+            let apiPassed = 0, apiFailed = 0;
+
+            for (const api of apisToTest) {
+                try {
+                    const response = await fetch(api.url, {
+                        method: 'HEAD',
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    });
+                    
+                    const li = document.createElement('li');
+                    if (response.status < 500) {
+                        li.innerHTML = `<span class="status-badge bg-success">✓</span> ${api.name} (${response.status})`;
+                        apiPassed++;
+                        apiDetails += `✓ ${api.url}: ${response.status}\\n`;
+                    } else {
+                        li.innerHTML = `<span class="status-badge bg-warning">⚠</span> ${api.name} (${response.status})`;
+                        apiDetails += `⚠ ${api.url}: ${response.status}\\n`;
+                    }
+                    urlsList.appendChild(li);
+                } catch (error) {
+                    const li = document.createElement('li');
+                    li.innerHTML = `<span class="status-badge bg-danger">✗</span> ${api.name} (Erreur)`;
+                    urlsList.appendChild(li);
+                    apiFailed++;
+                    apiDetails += `✗ ${api.url}: ${error.message}\\n`;
+                }
+            }
+
+            details.textContent = apiDetails;
+
+            // Mettre à jour le statut de la section
+            const section = document.getElementById('test-api');
+            if (apiFailed === 0) {
+                section.classList.add('test-ok');
+                testResults.passed++;
+            } else if (apiPassed > apiFailed) {
+                section.classList.add('test-warning');
+                testResults.warning++;
+            } else {
+                section.classList.add('test-error');
+                testResults.failed++;
+            }
+
+            return { passed: apiPassed, failed: apiFailed };
+        }
+
+        // Test interactif des filtres
+        function testFilterFunction() {
+            const search = document.getElementById('testSearchInput').value.toLowerCase();
+            const site = document.getElementById('testSiteFilter').value;
+            const dept = document.getElementById('testDepartmentFilter').value;
+            const status = document.getElementById('testStatusFilter').value;
+            
+            const rows = document.querySelectorAll('.test-employee-row');
+            let visibleCount = 0;
+            
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                const rowSite = row.getAttribute('data-site');
+                const rowDept = row.getAttribute('data-dept');
+                const rowStatus = row.getAttribute('data-status');
+                
+                const matchesSearch = !search || text.includes(search);
+                const matchesSite = !site || rowSite === site;
+                const matchesDept = !dept || rowDept === dept;
+                const matchesStatus = !status || rowStatus === status;
+                
+                if (matchesSearch && matchesSite && matchesDept && matchesStatus) {
+                    row.style.display = '';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+            
+            document.getElementById('testResult').innerHTML = 
+                `<span class="badge bg-info">${visibleCount} résultat(s) affiché(s)</span>`;
+        }
+
+        function testResetFilters() {
+            document.getElementById('testSearchInput').value = '';
+            document.getElementById('testSiteFilter').value = '';
+            document.getElementById('testDepartmentFilter').value = '';
+            document.getElementById('testStatusFilter').value = '';
+            testFilterFunction();
+            document.getElementById('testResult').innerHTML = 
+                `<span class="badge bg-success">Filtres réinitialisés ✓</span>`;
+        }
+
+        function testExportFunction() {
+            document.getElementById('testResult').innerHTML = 
+                `<span class="badge bg-warning">Test d'export simulé ⚡</span>`;
+        }
+
+        // Exécuter tous les tests
+        async function runAllTests() {
+            console.log('🚀 Exécution de tous les tests');
+            testResults = { passed: 0, warning: 0, failed: 0 };
+            
+            // Nettoyer les sections précédentes
+            document.querySelectorAll('.test-section').forEach(section => {
+                section.classList.remove('test-ok', 'test-warning', 'test-error');
+            });
+
+            // Exécuter les tests
+            const domResult = testDOMElements();
+            const jsResult = testJSFunctions();
+            const apiResult = await testAPIConnectivity();
+
+            // Mettre à jour les compteurs
+            document.getElementById('tests-passed').textContent = testResults.passed;
+            document.getElementById('tests-warning').textContent = testResults.warning;
+            document.getElementById('tests-failed').textContent = testResults.failed;
+
+            // Recommandation finale
+            const recommendationDiv = document.getElementById('final-recommendation');
+            let recommendation = '';
+            let alertClass = '';
+
+            if (testResults.failed === 0 && testResults.warning === 0) {
+                recommendation = '🎉 Excellent! Tous les tests sont réussis. La solution est entièrement fonctionnelle.';
+                alertClass = 'alert-success';
+            } else if (testResults.failed === 0) {
+                recommendation = '✅ Très bien! Tests principaux réussis avec quelques avertissements mineurs.';
+                alertClass = 'alert-warning';
+            } else if (testResults.passed > testResults.failed) {
+                recommendation = '⚠️ Tests partiellement réussis. Certains éléments nécessitent une correction.';
+                alertClass = 'alert-warning';
+            } else {
+                recommendation = '❌ Tests échoués. La solution nécessite des corrections importantes.';
+                alertClass = 'alert-danger';
+            }
+
+            recommendationDiv.className = `mt-4 alert ${alertClass}`;
+            recommendationDiv.innerHTML = `<strong>Recommandation:</strong> ${recommendation}`;
+
+            console.log('✅ Tous les tests terminés');
+        }
+
+        function goToEmployeePage() {
+            window.location.href = '/gestion-employes/';
+        }
+
+        // Exécuter automatiquement les tests au chargement
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(runAllTests, 1000);
+        });
+    </script>
+</body>
+</html>

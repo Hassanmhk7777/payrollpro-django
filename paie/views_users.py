@@ -29,6 +29,168 @@ def est_admin_ou_rh(user):
 
 @login_required
 @user_passes_test(est_admin_ou_rh)
+def gestion_employes(request):
+    """Vue pour la gestion des employés avec filtres fonctionnels"""
+    from .models import Site, Departement
+    
+    # Récupération des filtres
+    search = request.GET.get('search', '').strip()
+    site_id = request.GET.get('site', '')
+    dept_id = request.GET.get('department', '')
+    status = request.GET.get('status', '')
+    
+    # Query de base
+    employes = Employe.objects.select_related('site', 'departement', 'user').all()
+    
+    # Application des filtres
+    if search:
+        employes = employes.filter(
+            Q(nom__icontains=search) |
+            Q(prenom__icontains=search) |
+            Q(matricule__icontains=search) |
+            Q(fonction__icontains=search)
+        )
+    
+    if site_id:
+        employes = employes.filter(site_id=site_id)
+    
+    if dept_id:
+        employes = employes.filter(departement_id=dept_id)
+    
+    if status == 'actif':
+        employes = employes.filter(actif=True)
+    elif status == 'inactif':
+        employes = employes.filter(actif=False)
+    
+    # Données pour les filtres
+    sites_disponibles = Site.objects.filter(actif=True).order_by('nom')
+    departements_disponibles = Departement.objects.filter(actif=True).order_by('nom')
+    
+    # Ordre et pagination
+    employes = employes.order_by('matricule')
+    paginator = Paginator(employes, 25)
+    page = request.GET.get('page')
+    employes_page = paginator.get_page(page)
+    
+    context = {
+        'employes': employes_page,
+        'sites_disponibles': sites_disponibles,
+        'departements_disponibles': departements_disponibles,
+        'filtres_actuels': {
+            'search': search,
+            'site': site_id,
+            'department': dept_id,
+            'status': status
+        }
+    }
+    
+    return render(request, 'paie/gestion_utilisateurs_moderne.html', context)
+
+
+@login_required
+@user_passes_test(est_admin_ou_rh)
+def api_export_employees(request):
+    """API pour exporter les employés au format Excel"""
+    try:
+        import openpyxl
+        from django.http import HttpResponse
+        from datetime import datetime
+        
+        # Créer un nouveau classeur
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "Liste des Employés"
+        
+        # En-têtes
+        headers = [
+            'Matricule', 'Nom', 'Prénom', 'Site', 'Département', 
+            'Fonction', 'Salaire de Base', 'Date Embauche', 'Statut'
+        ]
+        
+        for col_num, header in enumerate(headers, 1):
+            cell = ws.cell(row=1, column=col_num)
+            cell.value = header
+            cell.font = openpyxl.styles.Font(bold=True)
+            cell.fill = openpyxl.styles.PatternFill(start_color="CCCCCC", end_color="CCCCCC", fill_type="solid")
+        
+        # Données
+        employes = Employe.objects.select_related('site', 'departement').all()
+        for row_num, employe in enumerate(employes, 2):
+            ws.cell(row=row_num, column=1, value=employe.matricule)
+            ws.cell(row=row_num, column=2, value=employe.nom)
+            ws.cell(row=row_num, column=3, value=employe.prenom)
+            ws.cell(row=row_num, column=4, value=employe.site.nom if employe.site else "N/A")
+            ws.cell(row=row_num, column=5, value=employe.departement.nom if employe.departement else "N/A")
+            ws.cell(row=row_num, column=6, value=employe.fonction)
+            ws.cell(row=row_num, column=7, value=float(employe.salaire_base))
+            ws.cell(row=row_num, column=8, value=employe.date_embauche.strftime('%d/%m/%Y') if employe.date_embauche else "N/A")
+            ws.cell(row=row_num, column=9, value="Actif" if employe.actif else "Inactif")
+        
+        # Ajuster la largeur des colonnes
+        for column in ws.columns:
+            max_length = 0
+            column_letter = column[0].column_letter
+            for cell in column:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            adjusted_width = min(max_length + 2, 50)
+            ws.column_dimensions[column_letter].width = adjusted_width
+        
+        # Préparer la réponse
+        response = HttpResponse(
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        response['Content-Disposition'] = f'attachment; filename="employes_{datetime.now().strftime("%Y%m%d")}.xlsx"'
+        
+        wb.save(response)
+        return response
+        
+    except ImportError:
+        return JsonResponse({
+            'success': False,
+            'error': 'Le module openpyxl n\'est pas installé'
+        })
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        })
+
+
+@login_required
+@user_passes_test(est_admin_ou_rh)
+def api_toggle_employee_status(request, employe_id):
+    """API pour activer/désactiver un employé"""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Méthode non autorisée'})
+    
+    try:
+        employe = get_object_or_404(Employe, id=employe_id)
+        
+        # Inverser le statut
+        employe.actif = not employe.actif
+        employe.save()
+        
+        action = "activé" if employe.actif else "désactivé"
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Employé {employe.nom} {employe.prenom} {action} avec succès',
+            'new_status': employe.actif
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        })
+
+
+@login_required
+@user_passes_test(est_admin_ou_rh)
 def gestion_utilisateurs(request):
     """
     Page de gestion des utilisateurs pour les admin et RH
