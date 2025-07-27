@@ -15,6 +15,7 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib import messages
 from django.http import JsonResponse
 from django.db import transaction
+from django.views.decorators.http import require_http_methods
 from .models import Employe, RubriquePersonnalisee, EmployeRubrique, BulletinPaie
 from .forms import RubriqueRapideForm, AssignationMassiqueForm
 from decimal import Decimal
@@ -1671,3 +1672,148 @@ def accueil_moderne_fixed(request):
         # En cas d'erreur, rediriger vers une page simple
         messages.error(request, f'Erreur lors du chargement du dashboard: {str(e)}')
         return redirect('admin:index')
+
+
+# ===== API VIEWS POUR LES FONCTIONNALITÉS SPA =====
+
+@login_required
+@require_http_methods(["POST"])
+def api_calculate_payroll(request, employe_id):
+    """API pour calculer la paie d'un employé"""
+    try:
+        employe = Employe.objects.get(id=employe_id, actif=True)
+        
+        # Logique de calcul de paie simplifiée
+        salaire_base = employe.salaire_base or 0
+        
+        # Simulation d'un calcul de paie
+        # Ici vous pouvez implémenter la vraie logique de calcul
+        cotisations_sociales = salaire_base * 0.15  # 15% de cotisations
+        impot_sur_revenu = max(0, (salaire_base - 2500) * 0.10)  # Impôt simplifié
+        
+        salaire_net = salaire_base - cotisations_sociales - impot_sur_revenu
+        
+        # Créer ou mettre à jour le bulletin de paie
+        bulletin, created = BulletinPaie.objects.get_or_create(
+            employe=employe,
+            mois=datetime.now().month,
+            annee=datetime.now().year,
+            defaults={
+                'salaire_base': salaire_base,
+                'salaire_net': salaire_net,
+                'cotisations': cotisations_sociales,
+                'impots': impot_sur_revenu,
+                'date_calcul': datetime.now().date()
+            }
+        )
+        
+        if not created:
+            # Mettre à jour si existant
+            bulletin.salaire_base = salaire_base
+            bulletin.salaire_net = salaire_net
+            bulletin.cotisations = cotisations_sociales
+            bulletin.impots = impot_sur_revenu
+            bulletin.date_calcul = datetime.now().date()
+            bulletin.save()
+        
+        return JsonResponse({
+            'success': True,
+            'montant': salaire_net,
+            'employe': f"{employe.prenom} {employe.nom}",
+            'details': {
+                'salaire_base': salaire_base,
+                'cotisations': cotisations_sociales,
+                'impots': impot_sur_revenu,
+                'salaire_net': salaire_net
+            }
+        })
+        
+    except Employe.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'error': 'Employé non trouvé'
+        }, status=404)
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'Erreur lors du calcul: {str(e)}'
+        }, status=500)
+
+
+@login_required
+@require_http_methods(["POST"])
+def api_calculate_all_payroll(request):
+    """API pour calculer la paie de tous les employés actifs"""
+    try:
+        employes = Employe.objects.filter(actif=True)
+        employes_traites = 0
+        erreurs = []
+        
+        for employe in employes:
+            try:
+                # Réutiliser la logique de calcul individuel
+                salaire_base = employe.salaire_base or 0
+                cotisations_sociales = salaire_base * 0.15
+                impot_sur_revenu = max(0, (salaire_base - 2500) * 0.10)
+                salaire_net = salaire_base - cotisations_sociales - impot_sur_revenu
+                
+                bulletin, created = BulletinPaie.objects.get_or_create(
+                    employe=employe,
+                    mois=datetime.now().month,
+                    annee=datetime.now().year,
+                    defaults={
+                        'salaire_base': salaire_base,
+                        'salaire_net': salaire_net,
+                        'cotisations': cotisations_sociales,
+                        'impots': impot_sur_revenu,
+                        'date_calcul': datetime.now().date()
+                    }
+                )
+                
+                if not created:
+                    bulletin.salaire_base = salaire_base
+                    bulletin.salaire_net = salaire_net
+                    bulletin.cotisations = cotisations_sociales
+                    bulletin.impots = impot_sur_revenu
+                    bulletin.date_calcul = datetime.now().date()
+                    bulletin.save()
+                
+                employes_traites += 1
+                
+            except Exception as e:
+                erreurs.append(f"Erreur pour {employe.nom}: {str(e)}")
+        
+        return JsonResponse({
+            'success': True,
+            'employes_traites': employes_traites,
+            'total_employes': employes.count(),
+            'erreurs': erreurs,
+            'message': f'Calcul terminé: {employes_traites} employés traités'
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'Erreur lors du calcul global: {str(e)}'
+        }, status=500)
+
+
+@login_required
+@require_http_methods(["POST"])
+def api_export_payroll(request):
+    """API pour exporter les données de paie"""
+    try:
+        # Pour l'instant, retourner un message de développement
+        # Ici vous pouvez implémenter l'export réel (Excel, PDF, etc.)
+        
+        return JsonResponse({
+            'success': False,
+            'error': 'Fonctionnalité d\'export en développement',
+            'message': 'L\'export des données de paie sera disponible prochainement'
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'Erreur lors de l\'export: {str(e)}'
+        }, status=500)

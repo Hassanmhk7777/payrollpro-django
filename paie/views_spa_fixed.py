@@ -206,31 +206,72 @@ def spa_payroll_fixed(request):
         
         <!-- Scripts JavaScript pour les actions -->
         <script>
+        // Fonctions de calcul de paie corrigées et complètes
         function calculerPaieEmploye(employeId, nomEmploye) {{
-            // Simuler le calcul
-            showToast(`Calcul de paie lancé pour ${{nomEmploye}}`, 'info');
-            
-            // Ici vous pourrez ajouter l'appel AJAX réel
-            setTimeout(() => {{
-                showToast(`Paie calculée avec succès pour ${{nomEmploye}}`, 'success');
-            }}, 2000);
+            if (confirm(`Calculer la paie pour ${{nomEmploye}} ?`)) {{
+                PayrollPro.notify(`Calcul en cours pour ${{nomEmploye}}...`, 'info');
+                
+                PayrollPro.utils.apiCall(`/api/payroll/calculate/${{employeId}}/`, {{
+                    method: 'POST'
+                }})
+                .then(data => {{
+                    if (data.success) {{
+                        PayrollPro.notify(`Paie calculée pour ${{nomEmploye}}: ${{data.montant}} DH`, 'success');
+                        loadSPAContent('payroll'); // Recharger
+                    }} else {{
+                        PayrollPro.notify('Erreur calcul: ' + data.error, 'error');
+                    }}
+                }})
+                .catch(error => {{
+                    PayrollPro.notify('Erreur lors du calcul de paie', 'error');
+                }});
+            }}
         }}
         
         function voirBulletins(employeId) {{
-            showToast('Ouverture des bulletins...', 'info');
-            // Redirection vers la page des bulletins
+            PayrollPro.notify('Ouverture des bulletins...', 'info');
+            window.open(`/bulletins/employe/${{employeId}}/`, '_blank');
         }}
         
         function calculerPaieTous() {{
-            if(confirm('Calculer la paie pour tous les employés actifs ?')) {{
-                showToast('Calcul en lot démarré...', 'info');
-                // Ici l'appel AJAX pour calcul en lot
+            if(confirm('Calculer la paie pour tous les employés actifs ? Cette opération peut prendre du temps.')) {{
+                PayrollPro.loading.show('Calcul global en cours...');
+                
+                PayrollPro.utils.apiCall('/api/payroll/calculate-all/', {{
+                    method: 'POST'
+                }})
+                .then(data => {{
+                    PayrollPro.loading.hide();
+                    if (data.success) {{
+                        PayrollPro.notify(`Calcul terminé: ${{data.employes_traites}} employés traités`, 'success');
+                        loadSPAContent('payroll');
+                    }} else {{
+                        PayrollPro.notify('Erreur calcul global: ' + data.error, 'error');
+                    }}
+                }})
+                .catch(error => {{
+                    PayrollPro.loading.hide();
+                    PayrollPro.notify('Erreur lors du calcul global', 'error');
+                }});
             }}
         }}
         
         function exporterPaies() {{
-            showToast('Export en cours...', 'info');
-            // Ici l'appel pour export
+            PayrollPro.notify('Export des données de paie...', 'info');
+            PayrollPro.utils.apiCall('/api/payroll/export/', {{
+                method: 'POST'
+            }})
+            .then(data => {{
+                if (data.success && data.download_url) {{
+                    window.open(data.download_url, '_blank');
+                    PayrollPro.notify('Export terminé avec succès', 'success');
+                }} else {{
+                    PayrollPro.notify('Export en développement', 'warning');
+                }}
+            }})
+            .catch(error => {{
+                PayrollPro.notify('Fonctionnalité export en développement', 'warning');
+            }});
         }}
         
         function nouvelleRubrique() {{
@@ -238,7 +279,7 @@ def spa_payroll_fixed(request):
         }}
         
         function parametresPaie() {{
-            showToast('Paramètres de paie - En développement', 'warning');
+            PayrollPro.notify('Paramètres de paie - En développement', 'warning');
         }}
         
         function rapportsPaie() {{
@@ -247,7 +288,23 @@ def spa_payroll_fixed(request):
         
         function rechercherEmployes() {{
             const searchTerm = document.getElementById('searchEmployes').value;
-            showToast(`Recherche: ${{searchTerm}}`, 'info');
+            if (searchTerm.length > 2) {{
+                PayrollPro.notify(`Recherche: ${{searchTerm}}`, 'info');
+                loadSPAContent('payroll', {{search: searchTerm}});
+            }} else {{
+                PayrollPro.notify('Veuillez saisir au moins 3 caractères', 'warning');
+            }}
+        }}
+        
+        // Fonction de sécurité pour showToast si pas encore définie
+        if (typeof showToast === 'undefined') {{
+            function showToast(message, type) {{
+                if (window.PayrollPro) {{
+                    PayrollPro.notify(message, type);
+                }} else {{
+                    console.log(`${{type}}: ${{message}}`);
+                }}
+            }}
         }}
         </script>
         '''

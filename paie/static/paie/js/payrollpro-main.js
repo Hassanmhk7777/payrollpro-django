@@ -1,8 +1,135 @@
 /**
  * PayrollPro - JavaScript Principal
  * Résout tous les problèmes d'interactivité et modernise l'interface
- * Version: 2.0.0
+ * Version: 2.1.0 - CORRECTION CRITIQUE FONCTIONS SPA
  */
+
+// ===== SYSTÈME DE NOTIFICATIONS GLOBAL =====
+window.PayrollPro = {
+    notify: function(message, type = 'info', duration = 4000) {
+        console.log(`📢 ${type.toUpperCase()}: ${message}`);
+        
+        // Supprimer les anciennes notifications
+        const oldNotifications = document.querySelectorAll('.payrollpro-notification');
+        oldNotifications.forEach(notif => notif.remove());
+        
+        // Créer la notification
+        const notification = document.createElement('div');
+        notification.className = `alert alert-${type === 'error' ? 'danger' : type} alert-dismissible fade show position-fixed payrollpro-notification`;
+        notification.style.cssText = `
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            min-width: 300px;
+            max-width: 500px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+            border-radius: 8px;
+        `;
+        
+        const iconMap = {
+            'success': 'check-circle',
+            'error': 'exclamation-triangle', 
+            'warning': 'exclamation-circle',
+            'info': 'info-circle'
+        };
+        
+        notification.innerHTML = `
+            <i class="fas fa-${iconMap[type] || 'info-circle'} me-2"></i>
+            ${message}
+            <button type="button" class="btn-close" onclick="this.parentElement.remove()"></button>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        // Suppression automatique
+        if (duration > 0) {
+            setTimeout(() => {
+                if (notification.parentElement) {
+                    notification.remove();
+                }
+            }, duration);
+        }
+        
+        return notification;
+    },
+    
+    loading: {
+        show: function(message = 'Chargement...') {
+            console.log('🔄 ' + message);
+            const existing = document.getElementById('payrollpro-loading');
+            if (existing) existing.remove();
+            
+            const overlay = document.createElement('div');
+            overlay.id = 'payrollpro-loading';
+            overlay.style.cssText = `
+                position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+                background: rgba(0,0,0,0.5); z-index: 10000;
+                display: flex; align-items: center; justify-content: center;
+            `;
+            
+            overlay.innerHTML = `
+                <div class="bg-white p-4 rounded shadow text-center">
+                    <div class="spinner-border text-primary mb-3" role="status"></div>
+                    <div>${message}</div>
+                </div>
+            `;
+            
+            document.body.appendChild(overlay);
+        },
+        
+        hide: function() {
+            console.log('✅ Chargement terminé');
+            const overlay = document.getElementById('payrollpro-loading');
+            if (overlay) overlay.remove();
+        }
+    },
+    
+    // Utilitaires
+    utils: {
+        getCsrfToken: function() {
+            const meta = document.querySelector('meta[name="csrf-token"]');
+            if (meta) return meta.getAttribute('content');
+            
+            const input = document.querySelector('[name=csrfmiddlewaretoken]');
+            if (input) return input.value;
+            
+            return null;
+        },
+        
+        apiCall: function(url, options = {}) {
+            const defaults = {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            };
+            
+            if (options.method === 'POST' || options.method === 'PUT' || options.method === 'DELETE') {
+                defaults.headers['X-CSRFToken'] = this.getCsrfToken();
+            }
+            
+            const finalOptions = Object.assign({}, defaults, options);
+            finalOptions.headers = Object.assign({}, defaults.headers, options.headers || {});
+            
+            return fetch(url, finalOptions)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    return response.json();
+                })
+                .catch(error => {
+                    console.error('API Error:', error);
+                    PayrollPro.notify('Erreur de connexion: ' + error.message, 'error');
+                    throw error;
+                });
+        }
+    }
+};
+
+// Alias pour compatibilité
+window.showToast = window.PayrollPro.notify;
 
 class PayrollProMain {
     constructor() {

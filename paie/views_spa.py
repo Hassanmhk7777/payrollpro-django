@@ -668,6 +668,72 @@ def spa_absences(request):
                     </div>
                 </div>
             </div>
+            
+            <!-- Scripts JavaScript pour les actions d'absences -->
+            <script>
+            // Fonctions de gestion des absences corrigées
+            function approveAbsence(absenceId) {{
+                if (confirm('Approuver cette demande d\\'absence ?')) {{
+                    PayrollPro.notify('Traitement en cours...', 'info');
+                    
+                    PayrollPro.utils.apiCall(`/api/absence/${{absenceId}}/approve/`, {{
+                        method: 'POST',
+                        body: JSON.stringify({{action: 'approve'}})
+                    }})
+                    .then(data => {{
+                        if (data.success) {{
+                            PayrollPro.notify('Absence approuvée avec succès', 'success');
+                            loadSPAContent('absences'); // Recharger la liste
+                        }} else {{
+                            PayrollPro.notify('Erreur: ' + data.error, 'error');
+                        }}
+                    }})
+                    .catch(error => {{
+                        PayrollPro.notify('Erreur de connexion', 'error');
+                    }});
+                }}
+            }}
+            
+            function rejectAbsence(absenceId) {{
+                const motif = prompt('Motif du refus (optionnel):');
+                if (motif !== null) {{
+                    PayrollPro.notify('Traitement en cours...', 'info');
+                    
+                    PayrollPro.utils.apiCall(`/api/absence/${{absenceId}}/reject/`, {{
+                        method: 'POST',
+                        body: JSON.stringify({{action: 'reject', motif: motif}})
+                    }})
+                    .then(data => {{
+                        if (data.success) {{
+                            PayrollPro.notify('Absence refusée', 'warning');
+                            loadSPAContent('absences');
+                        }} else {{
+                            PayrollPro.notify('Erreur: ' + data.error, 'error');
+                        }}
+                    }});
+                }}
+            }}
+            
+            function viewAbsence(absenceId) {{
+                PayrollPro.notify(`Ouverture détails absence #${{absenceId}}`, 'info');
+                window.open(`/absence/${{absenceId}}/details/`, '_blank');
+            }}
+            
+            function filterAbsences(statut) {{
+                PayrollPro.notify(`Filtrage par statut: ${{statut}}`, 'info');
+                loadSPAContent('absences', {{filter: statut}});
+            }}
+            
+            // Fonction de sécurité pour PayrollPro.notify
+            if (typeof PayrollPro === 'undefined') {{
+                window.PayrollPro = {{
+                    notify: function(message, type) {{
+                        console.log(`${{type}}: ${{message}}`);
+                        alert(message);
+                    }}
+                }};
+            }}
+            </script>
             '''
         }
         
