@@ -1,6 +1,83 @@
 from django import forms
-from .models import RubriquePersonnalisee, EmployeRubrique, Employe
+from django.contrib.auth.models import User
+from .models import RubriquePersonnalisee, EmployeRubrique, Employe, Site, Departement
 from datetime import date
+
+class EmployeForm(forms.ModelForm):
+    """Formulaire pour créer/modifier un employé"""
+    
+    # Champs utilisateur
+    username = forms.CharField(
+        max_length=150,
+        label="Nom d'utilisateur",
+        widget=forms.TextInput(attrs={'class': 'form-control'})
+    )
+    email = forms.EmailField(
+        label="Email",
+        widget=forms.EmailInput(attrs={'class': 'form-control'})
+    )
+    password = forms.CharField(
+        max_length=128,
+        label="Mot de passe",
+        widget=forms.PasswordInput(attrs={'class': 'form-control'}),
+        required=False,
+        help_text="Laisser vide pour conserver le mot de passe actuel"
+    )
+    
+    class Meta:
+        model = Employe
+        fields = [
+            'matricule', 'nom', 'prenom', 'fonction', 'salaire_base',
+            'date_embauche', 'site', 'departement', 'telephone', 'actif'
+        ]
+        widgets = {
+            'matricule': forms.TextInput(attrs={'class': 'form-control'}),
+            'nom': forms.TextInput(attrs={'class': 'form-control'}),
+            'prenom': forms.TextInput(attrs={'class': 'form-control'}),
+            'fonction': forms.TextInput(attrs={'class': 'form-control'}),
+            'salaire_base': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'date_embauche': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'site': forms.Select(attrs={'class': 'form-select'}),
+            'departement': forms.Select(attrs={'class': 'form-select'}),
+            'telephone': forms.TextInput(attrs={'class': 'form-control'}),
+            'actif': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
+    
+    def __init__(self, *args, **kwargs):
+        self.instance_user = kwargs.pop('instance_user', None)
+        super().__init__(*args, **kwargs)
+        
+        # Pré-remplir les champs utilisateur si modification
+        if self.instance_user:
+            self.fields['username'].initial = self.instance_user.username
+            self.fields['email'].initial = self.instance_user.email
+            self.fields['password'].required = False
+    
+    def save(self, commit=True):
+        employe = super().save(commit=False)
+        
+        if commit:
+            # Créer ou mettre à jour l'utilisateur
+            if self.instance_user:
+                # Modification
+                user = self.instance_user
+                user.username = self.cleaned_data['username']
+                user.email = self.cleaned_data['email']
+                if self.cleaned_data['password']:
+                    user.set_password(self.cleaned_data['password'])
+                user.save()
+            else:
+                # Création
+                user = User.objects.create_user(
+                    username=self.cleaned_data['username'],
+                    email=self.cleaned_data['email'],
+                    password=self.cleaned_data['password'] or 'temp123'
+                )
+            
+            employe.user = user
+            employe.save()
+        
+        return employe
 
 class RubriqueRapideForm(forms.Form):
     """Formulaire pour créer rapidement une rubrique ponctuelle"""

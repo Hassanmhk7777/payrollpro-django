@@ -2184,3 +2184,637 @@ def api_reject_absence(request, absence_id):
             'success': False,
             'error': f'Erreur lors du refus: {str(e)}'
         }, status=500)
+
+
+# ==== GESTION EMPLOYÉS - NOUVELLES VUES ====
+
+from django.forms.models import model_to_dict
+from django.core.paginator import Paginator
+from django.db.models import Q
+import openpyxl
+from openpyxl.styles import Font, PatternFill, Alignment
+from io import BytesIO
+
+@login_required
+def creer_employe_ajax(request):
+    """Créer un nouvel employé via AJAX"""
+    if request.method == 'GET':
+        # Retourner le formulaire HTML
+        from .forms import EmployeForm
+        form = EmployeForm()
+        
+        sites = Site.objects.all()
+        departements = Departement.objects.all()
+        
+        form_html = f'''
+        <form id="employeeForm" method="post">
+            <input type="hidden" name="csrfmiddlewaretoken" value="{request.META.get('CSRF_COOKIE', '')}">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label class="form-label">Nom d'utilisateur *</label>
+                        <input type="text" name="username" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Email *</label>
+                        <input type="email" name="email" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Mot de passe *</label>
+                        <input type="password" name="password" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Matricule *</label>
+                        <input type="text" name="matricule" class="form-control" required>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label class="form-label">Nom *</label>
+                        <input type="text" name="nom" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Prénom *</label>
+                        <input type="text" name="prenom" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Fonction</label>
+                        <input type="text" name="fonction" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Salaire de base</label>
+                        <input type="number" name="salaire_base" class="form-control" step="0.01">
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="mb-3">
+                        <label class="form-label">Date d'embauche</label>
+                        <input type="date" name="date_embauche" class="form-control">
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="mb-3">
+                        <label class="form-label">Site</label>
+                        <select name="site" class="form-select">
+                            <option value="">Sélectionner un site</option>
+                            {"".join([f'<option value="{site.id}">{site.nom}</option>' for site in sites])}
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="mb-3">
+                        <label class="form-label">Département</label>
+                        <select name="departement" class="form-select">
+                            <option value="">Sélectionner un département</option>
+                            {"".join([f'<option value="{dept.id}">{dept.nom}</option>' for dept in departements])}
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label class="form-label">Téléphone</label>
+                        <input type="text" name="telephone" class="form-control">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-check mt-4">
+                        <input type="checkbox" name="actif" class="form-check-input" checked>
+                        <label class="form-check-label">Employé actif</label>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <button type="submit" class="btn btn-primary">Créer l'employé</button>
+            </div>
+        </form>
+        
+        <script>
+        document.getElementById('employeeForm').addEventListener('submit', function(e) {{
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            
+            PayrollPro.loading.show();
+            
+            fetch('/creer_employe/', {{
+                method: 'POST',
+                body: formData,
+                headers: {{
+                    'X-Requested-With': 'XMLHttpRequest',
+                }}
+            }})
+            .then(response => response.json())
+            .then(data => {{
+                PayrollPro.loading.hide();
+                if (data.success) {{
+                    PayrollPro.notify('Employé créé avec succès', 'success');
+                    bootstrap.Modal.getInstance(document.getElementById('employeeModal')).hide();
+                    loadSPAContent('employees'); // Recharger la liste
+                }} else {{
+                    PayrollPro.notify('Erreur: ' + (data.error || 'Données invalides'), 'error');
+                    if (data.form_errors) {{
+                        console.log('Erreurs de validation:', data.form_errors);
+                    }}
+                }}
+            }})
+            .catch(error => {{
+                PayrollPro.loading.hide();
+                PayrollPro.notify('Erreur de connexion', 'error');
+            }});
+        }});
+        </script>
+        '''
+        
+        return JsonResponse({'success': True, 'form_html': form_html})
+    
+    elif request.method == 'POST':
+        # Traitement du formulaire
+        try:
+            # Vérifications des permissions
+            role = obtenir_role_utilisateur(request.user)
+            if role not in ['admin', 'rh']:
+                return JsonResponse({'success': False, 'error': 'Permissions insuffisantes'})
+            
+            # Créer l'utilisateur Django d'abord
+            username = request.POST.get('username')
+            email = request.POST.get('email')
+            password = request.POST.get('password')
+            
+            if User.objects.filter(username=username).exists():
+                return JsonResponse({'success': False, 'error': 'Ce nom d\'utilisateur existe déjà'})
+            
+            if User.objects.filter(email=email).exists():
+                return JsonResponse({'success': False, 'error': 'Cet email est déjà utilisé'})
+            
+            # Créer l'utilisateur
+            user = User.objects.create_user(
+                username=username,
+                email=email,
+                password=password
+            )
+            
+            # Créer l'employé
+            employe = Employe.objects.create(
+                user=user,
+                matricule=request.POST.get('matricule'),
+                nom=request.POST.get('nom'),
+                prenom=request.POST.get('prenom'),
+                fonction=request.POST.get('fonction', ''),
+                salaire_base=request.POST.get('salaire_base') or 0,
+                date_embauche=request.POST.get('date_embauche') or None,
+                site_id=request.POST.get('site') or None,
+                departement_id=request.POST.get('departement') or None,
+                telephone=request.POST.get('telephone', ''),
+                actif=request.POST.get('actif') == 'on'
+            )
+            
+            # Log de l'action
+            log_data_change(
+                user=request.user,
+                model_name='Employe',
+                object_id=employe.id,
+                change_type='CREATE',
+                description=f"Nouvel employé créé: {employe.nom} {employe.prenom}",
+                request=request
+            )
+            
+            return JsonResponse({
+                'success': True,
+                'message': f'Employé {employe.nom} {employe.prenom} créé avec succès',
+                'employe_id': employe.id
+            })
+            
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+
+@login_required  
+def modifier_employe_ajax(request, employe_id):
+    """Modifier un employé via AJAX"""
+    try:
+        employe = get_object_or_404(Employe, id=employe_id)
+        
+        if request.method == 'GET':
+            # Retourner le formulaire pré-rempli
+            sites = Site.objects.all()
+            departements = Departement.objects.all()
+            
+            form_html = f'''
+            <form id="editEmployeeForm" method="post">
+                <input type="hidden" name="csrfmiddlewaretoken" value="{request.META.get('CSRF_COOKIE', '')}">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Nom d'utilisateur *</label>
+                            <input type="text" name="username" class="form-control" value="{employe.user.username if employe.user else ''}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Email *</label>
+                            <input type="email" name="email" class="form-control" value="{employe.user.email if employe.user else ''}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Nouveau mot de passe</label>
+                            <input type="password" name="password" class="form-control">
+                            <small class="text-muted">Laisser vide pour conserver l'actuel</small>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Matricule *</label>
+                            <input type="text" name="matricule" class="form-control" value="{employe.matricule}" required>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Nom *</label>
+                            <input type="text" name="nom" class="form-control" value="{employe.nom}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Prénom *</label>
+                            <input type="text" name="prenom" class="form-control" value="{employe.prenom}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Fonction</label>
+                            <input type="text" name="fonction" class="form-control" value="{employe.fonction or ''}">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Salaire de base</label>
+                            <input type="number" name="salaire_base" class="form-control" step="0.01" value="{employe.salaire_base or ''}">
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label class="form-label">Date d'embauche</label>
+                            <input type="date" name="date_embauche" class="form-control" value="{employe.date_embauche.strftime('%Y-%m-%d') if employe.date_embauche else ''}">
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label class="form-label">Site</label>
+                            <select name="site" class="form-select">
+                                <option value="">Sélectionner un site</option>
+                                {"".join([f'<option value="{site.id}" {"selected" if employe.site_id == site.id else ""}>{site.nom}</option>' for site in sites])}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label class="form-label">Département</label>
+                            <select name="departement" class="form-select">
+                                <option value="">Sélectionner un département</option>
+                                {"".join([f'<option value="{dept.id}" {"selected" if employe.departement_id == dept.id else ""}>{dept.nom}</option>' for dept in departements])}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Téléphone</label>
+                            <input type="text" name="telephone" class="form-control" value="{employe.telephone or ''}">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-check mt-4">
+                            <input type="checkbox" name="actif" class="form-check-input" {"checked" if employe.actif else ""}>
+                            <label class="form-check-label">Employé actif</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Modifier l'employé</button>
+                </div>
+            </form>
+            
+            <script>
+            document.getElementById('editEmployeeForm').addEventListener('submit', function(e) {{
+                e.preventDefault();
+                
+                const formData = new FormData(this);
+                
+                PayrollPro.loading.show();
+                
+                fetch('/modifier_employe/{employe_id}/', {{
+                    method: 'POST',
+                    body: formData,
+                    headers: {{
+                        'X-Requested-With': 'XMLHttpRequest',
+                    }}
+                }})
+                .then(response => response.json())
+                .then(data => {{
+                    PayrollPro.loading.hide();
+                    if (data.success) {{
+                        PayrollPro.notify('Employé modifié avec succès', 'success');
+                        bootstrap.Modal.getInstance(document.getElementById('employeeModal')).hide();
+                        loadSPAContent('employees'); // Recharger la liste
+                    }} else {{
+                        PayrollPro.notify('Erreur: ' + (data.error || 'Modification échouée'), 'error');
+                    }}
+                }})
+                .catch(error => {{
+                    PayrollPro.loading.hide();
+                    PayrollPro.notify('Erreur de connexion', 'error');
+                }});
+            }});
+            </script>
+            '''
+            
+            return JsonResponse({'success': True, 'form_html': form_html})
+        
+        elif request.method == 'POST':
+            # Traitement de la modification
+            role = obtenir_role_utilisateur(request.user)
+            if role not in ['admin', 'rh']:
+                return JsonResponse({'success': False, 'error': 'Permissions insuffisantes'})
+            
+            # Mettre à jour l'utilisateur
+            if employe.user:
+                username = request.POST.get('username')
+                email = request.POST.get('email')
+                password = request.POST.get('password')
+                
+                # Vérifier l'unicité du username et email
+                if User.objects.filter(username=username).exclude(id=employe.user.id).exists():
+                    return JsonResponse({'success': False, 'error': 'Ce nom d\'utilisateur existe déjà'})
+                
+                if User.objects.filter(email=email).exclude(id=employe.user.id).exists():
+                    return JsonResponse({'success': False, 'error': 'Cet email est déjà utilisé'})
+                
+                employe.user.username = username
+                employe.user.email = email
+                if password:
+                    employe.user.set_password(password)
+                employe.user.save()
+            
+            # Mettre à jour l'employé
+            employe.matricule = request.POST.get('matricule')
+            employe.nom = request.POST.get('nom')
+            employe.prenom = request.POST.get('prenom')
+            employe.fonction = request.POST.get('fonction', '')
+            employe.salaire_base = request.POST.get('salaire_base') or 0
+            employe.date_embauche = request.POST.get('date_embauche') or None
+            employe.site_id = request.POST.get('site') or None
+            employe.departement_id = request.POST.get('departement') or None
+            employe.telephone = request.POST.get('telephone', '')
+            employe.actif = request.POST.get('actif') == 'on'
+            employe.save()
+            
+            log_data_change(
+                user=request.user,
+                model_name='Employe',
+                object_id=employe.id,
+                change_type='UPDATE',
+                description=f"Employé modifié: {employe.nom} {employe.prenom}",
+                request=request
+            )
+            
+            return JsonResponse({
+                'success': True,
+                'message': f'Employé {employe.nom} {employe.prenom} modifié avec succès'
+            })
+                
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+@login_required
+def api_delete_employe(request, employe_id):
+    """API pour désactiver un employé"""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Méthode non autorisée'})
+    
+    try:
+        role = obtenir_role_utilisateur(request.user)
+        if role not in ['admin', 'rh']:
+            return JsonResponse({'success': False, 'error': 'Permissions insuffisantes'})
+        
+        employe = get_object_or_404(Employe, id=employe_id)
+        employe.actif = False
+        employe.save()
+        
+        # Désactiver aussi le compte utilisateur
+        if employe.user:
+            employe.user.is_active = False
+            employe.user.save()
+        
+        log_data_change(
+            user=request.user,
+            model_name='Employe',
+            object_id=employe.id,
+            change_type='UPDATE',
+            description=f"Employé désactivé: {employe.nom} {employe.prenom}",
+            request=request
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Employé {employe.nom} {employe.prenom} désactivé'
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+@login_required
+def api_export_employees(request):
+    """API pour exporter la liste des employés en Excel"""
+    try:
+        role = obtenir_role_utilisateur(request.user)
+        if role not in ['admin', 'rh']:
+            return JsonResponse({'success': False, 'error': 'Permissions insuffisantes'})
+        
+        # Créer le workbook Excel
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "Liste des Employés"
+        
+        # En-têtes
+        headers = [
+            'Matricule', 'Nom', 'Prénom', 'Fonction', 'Salaire Base',
+            'Date Embauche', 'Site', 'Département', 'Email', 'Téléphone', 'Statut'
+        ]
+        
+        # Style pour les en-têtes
+        header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
+        header_font = Font(bold=True, color="FFFFFF")
+        
+        for col, header in enumerate(headers, 1):
+            cell = ws.cell(row=1, column=col, value=header)
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.alignment = Alignment(horizontal="center")
+        
+        # Données des employés
+        employes = Employe.objects.select_related('site', 'departement', 'user').order_by('matricule')
+        
+        for row, employe in enumerate(employes, 2):
+            ws.cell(row=row, column=1, value=employe.matricule)
+            ws.cell(row=row, column=2, value=employe.nom)
+            ws.cell(row=row, column=3, value=employe.prenom)
+            ws.cell(row=row, column=4, value=employe.fonction or '-')
+            ws.cell(row=row, column=5, value=float(employe.salaire_base) if employe.salaire_base else 0)
+            ws.cell(row=row, column=6, value=employe.date_embauche.strftime('%d/%m/%Y') if employe.date_embauche else '-')
+            ws.cell(row=row, column=7, value=employe.site.nom if employe.site else '-')
+            ws.cell(row=row, column=8, value=employe.departement.nom if employe.departement else '-')
+            ws.cell(row=row, column=9, value=employe.user.email if employe.user else '-')
+            ws.cell(row=row, column=10, value=employe.telephone or '-')
+            ws.cell(row=row, column=11, value='Actif' if employe.actif else 'Inactif')
+        
+        # Ajuster la largeur des colonnes
+        for column in ws.columns:
+            max_length = 0
+            column_letter = column[0].column_letter
+            for cell in column:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            adjusted_width = min(max_length + 2, 50)
+            ws.column_dimensions[column_letter].width = adjusted_width
+        
+        # Sauvegarder en mémoire
+        excel_file = BytesIO()
+        wb.save(excel_file)
+        excel_file.seek(0)
+        
+        # Préparer la réponse
+        response = HttpResponse(
+            excel_file.read(),
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        response['Content-Disposition'] = f'attachment; filename="employes_{timezone.now().strftime("%Y%m%d")}.xlsx"'
+        
+        # Log de l'export
+        log_data_change(
+            user=request.user,
+            model_name='Export',
+            object_id=0,
+            change_type='EXPORT',
+            description=f"Export Excel de {employes.count()} employés",
+            request=request
+        )
+        
+        return response
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+@login_required
+def api_search_employees(request):
+    """API pour rechercher des employés"""
+    try:
+        query = request.GET.get('q', '')
+        site_id = request.GET.get('site', '')
+        dept_id = request.GET.get('department', '')
+        
+        employes = Employe.objects.select_related('site', 'departement', 'user')
+        
+        if query:
+            employes = employes.filter(
+                Q(nom__icontains=query) |
+                Q(prenom__icontains=query) |
+                Q(matricule__icontains=query) |
+                Q(fonction__icontains=query)
+            )
+        
+        if site_id:
+            employes = employes.filter(site_id=site_id)
+        
+        if dept_id:
+            employes = employes.filter(departement_id=dept_id)
+        
+        # Limiter à 50 résultats
+        employes = employes[:50]
+        
+        results = []
+        for employe in employes:
+            results.append({
+                'id': employe.id,
+                'matricule': employe.matricule,
+                'nom': employe.nom,
+                'prenom': employe.prenom,
+                'fonction': employe.fonction or '',
+                'site': employe.site.nom if employe.site else '',
+                'departement': employe.departement.nom if employe.departement else '',
+                'email': employe.user.email if employe.user else '',
+                'actif': employe.actif
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'results': results,
+            'count': len(results)
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+
+@login_required
+def detail_employe(request, employe_id):
+    """Afficher les détails d'un employé"""
+    try:
+        employe = get_object_or_404(Employe, id=employe_id)
+        
+        # Données de l'employé
+        employe_data = {
+            'id': employe.id,
+            'matricule': employe.matricule,
+            'nom': employe.nom,
+            'prenom': employe.prenom,
+            'fonction': employe.fonction or '',
+            'salaire_base': float(employe.salaire_base) if employe.salaire_base else 0,
+            'date_embauche': employe.date_embauche.strftime('%d/%m/%Y') if employe.date_embauche else '',
+            'site': employe.site.nom if employe.site else '',
+            'departement': employe.departement.nom if employe.departement else '',
+            'telephone': employe.telephone or '',
+            'actif': employe.actif,
+            'user': {
+                'username': employe.user.username if employe.user else '',
+                'email': employe.user.email if employe.user else '',
+                'last_login': employe.user.last_login.strftime('%d/%m/%Y %H:%M') if employe.user and employe.user.last_login else 'Jamais connecté'
+            } if employe.user else None
+        }
+        
+        # Récupérer les derniers bulletins de paie
+        bulletins = BulletinPaie.objects.filter(employe=employe).order_by('-mois', '-annee')[:5]
+        bulletins_data = []
+        for bulletin in bulletins:
+            bulletins_data.append({
+                'id': bulletin.id,
+                'mois': bulletin.mois,
+                'annee': bulletin.annee,
+                'salaire_brut': float(bulletin.salaire_brut) if bulletin.salaire_brut else 0,
+                'salaire_net': float(bulletin.salaire_net) if bulletin.salaire_net else 0,
+                'statut': bulletin.statut,
+                'date_creation': bulletin.date_creation.strftime('%d/%m/%Y')
+            })
+        
+        # Récupérer les dernières absences
+        absences = Absence.objects.filter(employe=employe).order_by('-date_debut')[:5]
+        absences_data = []
+        for absence in absences:
+            absences_data.append({
+                'id': absence.id,
+                'type_absence': absence.type_absence,
+                'date_debut': absence.date_debut.strftime('%d/%m/%Y'),
+                'date_fin': absence.date_fin.strftime('%d/%m/%Y'),
+                'nombre_jours': absence.nombre_jours,
+                'statut': absence.statut,
+                'motif': absence.motif or ''
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'employe': employe_data,
+            'bulletins': bulletins_data,
+            'absences': absences_data
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})

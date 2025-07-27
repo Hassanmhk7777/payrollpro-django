@@ -69,6 +69,15 @@ urlpatterns = [
     # API Routes pour les absences
     path('api/absence/<int:absence_id>/approve/', views.api_approve_absence, name='api_approve_absence'),
     path('api/absence/<int:absence_id>/reject/', views.api_reject_absence, name='api_reject_absence'),
+    
+    # ==== ROUTES GESTION EMPLOYÉS - NOUVELLES ====
+    path('creer_employe/', views.creer_employe_ajax, name='creer_employe_ajax'),
+    path('modifier_employe/<int:employe_id>/', views.modifier_employe_ajax, name='modifier_employe_ajax'),
+    path('detail_employe/<int:employe_id>/', views.detail_employe, name='detail_employe'),
+    path('api/employe/<int:employe_id>/delete/', views.api_delete_employe, name='api_delete_employe'),
+    path('api/employees/export/', views.api_export_employees, name='api_export_employees'),
+    path('api/employees/search/', views.api_search_employees, name='api_search_employees'),
+    
     # API Routes pour le calcul de paie - NOUVELLES VERSIONS COMPLÈTES
     path('api/payroll/calculate/<int:employe_id>/', views.api_calculate_payroll_complete, name='api_calculate_payroll_complete'),
     path('api/payroll/calculate-all/', views.api_calculate_all_payroll_complete, name='api_calculate_all_payroll_complete'),
