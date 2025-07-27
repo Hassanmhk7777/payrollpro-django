@@ -94,10 +94,10 @@ def spa_payroll_fixed(request):
                             <p class="text-muted mb-0">Période: {datetime.now().strftime('%B %Y')}</p>
                         </div>
                         <div>
-                            <button class="btn btn-success me-2" onclick="calculerPaieTous()">
+                            <button class="btn btn-success me-2" onclick="alert('Calcul de paie pour tous les employés - Fonctionnalité en développement')">
                                 <i class="fas fa-play me-2"></i>Calculer Tout
                             </button>
-                            <button class="btn btn-info" onclick="exporterPaies()">
+                            <button class="btn btn-info" onclick="alert('Export des données de paie - Fonctionnalité en développement')">
                                 <i class="fas fa-download me-2"></i>Exporter
                             </button>
                         </div>
@@ -157,17 +157,17 @@ def spa_payroll_fixed(request):
                         <div class="card-body">
                             <div class="row g-3">
                                 <div class="col-md-4">
-                                    <button class="btn btn-outline-primary w-100" onclick="nouvelleRubrique()">
+                                    <button class="btn btn-outline-primary w-100" onclick="loadSPAContent('rubriques')">
                                         <i class="fas fa-plus me-2"></i>Nouvelle Rubrique
                                     </button>
                                 </div>
                                 <div class="col-md-4">
-                                    <button class="btn btn-outline-success w-100" onclick="parametresPaie()">
+                                    <button class="btn btn-outline-success w-100" onclick="alert('Paramètres de paie - En développement')">
                                         <i class="fas fa-cog me-2"></i>Paramètres Paie
                                     </button>
                                 </div>
                                 <div class="col-md-4">
-                                    <button class="btn btn-outline-info w-100" onclick="rapportsPaie()">
+                                    <button class="btn btn-outline-info w-100" onclick="loadSPAContent('reports')">
                                         <i class="fas fa-chart-bar me-2"></i>Rapports
                                     </button>
                                 </div>
@@ -518,7 +518,7 @@ def spa_dashboard_admin_fixed(request):
                             <div class="card-body">
                                 <div class="row g-3">
                                     <div class="col-xl-3 col-lg-6">
-                                        <button class="btn btn-admin-action w-100" onclick="calculPaieGlobal()">
+                                        <button class="btn btn-admin-action w-100" onclick="loadSPAContent('payroll')">
                                             <div class="action-content">
                                                 <i class="fas fa-calculator action-icon text-success"></i>
                                                 <div class="action-text">
@@ -530,7 +530,7 @@ def spa_dashboard_admin_fixed(request):
                                     </div>
                                     
                                     <div class="col-xl-3 col-lg-6">
-                                        <button class="btn btn-admin-action w-100" onclick="gestionEmployes()">
+                                        <button class="btn btn-admin-action w-100" onclick="loadSPAContent('employees')">
                                             <div class="action-content">
                                                 <i class="fas fa-users action-icon text-primary"></i>
                                                 <div class="action-text">
@@ -542,7 +542,7 @@ def spa_dashboard_admin_fixed(request):
                                     </div>
                                     
                                     <div class="col-xl-3 col-lg-6">
-                                        <button class="btn btn-admin-action w-100" onclick="gestionRubriques()">
+                                        <button class="btn btn-admin-action w-100" onclick="loadSPAContent('rubriques')">
                                             <div class="action-content">
                                                 <i class="fas fa-list action-icon text-warning"></i>
                                                 <div class="action-text">
@@ -554,7 +554,7 @@ def spa_dashboard_admin_fixed(request):
                                     </div>
                                     
                                     <div class="col-xl-3 col-lg-6">
-                                        <button class="btn btn-admin-action w-100" onclick="validationAbsences()">
+                                        <button class="btn btn-admin-action w-100" onclick="loadSPAContent('absences')">
                                             <div class="action-content">
                                                 <i class="fas fa-calendar-check action-icon text-info"></i>
                                                 <div class="action-text">
@@ -617,7 +617,7 @@ def spa_dashboard_admin_fixed(request):
                                                         <button class="btn btn-sm btn-primary flex-1" onclick="selectSite({site_info['id']})">
                                                             <i class="fas fa-eye me-1"></i>Sélectionner
                                                         </button>
-                                                        <button class="btn btn-sm btn-outline-secondary" onclick="rapportsSite({site_info['id']})">
+                                                        <button class="btn btn-sm btn-outline-secondary" onclick="loadSPAContent('reports')">
                                                             <i class="fas fa-chart-bar me-1"></i>Rapports
                                                         </button>
                                                     </div>
@@ -984,10 +984,10 @@ def spa_dashboard_admin_fixed(request):
                                                     </div>
                                                 </div>
                                                 <div class="site-actions d-flex gap-2">
-                                                    <button class="btn btn-sm btn-primary flex-1" onclick="gererSite({site_info['id']})">
+                                                    <button class="btn btn-sm btn-primary flex-1" onclick="loadSPAContent('employees')">
                                                         <i class="fas fa-cog me-1"></i>Gérer
                                                     </button>
-                                                    <button class="btn btn-sm btn-outline-secondary" onclick="rapportsSite({site_info['id']})">
+                                                    <button class="btn btn-sm btn-outline-secondary" onclick="loadSPAContent('reports')">
                                                         <i class="fas fa-chart-bar me-1"></i>Rapports
                                                     </button>
                                                 </div>
@@ -1701,7 +1701,7 @@ def spa_dashboard_admin_complete_fixed(request):
                                         </div>
                                     </button>
                                     
-                                    <button class="btn btn-admin-action" onclick="openSystemConfig()">
+                                    <button class="btn btn-admin-action" onclick="loadSPAContent('reports')">
                                         <div class="action-content">
                                             <i class="fas fa-server action-icon"></i>
                                             <div class="action-text">
@@ -1711,7 +1711,7 @@ def spa_dashboard_admin_complete_fixed(request):
                                         </div>
                                     </button>
                                     
-                                    <button class="btn btn-admin-action" onclick="openSecurityPanel()">
+                                    <button class="btn btn-admin-action" onclick="loadSPAContent('reports')">
                                         <div class="action-content">
                                             <i class="fas fa-shield-alt action-icon"></i>
                                             <div class="action-text">
@@ -1721,7 +1721,7 @@ def spa_dashboard_admin_complete_fixed(request):
                                         </div>
                                     </button>
                                     
-                                    <button class="btn btn-admin-action" onclick="openBackupManager()">
+                                    <button class="btn btn-admin-action" onclick="loadSPAContent('reports')">
                                         <div class="action-content">
                                             <i class="fas fa-database action-icon"></i>
                                             <div class="action-text">
