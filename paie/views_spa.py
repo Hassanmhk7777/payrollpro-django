@@ -499,30 +499,53 @@ def spa_employees_new(request):
                 </div>
             </div>
             
-            <!-- Filtres -->
+            <!-- Filtres AMÉLIORÉS -->
             <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="mb-0"><i class="fas fa-filter me-2"></i>Filtres</h5>
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-filter me-2"></i>Filtres de Recherche</h5>
+                    <button onclick="resetFilters()" class="btn btn-outline-secondary btn-sm">
+                        <i class="fas fa-times me-1"></i>Réinitialiser
+                    </button>
                 </div>
                 <div class="card-body">
                     <div class="row g-3">
                         <div class="col-md-4">
-                            <label class="form-label">Rechercher</label>
-                            <input type="text" id="searchEmployees" class="form-control" placeholder="Nom, prénom, matricule..." onkeyup="filterEmployees()">
+                            <label class="form-label fw-bold">
+                                <i class="fas fa-search me-1"></i>Rechercher
+                            </label>
+                            <input type="text" id="searchEmployees" class="form-control" 
+                                   placeholder="Nom, prénom, matricule, fonction..." 
+                                   autocomplete="off">
+                            <small class="text-muted">Recherche en temps réel</small>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label">Site</label>
-                            <select id="siteFilter" class="form-select" onchange="filterEmployees()">
-                                <option value="">Tous les sites</option>
+                            <label class="form-label fw-bold">
+                                <i class="fas fa-building me-1"></i>Site
+                            </label>
+                            <select id="siteFilter" class="form-select">
+                                <option value="">📍 Tous les sites</option>
                                 {sites_options}
                             </select>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label">Département</label>
-                            <select id="deptFilter" class="form-select" onchange="filterEmployees()">
-                                <option value="">Tous les départements</option>
+                            <label class="form-label fw-bold">
+                                <i class="fas fa-users-cog me-1"></i>Département
+                            </label>
+                            <select id="deptFilter" class="form-select">
+                                <option value="">🏢 Tous les départements</option>
                                 {departements_options}
                             </select>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <div class="alert alert-info py-2 mb-0">
+                                <small>
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    <strong>Astuce :</strong> Vous pouvez combiner plusieurs filtres. 
+                                    La recherche se fait en temps réel pendant que vous tapez.
+                                </small>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -594,30 +617,130 @@ def spa_employees_new(request):
         </div>
         
         <script>
-        // Fonction de filtrage des employés
+        // Fonction de filtrage des employés - VERSION CORRIGÉE
         function filterEmployees() {{
-            const searchValue = document.getElementById('searchEmployees').value.toLowerCase();
+            console.log('🔍 Début du filtrage...');
+            
+            const searchValue = document.getElementById('searchEmployees').value.toLowerCase().trim();
             const siteFilter = document.getElementById('siteFilter').value;
             const deptFilter = document.getElementById('deptFilter').value;
             const tableBody = document.getElementById('employeesTableBody');
             const rows = tableBody.getElementsByTagName('tr');
             
+            let visibleCount = 0;
+            
+            console.log('Filtres actifs:', {{
+                search: searchValue,
+                site: siteFilter, 
+                dept: deptFilter,
+                totalRows: rows.length
+            }});
+            
             for (let i = 0; i < rows.length; i++) {{
                 const row = rows[i];
                 const cells = row.getElementsByTagName('td');
+                
+                if (cells.length === 0) continue; // Skip empty rows
+                
                 let showRow = true;
                 
-                // Recherche textuelle
+                // Extraire les données de la ligne
+                const matricule = cells[0] ? cells[0].textContent.toLowerCase() : '';
+                const nomPrenom = cells[1] ? cells[1].textContent.toLowerCase() : '';
+                const fonction = cells[2] ? cells[2].textContent.toLowerCase() : '';
+                const site = cells[3] ? cells[3].textContent.trim() : '';
+                const departement = cells[4] ? cells[4].textContent.trim() : '';
+                
+                // FILTRE 1: Recherche textuelle (nom, prénom, matricule, fonction)
                 if (searchValue && showRow) {{
-                    const text = row.textContent.toLowerCase();
-                    showRow = text.includes(searchValue);
+                    const searchableText = `${{matricule}} ${{nomPrenom}} ${{fonction}}`;
+                    showRow = searchableText.includes(searchValue);
+                    console.log(`Recherche "${{searchValue}}" dans "${{searchableText}}": ${{showRow}}`);
                 }}
                 
+                // FILTRE 2: Filtre par site
+                if (siteFilter && showRow) {{
+                    // Récupérer le nom du site sélectionné
+                    const siteSelect = document.getElementById('siteFilter');
+                    const siteSelectedText = siteSelect.options[siteSelect.selectedIndex].text;
+                    showRow = site.includes(siteSelectedText);
+                    console.log(`Filtre site "${{siteSelectedText}}" dans "${{site}}": ${{showRow}}`);
+                }}
+                
+                // FILTRE 3: Filtre par département
+                if (deptFilter && showRow) {{
+                    // Récupérer le nom du département sélectionné
+                    const deptSelect = document.getElementById('deptFilter');
+                    const deptSelectedText = deptSelect.options[deptSelect.selectedIndex].text;
+                    showRow = departement.includes(deptSelectedText);
+                    console.log(`Filtre dept "${{deptSelectedText}}" dans "${{departement}}": ${{showRow}}`);
+                }}
+                
+                // Afficher/Masquer la ligne
                 row.style.display = showRow ? '' : 'none';
+                if (showRow) visibleCount++;
+            }}
+            
+            console.log(`✅ Filtrage terminé: ${{visibleCount}} employés visibles sur ${{rows.length}}`);
+            
+            // Mettre à jour le compteur si il existe
+            updateEmployeeCounter(visibleCount);
+        }}
+
+        // Fonction pour mettre à jour le compteur d'employés
+        function updateEmployeeCounter(count) {{
+            const badge = document.querySelector('h2 .badge');
+            if (badge) {{
+                badge.textContent = count;
+                badge.className = count > 0 ? 'badge bg-info ms-2' : 'badge bg-warning ms-2';
             }}
         }}
-        
-        console.log('✅ Section Employés SPA chargée avec succès');
+
+        // Fonction pour réinitialiser tous les filtres
+        function resetFilters() {{
+            document.getElementById('searchEmployees').value = '';
+            document.getElementById('siteFilter').value = '';
+            document.getElementById('deptFilter').value = '';
+            filterEmployees();
+            console.log('🔄 Filtres réinitialisés');
+        }}
+
+        // Fonction pour filtrage en temps réel avec délai
+        let filterTimeout;
+        function filterWithDelay() {{
+            clearTimeout(filterTimeout);
+            filterTimeout = setTimeout(filterEmployees, 300);
+        }}
+
+        // Initialisation des événements de filtrage
+        document.addEventListener('DOMContentLoaded', function() {{
+            console.log('🎯 Initialisation des filtres employés...');
+            
+            // Event listeners pour tous les filtres
+            const searchInput = document.getElementById('searchEmployees');
+            const siteSelect = document.getElementById('siteFilter');
+            const deptSelect = document.getElementById('deptFilter');
+            
+            if (searchInput) {{
+                searchInput.addEventListener('keyup', filterWithDelay);
+                searchInput.addEventListener('input', filterWithDelay);
+            }}
+            
+            if (siteSelect) {{
+                siteSelect.addEventListener('change', filterEmployees);
+            }}
+            
+            if (deptSelect) {{
+                deptSelect.addEventListener('change', filterEmployees);
+            }}
+            
+            // Bouton de réinitialisation (si vous voulez l'ajouter)
+            // <button onclick="resetFilters()" class="btn btn-secondary">Réinitialiser</button>
+            
+            console.log('✅ Filtres initialisés avec succès');
+        }});
+
+        console.log('✅ Section Employés SPA chargée avec succès - Filtres activés');
         </script>
         '''
         
