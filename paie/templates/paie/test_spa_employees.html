@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test SPA Employés - PayrollPro</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .test-header {
+            background: linear-gradient(45deg, #007bff, #6610f2);
+            color: white;
+            padding: 20px 0;
+            margin-bottom: 30px;
+        }
+        .spa-container {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            min-height: 80vh;
+        }
+        .loading-spinner {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 9999;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-header">
+        <div class="container">
+            <h1 class="text-center">
+                <i class="fas fa-users me-3"></i>
+                Test Interface SPA Employés
+            </h1>
+            <p class="text-center mb-0">Test direct de l'interface SPA recréée basée sur la page de test fonctionnelle</p>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center">
+                    <button class="btn btn-primary" onclick="loadSPAContent()">
+                        <i class="fas fa-refresh me-2"></i>Charger l'Interface SPA Employés
+                    </button>
+                    <div class="btn-group">
+                        <button class="btn btn-outline-success" onclick="testDirectAPI()">
+                            <i class="fas fa-cog me-2"></i>Test API Direct
+                        </button>
+                        <button class="btn btn-outline-info" onclick="showStatus()">
+                            <i class="fas fa-info-circle me-2"></i>Status
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="spa-container" id="spaContent">
+            <div class="text-center text-muted py-5">
+                <i class="fas fa-play-circle fa-3x mb-3"></i>
+                <h4>Prêt à tester</h4>
+                <p>Cliquez sur "Charger l'Interface SPA Employés" pour commencer</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Spinner -->
+    <div class="loading-spinner" id="loadingSpinner">
+        <div class="text-center">
+            <div class="spinner-border text-light" role="status">
+                <span class="visually-hidden">Chargement...</span>
+            </div>
+            <div class="mt-2">Chargement en cours...</div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        console.log('🧪 Page de test SPA chargée');
+
+        // Simuler les fonctions PayrollPro si pas disponibles
+        if (typeof PayrollPro === 'undefined') {
+            window.PayrollPro = {
+                notify: function(message, type) {
+                    console.log(`📢 Notification [${type}]: ${message}`);
+                    const alertClass = type === 'success' ? 'alert-success' : 
+                                     type === 'error' ? 'alert-danger' : 'alert-info';
+                    
+                    const alert = document.createElement('div');
+                    alert.className = `alert ${alertClass} alert-dismissible fade show position-fixed`;
+                    alert.style.cssText = 'top: 20px; right: 20px; z-index: 10000; max-width: 400px;';
+                    alert.innerHTML = `
+                        ${message}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    `;
+                    document.body.appendChild(alert);
+                    
+                    setTimeout(() => {
+                        if (alert.parentNode) {
+                            alert.parentNode.removeChild(alert);
+                        }
+                    }, 5000);
+                },
+                loading: {
+                    show: function() {
+                        document.getElementById('loadingSpinner').style.display = 'block';
+                    },
+                    hide: function() {
+                        document.getElementById('loadingSpinner').style.display = 'none';
+                    }
+                },
+                utils: {
+                    getCSRFToken: function() {
+                        const cookies = document.cookie.split(';');
+                        for (let cookie of cookies) {
+                            const [name, value] = cookie.trim().split('=');
+                            if (name === 'csrftoken') {
+                                return value;
+                            }
+                        }
+                        return '';
+                    }
+                }
+            };
+        }
+
+        // Fonction principale pour charger le contenu SPA
+        function loadSPAContent() {
+            console.log('🔄 Chargement du contenu SPA Employés');
+            PayrollPro.loading.show();
+
+            fetch('/api/spa/employees/', {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                }
+            })
+            .then(response => {
+                console.log('📡 Réponse API reçue:', response.status);
+                return response.json();
+            })
+            .then(data => {
+                PayrollPro.loading.hide();
+                console.log('📦 Données reçues:', data);
+                
+                if (data.success) {
+                    document.getElementById('spaContent').innerHTML = data.content;
+                    PayrollPro.notify('Interface SPA Employés chargée avec succès!', 'success');
+                    console.log('✅ Interface SPA chargée avec succès');
+                } else {
+                    const errorMsg = 'Erreur: ' + (data.error || 'Réponse invalide');
+                    document.getElementById('spaContent').innerHTML = `
+                        <div class="alert alert-danger">
+                            <h4><i class="fas fa-exclamation-triangle me-2"></i>Erreur de chargement</h4>
+                            <p>${errorMsg}</p>
+                        </div>
+                    `;
+                    PayrollPro.notify(errorMsg, 'error');
+                }
+            })
+            .catch(error => {
+                PayrollPro.loading.hide();
+                console.error('❌ Erreur lors du chargement:', error);
+                
+                const errorMsg = 'Erreur de connexion: ' + error.message;
+                document.getElementById('spaContent').innerHTML = `
+                    <div class="alert alert-danger">
+                        <h4><i class="fas fa-wifi me-2"></i>Erreur de Connexion</h4>
+                        <p>${errorMsg}</p>
+                        <button class="btn btn-outline-danger" onclick="loadSPAContent()">
+                            <i class="fas fa-retry me-2"></i>Réessayer
+                        </button>
+                    </div>
+                `;
+                PayrollPro.notify(errorMsg, 'error');
+            });
+        }
+
+        // Test direct de l'API
+        function testDirectAPI() {
+            console.log('🔧 Test direct de l\'API');
+            
+            const tests = [
+                { name: 'Créer employé', url: '/creer_employe/', method: 'GET' },
+                { name: 'Rechercher employés', url: '/api/search_employees/', method: 'GET' },
+                { name: 'Interface SPA', url: '/api/spa/employees/', method: 'GET' }
+            ];
+
+            PayrollPro.loading.show();
+            
+            Promise.all(tests.map(test => 
+                fetch(test.url, {
+                    method: test.method,
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                })
+                .then(response => ({ ...test, status: response.status, ok: response.ok }))
+                .catch(error => ({ ...test, status: 'ERROR', error: error.message }))
+            ))
+            .then(results => {
+                PayrollPro.loading.hide();
+                
+                const resultHtml = `
+                    <div class="alert alert-info">
+                        <h4><i class="fas fa-vial me-2"></i>Résultats des Tests API</h4>
+                        <table class="table table-sm mt-3">
+                            <thead>
+                                <tr><th>Test</th><th>URL</th><th>Status</th><th>Résultat</th></tr>
+                            </thead>
+                            <tbody>
+                                ${results.map(r => `
+                                    <tr>
+                                        <td>${r.name}</td>
+                                        <td><code>${r.url}</code></td>
+                                        <td><span class="badge bg-${r.ok ? 'success' : 'danger'}">${r.status}</span></td>
+                                        <td>${r.ok ? '✅ OK' : '❌ ' + (r.error || 'Erreur')}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+                
+                document.getElementById('spaContent').innerHTML = resultHtml;
+                console.log('🧪 Tests API terminés:', results);
+            });
+        }
+
+        // Afficher le status
+        function showStatus() {
+            const statusHtml = `
+                <div class="alert alert-info">
+                    <h4><i class="fas fa-info-circle me-2"></i>Status du Système</h4>
+                    <ul class="list-unstyled mt-3">
+                        <li><strong>🔗 URL SPA:</strong> <code>/api/spa/employees/</code></li>
+                        <li><strong>🎯 Objectif:</strong> Interface SPA complètement fonctionnelle</li>
+                        <li><strong>🛠️ Basé sur:</strong> Page de test fonctionnelle</li>
+                        <li><strong>✨ Nouvelles fonctionnalités:</strong></li>
+                        <ul>
+                            <li>• Filtres par site et département en haut</li>
+                            <li>• Boutons d'ajout et export fonctionnels</li>
+                            <li>• Interface responsive et moderne</li>
+                            <li>• Compatible Bootstrap 5</li>
+                        </ul>
+                        <li><strong>🚀 Status Bootstrap:</strong> <span class="badge bg-${typeof bootstrap !== 'undefined' ? 'success' : 'warning'}">${typeof bootstrap !== 'undefined' ? 'Disponible' : 'Non détecté'}</span></li>
+                        <li><strong>🔧 Status PayrollPro:</strong> <span class="badge bg-success">Simulé</span></li>
+                    </ul>
+                    <div class="mt-3">
+                        <button class="btn btn-primary" onclick="loadSPAContent()">
+                            <i class="fas fa-play me-2"></i>Lancer le Test
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('spaContent').innerHTML = statusHtml;
+        }
+
+        // Charger automatiquement au démarrage
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('📚 Page prête, chargement automatique dans 2 secondes...');
+            setTimeout(() => {
+                loadSPAContent();
+            }, 2000);
+        });
+    </script>
+</body>
+</html>

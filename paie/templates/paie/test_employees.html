@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Gestion Employés - PayrollPro</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+        }
+        .btn-test {
+            margin: 5px;
+        }
+        .result-area {
+            margin-top: 15px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            min-height: 100px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <h1 class="text-center mb-4">
+            <i class="fas fa-users text-primary"></i>
+            Test des Fonctionnalités Employés
+        </h1>
+
+        <!-- Section Test Ajout Employé -->
+        <div class="test-section">
+            <h3><i class="fas fa-user-plus text-success"></i> Test Ajout Employé</h3>
+            <button class="btn btn-success btn-test" onclick="testAddEmployee()">
+                <i class="fas fa-plus"></i> Ajouter Employé
+            </button>
+            <div class="result-area" id="addResult">
+                Résultat du test d'ajout apparaîtra ici...
+            </div>
+        </div>
+
+        <!-- Section Test Modification Employé -->
+        <div class="test-section">
+            <h3><i class="fas fa-edit text-warning"></i> Test Modification Employé</h3>
+            <input type="number" id="editEmployeeId" class="form-control d-inline-block" style="width: 200px;" placeholder="ID employé">
+            <button class="btn btn-warning btn-test" onclick="testEditEmployee()">
+                <i class="fas fa-edit"></i> Modifier Employé
+            </button>
+            <div class="result-area" id="editResult">
+                Résultat du test de modification apparaîtra ici...
+            </div>
+        </div>
+
+        <!-- Section Test Export Excel -->
+        <div class="test-section">
+            <h3><i class="fas fa-download text-primary"></i> Test Export Excel</h3>
+            <button class="btn btn-primary btn-test" onclick="testExportEmployees()">
+                <i class="fas fa-file-excel"></i> Exporter Excel
+            </button>
+            <div class="result-area" id="exportResult">
+                Résultat du test d'export apparaîtra ici...
+            </div>
+        </div>
+
+        <!-- Section Test Recherche -->
+        <div class="test-section">
+            <h3><i class="fas fa-search text-info"></i> Test Recherche Employés</h3>
+            <input type="text" id="searchQuery" class="form-control d-inline-block" style="width: 200px;" placeholder="Rechercher...">
+            <button class="btn btn-info btn-test" onclick="testSearchEmployees()">
+                <i class="fas fa-search"></i> Rechercher
+            </button>
+            <div class="result-area" id="searchResult">
+                Résultat de la recherche apparaîtra ici...
+            </div>
+        </div>
+
+        <!-- Section Test Suppression -->
+        <div class="test-section">
+            <h3><i class="fas fa-trash text-danger"></i> Test Suppression Employé</h3>
+            <input type="number" id="deleteEmployeeId" class="form-control d-inline-block" style="width: 200px;" placeholder="ID employé">
+            <button class="btn btn-danger btn-test" onclick="testDeleteEmployee()">
+                <i class="fas fa-trash"></i> Désactiver Employé
+            </button>
+            <div class="result-area" id="deleteResult">
+                Résultat du test de suppression apparaîtra ici...
+            </div>
+        </div>
+
+        <!-- Section Liste des Employés -->
+        <div class="test-section">
+            <h3><i class="fas fa-list text-secondary"></i> Liste des Employés Actuels</h3>
+            <button class="btn btn-secondary btn-test" onclick="loadEmployeeList()">
+                <i class="fas fa-refresh"></i> Charger Liste
+            </button>
+            <div class="result-area" id="listResult">
+                Liste des employés apparaîtra ici...
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div class="modal fade" id="employeeModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="employeeModalTitle">Gestion Employé</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="employeeModalBody">
+                    <!-- Contenu dynamique -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Utilitaires
+        function getCsrfToken() {
+            const cookies = document.cookie.split(';');
+            for (let cookie of cookies) {
+                const [name, value] = cookie.trim().split('=');
+                if (name === 'csrftoken') {
+                    return value;
+                }
+            }
+            return '';
+        }
+
+        function showResult(elementId, message, isSuccess = true) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `
+                <div class="alert alert-${isSuccess ? 'success' : 'danger'}" role="alert">
+                    <i class="fas fa-${isSuccess ? 'check-circle' : 'exclamation-triangle'}"></i>
+                    ${message}
+                </div>
+            `;
+        }
+
+        // Test Ajout Employé
+        function testAddEmployee() {
+            fetch('/creer_employe/', {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('employeeModalTitle').textContent = 'Test - Ajouter un Employé';
+                    document.getElementById('employeeModalBody').innerHTML = data.form_html;
+                    new bootstrap.Modal(document.getElementById('employeeModal')).show();
+                    showResult('addResult', '✅ Formulaire d\'ajout chargé avec succès!');
+                } else {
+                    showResult('addResult', '❌ Erreur: ' + (data.error || 'Impossible de charger le formulaire'), false);
+                }
+            })
+            .catch(error => {
+                showResult('addResult', '❌ Erreur de connexion: ' + error.message, false);
+            });
+        }
+
+        // Test Modification Employé
+        function testEditEmployee() {
+            const employeeId = document.getElementById('editEmployeeId').value;
+            if (!employeeId) {
+                showResult('editResult', '❌ Veuillez saisir un ID d\'employé', false);
+                return;
+            }
+
+            fetch(`/modifier_employe/${employeeId}/`, {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('employeeModalTitle').textContent = 'Test - Modifier Employé';
+                    document.getElementById('employeeModalBody').innerHTML = data.form_html;
+                    new bootstrap.Modal(document.getElementById('employeeModal')).show();
+                    showResult('editResult', `✅ Formulaire de modification pour l'employé ID ${employeeId} chargé!`);
+                } else {
+                    showResult('editResult', '❌ Erreur: ' + (data.error || 'Employé non trouvé'), false);
+                }
+            })
+            .catch(error => {
+                showResult('editResult', '❌ Erreur de connexion: ' + error.message, false);
+            });
+        }
+
+        // Test Export Excel
+        function testExportEmployees() {
+            showResult('exportResult', '⏳ Export en cours...');
+            
+            fetch('/api/export_employees/', {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                }
+            })
+            .then(response => {
+                if (response.ok) {
+                    return response.blob().then(blob => {
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `employes_test_${new Date().toISOString().split('T')[0]}.xlsx`;
+                        a.click();
+                        window.URL.revokeObjectURL(url);
+                        showResult('exportResult', '✅ Export Excel terminé avec succès! Fichier téléchargé.');
+                    });
+                } else {
+                    throw new Error('Erreur HTTP: ' + response.status);
+                }
+            })
+            .catch(error => {
+                showResult('exportResult', '❌ Erreur lors de l\'export: ' + error.message, false);
+            });
+        }
+
+        // Test Recherche
+        function testSearchEmployees() {
+            const query = document.getElementById('searchQuery').value;
+            const params = new URLSearchParams();
+            if (query) params.append('q', query);
+
+            fetch(`/api/search_employees/?${params.toString()}`, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    let resultHtml = `✅ Recherche réussie! ${data.count} résultat(s) trouvé(s)<br><br>`;
+                    if (data.results.length > 0) {
+                        resultHtml += '<table class="table table-sm"><thead><tr><th>Nom</th><th>Matricule</th><th>Email</th><th>Statut</th></tr></thead><tbody>';
+                        data.results.forEach(emp => {
+                            resultHtml += `<tr><td>${emp.nom} ${emp.prenom}</td><td>${emp.matricule}</td><td>${emp.email}</td><td>${emp.actif ? 'Actif' : 'Inactif'}</td></tr>`;
+                        });
+                        resultHtml += '</tbody></table>';
+                    }
+                    showResult('searchResult', resultHtml);
+                } else {
+                    showResult('searchResult', '❌ Erreur de recherche: ' + (data.error || 'Erreur inconnue'), false);
+                }
+            })
+            .catch(error => {
+                showResult('searchResult', '❌ Erreur de connexion: ' + error.message, false);
+            });
+        }
+
+        // Test Suppression
+        function testDeleteEmployee() {
+            const employeeId = document.getElementById('deleteEmployeeId').value;
+            if (!employeeId) {
+                showResult('deleteResult', '❌ Veuillez saisir un ID d\'employé', false);
+                return;
+            }
+
+            if (!confirm(`Êtes-vous sûr de vouloir désactiver l'employé ID ${employeeId} ?`)) {
+                return;
+            }
+
+            fetch(`/api/delete_employe/${employeeId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': getCsrfToken()
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showResult('deleteResult', `✅ ${data.message}`);
+                } else {
+                    showResult('deleteResult', '❌ Erreur: ' + (data.error || 'Suppression échouée'), false);
+                }
+            })
+            .catch(error => {
+                showResult('deleteResult', '❌ Erreur de connexion: ' + error.message, false);
+            });
+        }
+
+        // Charger liste des employés
+        function loadEmployeeList() {
+            fetch('/api/search_employees/', {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    let resultHtml = `📋 ${data.count} employé(s) dans la base<br><br>`;
+                    if (data.results.length > 0) {
+                        resultHtml += '<table class="table table-striped"><thead><tr><th>ID</th><th>Nom Complet</th><th>Matricule</th><th>Fonction</th><th>Statut</th></tr></thead><tbody>';
+                        data.results.forEach(emp => {
+                            resultHtml += `<tr><td>${emp.id}</td><td>${emp.nom} ${emp.prenom}</td><td>${emp.matricule}</td><td>${emp.fonction || 'Non défini'}</td><td><span class="badge bg-${emp.actif ? 'success' : 'secondary'}">${emp.actif ? 'Actif' : 'Inactif'}</span></td></tr>`;
+                        });
+                        resultHtml += '</tbody></table>';
+                    }
+                    showResult('listResult', resultHtml);
+                } else {
+                    showResult('listResult', '❌ Erreur lors du chargement: ' + (data.error || 'Erreur inconnue'), false);
+                }
+            })
+            .catch(error => {
+                showResult('listResult', '❌ Erreur de connexion: ' + error.message, false);
+            });
+        }
+
+        // Charger la liste au démarrage
+        document.addEventListener('DOMContentLoaded', function() {
+            loadEmployeeList();
+        });
+    </script>
+</body>
+</html>

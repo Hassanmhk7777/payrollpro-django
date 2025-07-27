@@ -1,7 +1,7 @@
 
 from django.urls import path
 from django.http import HttpResponse
-from django.shortcuts import redirect
+from django.shortcuts import redirect, render
 from . import views
 from . import views_excel  # Import des vues Excel
 from . import views_spa  # Import des vues SPA
@@ -24,6 +24,12 @@ def test_fonctionnalites(request):
 urlpatterns = [
     # Page de test des fonctionnalités
     path('test/', test_fonctionnalites, name='test_fonctionnalites'),
+    
+    # Test spécifique des employés
+    path('test/employees/', lambda request: render(request, 'paie/test_employees.html'), name='test_employees'),
+    
+    # Test spécifique de l'interface SPA employés
+    path('test/spa-employees/', lambda request: render(request, 'paie/test_spa_employees.html'), name='test_spa_employees'),
     
     # Redirection par défaut vers la version moderne
     path('', lambda request: redirect('paie:accueil_moderne', permanent=False)),

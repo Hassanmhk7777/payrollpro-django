@@ -420,88 +420,592 @@ def spa_dashboard_rh(request):
 
 @login_required
 def spa_employees(request):
-    """Contenu de la gestion des employés pour SPA"""
+    """Contenu de la gestion des employés pour SPA - Version complète et fonctionnelle"""
     try:
-        # Récupérer les employés
-        employes = Employe.objects.filter(actif=True).select_related('site', 'departement')
+        # Récupérer les employés avec leurs relations
+        employes = Employe.objects.select_related('site', 'departement', 'user').order_by('nom', 'prenom')
+        
+        # Récupérer les sites et départements pour les filtres
+        sites = Site.objects.all()
+        departements = Departement.objects.all()
         
         # Construire le HTML des employés
         employes_html = ""
         for employe in employes:
+            status_badge = "success" if employe.actif else "secondary"
+            status_text = "Actif" if employe.actif else "Inactif"
+            
             employes_html += f'''
-            <tr class="clickable">
-                <td><strong>{employe.nom} {employe.prenom}</strong></td>
+            <tr class="employee-row" data-site="{employe.site_id or ''}" data-dept="{employe.departement_id or ''}">
+                <td>
+                    <div class="d-flex align-items-center">
+                        <div class="avatar-circle bg-primary text-white d-flex align-items-center justify-content-center me-2">
+                            {employe.nom[0]}{employe.prenom[0]}
+                        </div>
+                        <div>
+                            <strong>{employe.nom} {employe.prenom}</strong>
+                            <br><small class="text-muted">#{employe.matricule}</small>
+                        </div>
+                    </div>
+                </td>
                 <td>{employe.fonction or 'Non défini'}</td>
-                <td><span class="highlight">{employe.salaire_base:,.0f} DH</span></td>
+                <td><span class="text-success fw-bold">{float(employe.salaire_base):,.0f} DH</span></td>
                 <td>{employe.site.nom if employe.site else 'Non assigné'}</td>
                 <td>{employe.departement.nom if employe.departement else 'Non assigné'}</td>
-                <td><span class="badge badge-success">Actif</span></td>
+                <td><span class="badge bg-{status_badge}">{status_text}</span></td>
                 <td>
-                    <button class="btn btn-sm btn-outline-primary me-1" onclick="PayrollPro.notify('Consultation employé #{employe.id}', 'info')">
-                        <i class="fas fa-eye"></i>
-                    </button>
-                    <button class="btn btn-sm btn-outline-warning me-1" onclick="PayrollPro.notify('Édition employé #{employe.id}', 'info')">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button class="btn btn-sm btn-outline-danger" onclick="PayrollPro.notify('Suppression employé #{employe.id}', 'warning')">
-                        <i class="fas fa-trash"></i>
-                    </button>
+                    <div class="btn-group btn-group-sm" role="group">
+                        <button class="btn btn-outline-info btn-action" onclick="viewEmployeeDetails({employe.id})" title="Voir détails">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="btn btn-outline-warning btn-action" onclick="editEmployeeForm({employe.id})" title="Modifier">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-outline-danger btn-action" onclick="deactivateEmployee({employe.id}, '{employe.nom} {employe.prenom}')" title="Désactiver">
+                            <i class="fas fa-user-times"></i>
+                        </button>
+                    </div>
                 </td>
             </tr>
             '''
-        
-        data = {
-            'success': True,
-            'content': f'''
+
+        # HTML complet de la page employés avec filtres en haut
+        html_content = f'''
+        <div class="employees-management-page">
+            <!-- En-tête avec titre -->
             <div class="row mb-4">
                 <div class="col-12">
-                    <h2 class="text-gradient mb-4">
-                        <i class="fas fa-users me-3"></i>Gestion des Employés
+                    <h2 class="text-gradient d-flex align-items-center">
+                        <i class="fas fa-users text-primary me-3"></i>
+                        Gestion des Employés
+                        <span class="badge bg-info ms-3">{employes.count()} employé(s)</span>
                     </h2>
                 </div>
             </div>
             
-            <!-- Actions principales -->
+            <!-- Section Filtres et Actions en haut -->
             <div class="row mb-4">
                 <div class="col-12">
-                    <div class="card slide-in-up">
-                        <div class="card-header">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <h4><i class="fas fa-users me-2"></i>Liste des Employés ({employes.count()})</h4>
-                                <div>
-                                    <button class="btn btn-success me-2" onclick="PayrollPro.notify('Fonctionnalité: Ajouter un employé', 'info')">
-                                        <i class="fas fa-user-plus me-2"></i>Ajouter Employé
-                                    </button>
-                                    <button class="btn btn-primary" onclick="PayrollPro.notify('Fonctionnalité: Import Excel', 'info')">
-                                        <i class="fas fa-file-import me-2"></i>Import Excel
-                                    </button>
-                                </div>
-                            </div>
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0"><i class="fas fa-filter me-2"></i>Filtres et Actions</h5>
                         </div>
                         <div class="card-body">
-                            <div class="table-responsive">
-                                <table class="table">
-                                    <thead>
-                                        <tr>
-                                            <th>Nom Complet</th>
-                                            <th>Fonction</th>
-                                            <th>Salaire</th>
-                                            <th>Site</th>
-                                            <th>Département</th>
-                                            <th>Status</th>
-                                            <th>Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {employes_html}
-                                    </tbody>
-                                </table>
+                            <div class="row g-3 align-items-end">
+                                <!-- Filtres -->
+                                <div class="col-md-3">
+                                    <label class="form-label fw-bold">Rechercher</label>
+                                    <input type="text" id="searchInput" class="form-control" 
+                                           placeholder="Nom, prénom, matricule..." 
+                                           onkeyup="filterEmployees()">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label fw-bold">Site</label>
+                                    <select id="siteFilter" class="form-select" onchange="filterEmployees()">
+                                        <option value="">Tous les sites</option>
+                                        {"".join([f'<option value="{site.id}">{site.nom}</option>' for site in sites])}
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label fw-bold">Département</label>
+                                    <select id="deptFilter" class="form-select" onchange="filterEmployees()">
+                                        <option value="">Tous les départements</option>
+                                        {"".join([f'<option value="{dept.id}">{dept.nom}</option>' for dept in departements])}
+                                    </select>
+                                </div>
+                                <!-- Actions -->
+                                <div class="col-md-3">
+                                    <div class="d-grid gap-2">
+                                        <button class="btn btn-success" onclick="addNewEmployee()">
+                                            <i class="fas fa-plus me-2"></i>Ajouter Employé
+                                        </button>
+                                        <button class="btn btn-primary" onclick="exportToExcel()">
+                                            <i class="fas fa-download me-2"></i>Export Excel
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row mt-3">
+                                <div class="col-12">
+                                    <button class="btn btn-outline-secondary btn-sm" onclick="clearAllFilters()">
+                                        <i class="fas fa-times me-1"></i>Effacer les filtres
+                                    </button>
+                                    <span id="filterResults" class="ms-3 text-muted"></span>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-            '''
+            
+            <!-- Section Liste des Employés -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-header bg-white">
+                            <h5 class="mb-0">
+                                <i class="fas fa-list me-2"></i>Liste des Employés
+                                <span id="employeeCount" class="badge bg-secondary ms-2">{employes.count()}</span>
+                            </h5>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0" id="employeesTable">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th width="250">Employé</th>
+                                            <th>Fonction</th>
+                                            <th>Salaire</th>
+                                            <th>Site</th>
+                                            <th>Département</th>
+                                            <th>Statut</th>
+                                            <th width="150">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="employeesTableBody">
+                                        {employes_html}
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <!-- Message si aucun résultat -->
+                            <div id="noResults" class="text-center py-5" style="display: none;">
+                                <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                                <h5 class="text-muted">Aucun employé trouvé</h5>
+                                <p class="text-muted">Essayez de modifier vos critères de recherche</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal pour Employé -->
+        <div class="modal fade" id="employeeModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="employeeModalTitle">Gestion Employé</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body" id="employeeModalBody">
+                        <!-- Contenu dynamique chargé ici -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Détails Employé -->
+        <div class="modal fade" id="employeeDetailsModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-xl">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Détails de l'Employé</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body" id="employeeDetailsModalBody">
+                        <!-- Contenu dynamique chargé ici -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <style>
+        .employees-management-page {{
+            padding: 0;
+        }}
+        .avatar-circle {{
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            font-size: 14px;
+            font-weight: bold;
+        }}
+        .employee-row:hover {{
+            background-color: #f8f9fa;
+        }}
+        .btn-action {{
+            padding: 0.25rem 0.5rem;
+            font-size: 0.875rem;
+        }}
+        .text-gradient {{
+            background: linear-gradient(45deg, #007bff, #6610f2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }}
+        .card {{
+            border-radius: 12px;
+        }}
+        .form-control:focus, .form-select:focus {{
+            border-color: #007bff;
+            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+        }}
+        </style>
+
+        <script>
+        console.log('📋 Script SPA Employés chargé');
+
+        // Variables globales
+        let allEmployees = [];
+
+        // ===== FONCTIONS PRINCIPALES =====
+
+        // Ajouter un nouvel employé
+        function addNewEmployee() {{
+            console.log('🆕 Ajout d\\'un nouvel employé');
+            
+            fetch('/creer_employe/', {{
+                method: 'GET',
+                headers: {{
+                    'X-Requested-With': 'XMLHttpRequest',
+                }}
+            }})
+            .then(response => response.json())
+            .then(data => {{
+                if (data.success) {{
+                    document.getElementById('employeeModalTitle').textContent = 'Ajouter un Nouvel Employé';
+                    document.getElementById('employeeModalBody').innerHTML = data.form_html;
+                    showModal('employeeModal');
+                    showSuccess('Formulaire d\\'ajout chargé');
+                }} else {{
+                    showError('Erreur: ' + (data.error || 'Impossible de charger le formulaire'));
+                }}
+            }})
+            .catch(error => {{
+                showError('Erreur de connexion: ' + error.message);
+            }});
+        }}
+
+        // Modifier un employé
+        function editEmployeeForm(employeeId) {{
+            console.log('✏️ Modification employé ID:', employeeId);
+            
+            fetch(`/modifier_employe/${{employeeId}}/`, {{
+                method: 'GET',
+                headers: {{
+                    'X-Requested-With': 'XMLHttpRequest',
+                }}
+            }})
+            .then(response => response.json())
+            .then(data => {{
+                if (data.success) {{
+                    document.getElementById('employeeModalTitle').textContent = 'Modifier l\\'Employé';
+                    document.getElementById('employeeModalBody').innerHTML = data.form_html;
+                    showModal('employeeModal');
+                    showSuccess('Formulaire de modification chargé');
+                }} else {{
+                    showError('Erreur: ' + (data.error || 'Employé non trouvé'));
+                }}
+            }})
+            .catch(error => {{
+                showError('Erreur de connexion: ' + error.message);
+            }});
+        }}
+
+        // Voir détails d'un employé
+        function viewEmployeeDetails(employeeId) {{
+            console.log('👁️ Affichage détails employé ID:', employeeId);
+            
+            fetch(`/detail_employe/${{employeeId}}/`, {{
+                headers: {{
+                    'X-Requested-With': 'XMLHttpRequest',
+                }}
+            }})
+            .then(response => response.json())
+            .then(data => {{
+                if (data.success) {{
+                    displayEmployeeDetails(data);
+                    showModal('employeeDetailsModal');
+                }} else {{
+                    showError('Erreur: ' + (data.error || 'Impossible de charger les détails'));
+                }}
+            }})
+            .catch(error => {{
+                showError('Erreur de connexion: ' + error.message);
+            }});
+        }}
+
+        // Désactiver un employé
+        function deactivateEmployee(employeeId, employeeName) {{
+            if (!confirm(`Êtes-vous sûr de vouloir désactiver l'employé ${{employeeName}} ?`)) {{
+                return;
+            }}
+
+            console.log('🗑️ Désactivation employé ID:', employeeId);
+            
+            fetch(`/api/delete_employe/${{employeeId}}/`, {{
+                method: 'POST',
+                headers: {{
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': getCSRFToken()
+                }}
+            }})
+            .then(response => response.json())
+            .then(data => {{
+                if (data.success) {{
+                    showSuccess(data.message);
+                    // Recharger la liste des employés
+                    loadSPAContent('employees');
+                }} else {{
+                    showError('Erreur: ' + (data.error || 'Suppression échouée'));
+                }}
+            }})
+            .catch(error => {{
+                showError('Erreur de connexion: ' + error.message);
+            }});
+        }}
+
+        // Export Excel
+        function exportToExcel() {{
+            console.log('📥 Export Excel');
+            
+            fetch('/api/export_employees/', {{
+                headers: {{
+                    'X-Requested-With': 'XMLHttpRequest',
+                }}
+            }})
+            .then(response => {{
+                if (response.ok) {{
+                    return response.blob().then(blob => {{
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `employes_${{new Date().toISOString().split('T')[0]}}.xlsx`;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        window.URL.revokeObjectURL(url);
+                        showSuccess('Export terminé avec succès');
+                    }});
+                }} else {{
+                    throw new Error('Erreur HTTP: ' + response.status);
+                }}
+            }})
+            .catch(error => {{
+                showError('Erreur lors de l\\'export: ' + error.message);
+            }});
+        }}
+
+        // ===== FONCTIONS DE FILTRAGE =====
+
+        function filterEmployees() {{
+            console.log('🔍 Filtrage des employés');
+            
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const selectedSite = document.getElementById('siteFilter').value;
+            const selectedDept = document.getElementById('deptFilter').value;
+            
+            const rows = document.querySelectorAll('.employee-row');
+            let visibleCount = 0;
+            
+            rows.forEach(row => {{
+                const text = row.textContent.toLowerCase();
+                const siteId = row.getAttribute('data-site');
+                const deptId = row.getAttribute('data-dept');
+                
+                const matchesSearch = !searchTerm || text.includes(searchTerm);
+                const matchesSite = !selectedSite || siteId === selectedSite;
+                const matchesDept = !selectedDept || deptId === selectedDept;
+                
+                if (matchesSearch && matchesSite && matchesDept) {{
+                    row.style.display = '';
+                    visibleCount++;
+                }} else {{
+                    row.style.display = 'none';
+                }}
+            }});
+            
+            // Mettre à jour les compteurs
+            document.getElementById('employeeCount').textContent = visibleCount;
+            document.getElementById('filterResults').textContent = 
+                visibleCount === rows.length ? 
+                `${{visibleCount}} employé(s)` : 
+                `${{visibleCount}} sur ${{rows.length}} employé(s)`;
+            
+            // Afficher/masquer le message "aucun résultat"
+            const noResults = document.getElementById('noResults');
+            const tableBody = document.getElementById('employeesTableBody');
+            if (visibleCount === 0) {{
+                noResults.style.display = 'block';
+                tableBody.style.display = 'none';
+            }} else {{
+                noResults.style.display = 'none';
+                tableBody.style.display = '';
+            }}
+        }}
+
+        function clearAllFilters() {{
+            console.log('🧹 Effacement des filtres');
+            document.getElementById('searchInput').value = '';
+            document.getElementById('siteFilter').value = '';
+            document.getElementById('deptFilter').value = '';
+            filterEmployees();
+        }}
+
+        // ===== FONCTIONS UTILITAIRES =====
+
+        function displayEmployeeDetails(data) {{
+            const emp = data.employe;
+            const bulletins = data.bulletins || [];
+            const absences = data.absences || [];
+            
+            let bulletinsHtml = bulletins.length ? 
+                bulletins.map(b => `
+                    <tr>
+                        <td>${{b.mois}}/${{b.annee}}</td>
+                        <td class="text-end">${{b.salaire_brut.toLocaleString()}} DH</td>
+                        <td class="text-end">${{b.salaire_net.toLocaleString()}} DH</td>
+                        <td><span class="badge bg-${{b.statut === 'valide' ? 'success' : 'warning'}}">${{b.statut}}</span></td>
+                    </tr>
+                `).join('') : '<tr><td colspan="4" class="text-center text-muted">Aucun bulletin de paie</td></tr>';
+            
+            let absencesHtml = absences.length ?
+                absences.map(a => `
+                    <tr>
+                        <td>${{a.type_absence}}</td>
+                        <td>${{a.date_debut}} → ${{a.date_fin}}</td>
+                        <td class="text-center">${{a.nombre_jours}} jour(s)</td>
+                        <td><span class="badge bg-${{a.statut === 'approuve' ? 'success' : 'warning'}}">${{a.statut}}</span></td>
+                    </tr>
+                `).join('') : '<tr><td colspan="4" class="text-center text-muted">Aucune absence enregistrée</td></tr>';
+            
+            const detailsHtml = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card h-100">
+                            <div class="card-header bg-primary text-white">
+                                <h6 class="mb-0"><i class="fas fa-user me-2"></i>Informations Personnelles</h6>
+                            </div>
+                            <div class="card-body">
+                                <table class="table table-sm table-borderless">
+                                    <tr><th width="120">Matricule:</th><td><strong>${{emp.matricule}}</strong></td></tr>
+                                    <tr><th>Nom complet:</th><td><strong>${{emp.nom}} ${{emp.prenom}}</strong></td></tr>
+                                    <tr><th>Fonction:</th><td>${{emp.fonction || 'Non défini'}}</td></tr>
+                                    <tr><th>Salaire de base:</th><td class="text-success fw-bold">${{emp.salaire_base.toLocaleString()}} DH</td></tr>
+                                    <tr><th>Date d'embauche:</th><td>${{emp.date_embauche || 'Non défini'}}</td></tr>
+                                    <tr><th>Téléphone:</th><td>${{emp.telephone || 'Non défini'}}</td></tr>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card h-100">
+                            <div class="card-header bg-info text-white">
+                                <h6 class="mb-0"><i class="fas fa-cog me-2"></i>Informations Système</h6>
+                            </div>
+                            <div class="card-body">
+                                <table class="table table-sm table-borderless">
+                                    <tr><th width="120">Site:</th><td>${{emp.site || 'Non assigné'}}</td></tr>
+                                    <tr><th>Département:</th><td>${{emp.departement || 'Non assigné'}}</td></tr>
+                                    <tr><th>Statut:</th><td><span class="badge bg-${{emp.actif ? 'success' : 'secondary'}}">${{emp.actif ? 'Actif' : 'Inactif'}}</span></td></tr>
+                                    ${{emp.user ? `
+                                    <tr><th>Email:</th><td>${{emp.user.email}}</td></tr>
+                                    <tr><th>Utilisateur:</th><td>${{emp.user.username}}</td></tr>
+                                    <tr><th>Dernière connexion:</th><td>${{emp.user.last_login}}</td></tr>
+                                    ` : '<tr><th colspan="2" class="text-muted">Aucun compte utilisateur associé</th></tr>'}}
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mt-4">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header bg-success text-white">
+                                <h6 class="mb-0"><i class="fas fa-file-invoice-dollar me-2"></i>Derniers Bulletins de Paie</h6>
+                            </div>
+                            <div class="card-body p-0">
+                                <div class="table-responsive">
+                                    <table class="table table-sm mb-0">
+                                        <thead class="table-light">
+                                            <tr><th>Période</th><th>Salaire Brut</th><th>Salaire Net</th><th>Statut</th></tr>
+                                        </thead>
+                                        <tbody>${{bulletinsHtml}}</tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header bg-warning text-white">
+                                <h6 class="mb-0"><i class="fas fa-calendar-times me-2"></i>Dernières Absences</h6>
+                            </div>
+                            <div class="card-body p-0">
+                                <div class="table-responsive">
+                                    <table class="table table-sm mb-0">
+                                        <thead class="table-light">
+                                            <tr><th>Type</th><th>Période</th><th>Durée</th><th>Statut</th></tr>
+                                        </thead>
+                                        <tbody>${{absencesHtml}}</tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('employeeDetailsModalBody').innerHTML = detailsHtml;
+        }}
+
+        function showModal(modalId) {{
+            // Essayer différentes méthodes pour ouvrir le modal
+            if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {{
+                const modal = new bootstrap.Modal(document.getElementById(modalId));
+                modal.show();
+            }} else if (typeof $ !== 'undefined' && $.fn.modal) {{
+                $(`#${{modalId}}`).modal('show');
+            }} else {{
+                // Fallback basique
+                const modal = document.getElementById(modalId);
+                modal.style.display = 'block';
+                modal.classList.add('show');
+                modal.setAttribute('aria-hidden', 'false');
+            }}
+        }}
+
+        function getCSRFToken() {{
+            const cookies = document.cookie.split(';');
+            for (let cookie of cookies) {{
+                const [name, value] = cookie.trim().split('=');
+                if (name === 'csrftoken') {{
+                    return value;
+                }}
+            }}
+            return '';
+        }}
+
+        function showSuccess(message) {{
+            if (typeof PayrollPro !== 'undefined' && PayrollPro.notify) {{
+                PayrollPro.notify(message, 'success');
+            }} else {{
+                alert('✅ ' + message);
+            }}
+        }}
+
+        function showError(message) {{
+            if (typeof PayrollPro !== 'undefined' && PayrollPro.notify) {{
+                PayrollPro.notify(message, 'error');
+            }} else {{
+                alert('❌ ' + message);
+            }}
+        }}
+
+        // Initialiser les filtres au chargement
+        document.addEventListener('DOMContentLoaded', function() {{
+            filterEmployees();
+        }});
+
+        console.log('✅ Script SPA Employés initialisé avec succès');
+        </script>
+        '''
+
+        data = {
+            'success': True,
+            'content': html_content
         }
         
         return JsonResponse(data)
