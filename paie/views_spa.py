@@ -619,7 +619,7 @@ def spa_employees_new(request):
         console.log('🚀 Initialisation des filtres employés SPA...');
 
         // Fonction de filtrage CORRIGÉE
-        function applyEmployeeFilters() {{
+        function filterEmployees() {{
             console.log('🔍 Application des filtres...');
             
             // Récupérer les valeurs avec les bons IDs
@@ -716,7 +716,7 @@ def spa_employees_new(request):
             if (deptSelect) deptSelect.value = '';
             
             // Réappliquer les filtres
-            applyEmployeeFilters();
+            filterEmployees();
             
             console.log('✅ Filtres réinitialisés');
         }}
@@ -725,7 +725,7 @@ def spa_employees_new(request):
         let filterTimeout;
         function filterWithDelay() {{
             clearTimeout(filterTimeout);
-            filterTimeout = setTimeout(applyEmployeeFilters, 300);
+            filterTimeout = setTimeout(filterEmployees, 300);
         }}
 
         // Attendre que le contenu soit chargé dans le SPA
@@ -747,14 +747,14 @@ def spa_employees_new(request):
             }}
             
             if (siteSelect) {{
-                siteSelect.addEventListener('change', applyEmployeeFilters);
+                siteSelect.addEventListener('change', filterEmployees);
                 console.log('✅ Événement site attaché');
             }} else {{
                 console.error('❌ Select site non trouvé');
             }}
             
             if (deptSelect) {{
-                deptSelect.addEventListener('change', applyEmployeeFilters);
+                deptSelect.addEventListener('change', filterEmployees);
                 console.log('✅ Événement département attaché');
             }} else {{
                 console.error('❌ Select département non trouvé');
@@ -766,7 +766,7 @@ def spa_employees_new(request):
             }}
             
             // Appliquer un filtrage initial
-            applyEmployeeFilters();
+            filterEmployees();
             
             console.log('🎉 Filtres employés entièrement configurés!');
             
